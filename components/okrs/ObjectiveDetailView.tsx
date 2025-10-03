@@ -15,7 +15,7 @@ import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { Button } from '@/components/ui/button'
 import { strings } from '@/config/strings'
 import { type Objective, useObjective } from '@/hooks/useObjectives'
-import { getIndianFiscalLabel } from '@/lib/india'
+import { getFiscalQuarterLabel } from '@/lib/india'
 import { fmtPercent, fmtMetric } from '@/lib/ui'
 import { calculateKRProgress } from '@/lib/utils'
 
@@ -115,7 +115,7 @@ export function ObjectiveDetailView({ objectiveId }: { objectiveId: string }) {
       <section className="grid gap-4 md:grid-cols-4">
         <MetaCard label={strings.labels.start} value={new Date(objective.startAt).toLocaleDateString()} />
         <MetaCard label={strings.labels.end} value={new Date(objective.endAt).toLocaleDateString()} />
-        <MetaCard label={strings.labels.indianFiscalQuarter} value={getIndianFiscalLabel(objective.fiscalQuarter)} />
+        <MetaCard label={strings.labels.fiscalQuarter} value={getFiscalQuarterLabel(objective.fiscalQuarter)} />
         <MetaCard
           label={strings.labels.alignedUnder}
           value={

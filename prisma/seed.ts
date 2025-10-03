@@ -1,29 +1,29 @@
-import { PrismaClient, Role, CheckInStatus, ObjectiveStatus } from '@prisma/client'
+import { PrismaClient, Role, CheckInStatus, ObjectiveStatus, GoalType } from '@prisma/client'
 import { hash } from 'bcryptjs'
-import { getIndianFiscalQuarter } from '../lib/india'
+import { getFiscalQuarter } from '../lib/india'
 const prisma = new PrismaClient()
 async function main() {
   let org = await prisma.organization.findFirst({
-    where: { name: 'OKRFlow India Demo' },
+    where: { name: 'TechFlow Solutions' },
   })
 
   if (!org) {
     org = await prisma.organization.create({
-      data: { name: 'OKRFlow India Demo' },
+      data: { name: 'TechFlow Solutions' },
     })
   }
 
   const [admin, manager, meUser] = await Promise.all([
-    upsertUser('admin@okrflow.test', 'Aditi Rao', Role.ADMIN, org.id),
-    upsertUser('manager@okrflow.test', 'Manish Iyer', Role.MANAGER, org.id),
-    upsertUser('me@okrflow.test', 'Meena Patel', Role.EMPLOYEE, org.id),
+    upsertUser('admin@techflow.dev', 'Sarah Chen', Role.ADMIN, org.id),
+    upsertUser('manager@techflow.dev', 'Alex Rodriguez', Role.MANAGER, org.id),
+    upsertUser('me@techflow.dev', 'Jordan Kim', Role.EMPLOYEE, org.id),
   ])
   await prisma.objective.deleteMany({ where: { ownerId: { in: [admin.id, manager.id, meUser.id] } } })
   await prisma.team.deleteMany({ where: { orgId: org.id } })
-  const [salesTeam, operationsTeam, complianceTeam] = await Promise.all([
-    prisma.team.create({ data: { name: 'Sales (India)', orgId: org.id } }),
-    prisma.team.create({ data: { name: 'Operations', orgId: org.id } }),
-    prisma.team.create({ data: { name: 'Compliance', orgId: org.id } }),
+  const [frontendTeam, backendTeam, devopsTeam] = await Promise.all([
+    prisma.team.create({ data: { name: 'Frontend Team', orgId: org.id } }),
+    prisma.team.create({ data: { name: 'Backend Team', orgId: org.id } }),
+    prisma.team.create({ data: { name: 'DevOps Team', orgId: org.id } }),
   ])
   const now = new Date()
   const fyStartYear = now.getUTCMonth() >= 3 ? now.getUTCFullYear() : now.getUTCFullYear() - 1
@@ -38,65 +38,68 @@ async function main() {
     end: new Date(Date.UTC(fyStartYear, 8, 30, 23, 59, 59)),
     label: `${fyLabel} Q2 (Jul-Sep)`,
   }
-  const growMrr = await createObjectiveWithKRs({
+  const userAdoption = await createObjectiveWithKRs({
     ownerId: manager.id,
-    teamId: salesTeam.id,
+    teamId: frontendTeam.id,
     status: ObjectiveStatus.IN_PROGRESS,
-    title: 'Grow MRR to ₹50L',
-    description: 'Localise pricing and double fintech conversions across metro markets.',
+    goalType: GoalType.TEAM,
+    title: 'Increase User Adoption by 40%',
+    description: 'Improve user onboarding and feature adoption through enhanced UX and onboarding flows.',
     cycle: q1.label,
     startAt: q1.start,
     endAt: q1.end,
     keyResults: [
-      { title: 'Leads→Demos pipeline value', weight: 40, target: 5_000_000, current: 2_400_000, unit: '₹' },
-      { title: 'Demos→Paid conversion rate', weight: 35, target: 35, current: 26, unit: '%' },
-      { title: 'Churn <3%', weight: 25, target: 3, current: 4.1, unit: '%' },
+      { title: 'Weekly active users', weight: 40, target: 50000, current: 32000, unit: 'users' },
+      { title: 'Feature adoption rate', weight: 35, target: 75, current: 58, unit: '%' },
+      { title: 'User retention (30-day)', weight: 25, target: 85, current: 78, unit: '%' },
     ],
   })
 
-  const gstCompliance = await createObjectiveWithKRs({
+  const apiPerformance = await createObjectiveWithKRs({
     ownerId: meUser.id,
-    teamId: complianceTeam.id,
+    teamId: backendTeam.id,
     status: ObjectiveStatus.AT_RISK,
-    title: 'GST Compliance Objective',
-    description: 'Stabilise GST filings and reduce amendment cycles for enterprise customers.',
+    goalType: GoalType.TEAM,
+    title: 'Improve API Performance by 50%',
+    description: 'Optimize backend services and reduce response times for better user experience.',
     cycle: q1.label,
     startAt: q1.start,
     endAt: q1.end,
     keyResults: [
-      { title: 'File monthly returns on schedule', weight: 55, target: 12, current: 5, unit: 'filings' },
-      { title: 'Reduce filing errors <1%', weight: 45, target: 1, current: 2.6, unit: '%' },
+      { title: 'API response time <200ms', weight: 55, target: 200, current: 350, unit: 'ms' },
+      { title: 'Reduce error rate <0.1%', weight: 45, target: 0.1, current: 0.8, unit: '%' },
     ],
   })
 
-  const deliverySla = await createObjectiveWithKRs({
+  const deploymentReliability = await createObjectiveWithKRs({
     ownerId: admin.id,
-    teamId: operationsTeam.id,
+    teamId: devopsTeam.id,
     status: ObjectiveStatus.DONE,
-    title: 'Improve Delivery SLA',
-    description: 'Scale fulfilment ops to keep regional deliveries under three days.',
+    goalType: GoalType.TEAM,
+    title: 'Achieve 99.9% Deployment Uptime',
+    description: 'Implement automated CI/CD pipelines and monitoring to ensure reliable deployments.',
     cycle: q2.label,
     startAt: q2.start,
     endAt: q2.end,
     keyResults: [
-      { title: 'Average delivery time <3 days', weight: 60, target: 3, current: 2.5, unit: 'days' },
-      { title: 'SLA adherence >95%', weight: 40, target: 95, current: 96.2, unit: '%' },
+      { title: 'Deployment success rate >99%', weight: 60, target: 99, current: 99.2, unit: '%' },
+      { title: 'MTTR <1 hour', weight: 40, target: 1, current: 0.8, unit: 'hours' },
     ],
   })
 
   await prisma.initiative.createMany({
     data: [
-      { keyResultId: growMrr.keyResults[0].id, title: 'Partner with Razorpay', status: 'DOING' },
-      { keyResultId: gstCompliance.keyResults[0].id, title: 'Automate GST filing', status: 'TODO' },
+      { keyResultId: userAdoption.keyResults[0].id, title: 'Implement onboarding wizard', status: 'DOING' },
+      { keyResultId: apiPerformance.keyResults[0].id, title: 'Optimize database queries', status: 'TODO' },
     ],
   })
 
   console.log(`
 Seed complete:
- - Organisation: OKRFlow India Demo
- - Teams: Sales (India), Operations, Compliance
- - Users: admin@okrflow.test, manager@okrflow.test, me@okrflow.test (password: Pass@123)
- - Objectives seeded with Indian fiscal quarters, GST microcopy, and live check-ins`)
+ - Organisation: TechFlow Solutions
+ - Teams: Frontend Team, Backend Team, DevOps Team
+ - Users: admin@techflow.dev, manager@techflow.dev, me@techflow.dev (password: Pass@123)
+ - Objectives seeded with user adoption, API performance, and deployment reliability goals`)
 }
 
 async function upsertUser(email: string, name: string, role: Role, orgId: string) {
@@ -111,6 +114,7 @@ type ObjectiveSeedInput = {
   ownerId: string
   teamId: string
   status: ObjectiveStatus
+  goalType: GoalType
   title: string
   description: string
   cycle: string
@@ -130,12 +134,13 @@ async function createObjectiveWithKRs(input: ObjectiveSeedInput) {
       ownerId: input.ownerId,
       teamId: input.teamId,
       status: input.status,
+      goalType: input.goalType,
       title: input.title,
       description: input.description,
       cycle: input.cycle,
       startAt: input.startAt,
       endAt: input.endAt,
-      fiscalQuarter: getIndianFiscalQuarter(input.startAt),
+      fiscalQuarter: getFiscalQuarter(input.startAt),
     },
   })
 
@@ -171,10 +176,10 @@ async function seedCheckIns(ownerId: string, keyResults: Array<{ id: string; cur
           status,
           comment:
             status === CheckInStatus.RED
-              ? 'Needs unblocker from finance this sprint.'
+              ? 'Blocked by dependency on backend API changes.'
               : status === CheckInStatus.YELLOW
-                ? 'Watching risk trend closely.'
-                : 'Weekly momentum looks good.',
+                ? 'Monitoring performance metrics closely.'
+                : 'Sprint velocity is on track.',
         },
       })
     }

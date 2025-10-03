@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, ShieldCheck, Target, UserRound, type LucideIcon } from 'lucide-react'
+import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, type LucideIcon } from 'lucide-react'
 import { useEffect } from 'react'
 
 import { cn } from '@/lib/ui'
@@ -19,6 +19,7 @@ const iconMap: Record<string, LucideIcon> = {
   ClipboardList,
   UserRound,
   ShieldCheck,
+  BarChart3,
 }
 
 type AppNavProps = {

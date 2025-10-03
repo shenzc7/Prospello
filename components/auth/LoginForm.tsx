@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { FormField, FormItem } from '@/components/ui/form'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
@@ -20,7 +21,7 @@ type FormValues = z.infer<typeof schema>
 export function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const callbackUrl = params?.get('callbackUrl') ?? '/dashboard'
+  const callbackUrl = params?.get('callbackUrl') ?? '/okrs'
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [focusedField, setFocusedField] = React.useState<string | null>(null)
@@ -38,100 +39,102 @@ export function LoginForm() {
     setIsSubmitting(true)
     try {
       const result = await signIn('credentials', {
-        redirect: false,
         email: values.email,
-        password: values.password
+        password: values.password,
+        callbackUrl: callbackUrl,
+        redirect: true
       })
 
       if (result?.error) {
         setFormError('Invalid email or password')
+        setIsSubmitting(false)
         return
       }
 
-      router.replace(callbackUrl)
+      // If signIn returns without error, it will handle the redirect automatically
     } catch (error) {
       console.error('login failed', error)
       setFormError('Unable to sign in right now. Please try again.')
-    } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-5">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <div className="relative">
-                  <input
-                    {...field}
-                    data-testid="login-email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder=" "
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    className={cn(
-                      "w-full h-14 px-4 pt-5 pb-2 text-slate-900 dark:text-white bg-transparent border rounded-xl transition-all duration-200 outline-none",
-                      "border-slate-200 dark:border-slate-700",
-                      "focus:border-slate-900 dark:focus:border-white focus:ring-0",
-                      "hover:border-slate-300 dark:hover:border-slate-600",
-                      (field.value || focusedField === 'email') && "pt-5 pb-2"
-                    )}
-                  />
-                  <label className={cn(
-                    "absolute left-4 transition-all duration-200 pointer-events-none",
-                    "text-slate-500 dark:text-slate-400",
-                    (field.value || focusedField === 'email')
-                      ? "top-2 text-xs font-medium text-slate-700 dark:text-slate-300"
-                      : "top-1/2 -translate-y-1/2 text-base"
-                  )}>
-                    Email address
-                  </label>
-                </div>
-              </FormItem>
-            )}
-          />
+        {/* Tab-like form container */}
+        <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl p-6 border border-slate-200/60 dark:border-slate-700/60">
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <div className="relative">
+                    <input
+                      {...field}
+                      data-testid="login-email"
+                      type="email"
+                      autoComplete="email"
+                      placeholder=" "
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
+                      className={cn(
+                        "w-full h-12 px-4 pt-4 pb-2 text-sm text-slate-900 dark:text-white bg-transparent border-b border-slate-300 dark:border-slate-600 transition-all duration-200 outline-none",
+                        "focus:border-slate-900 dark:focus:border-white focus:ring-0",
+                        "hover:border-slate-400 dark:hover:border-slate-500",
+                        (field.value || focusedField === 'email') && "pt-4 pb-2"
+                      )}
+                    />
+                    <label className={cn(
+                      "absolute left-4 transition-all duration-200 pointer-events-none",
+                      "text-slate-500 dark:text-slate-400",
+                      (field.value || focusedField === 'email')
+                        ? "top-1 text-xs font-medium text-slate-700 dark:text-slate-300"
+                        : "top-1/2 -translate-y-1/2 text-sm"
+                    )}>
+                      Email address
+                    </label>
+                  </div>
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="space-y-2">
-                <div className="relative">
-                  <input
-                    {...field}
-                    data-testid="login-password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder=" "
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    className={cn(
-                      "w-full h-14 px-4 pt-5 pb-2 text-slate-900 dark:text-white bg-transparent border rounded-xl transition-all duration-200 outline-none",
-                      "border-slate-200 dark:border-slate-700",
-                      "focus:border-slate-900 dark:focus:border-white focus:ring-0",
-                      "hover:border-slate-300 dark:hover:border-slate-600",
-                      (field.value || focusedField === 'password') && "pt-5 pb-2"
-                    )}
-                  />
-                  <label className={cn(
-                    "absolute left-4 transition-all duration-200 pointer-events-none",
-                    "text-slate-500 dark:text-slate-400",
-                    (field.value || focusedField === 'password')
-                      ? "top-2 text-xs font-medium text-slate-700 dark:text-slate-300"
-                      : "top-1/2 -translate-y-1/2 text-base"
-                  )}>
-                    Password
-                  </label>
-                </div>
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <div className="relative">
+                    <input
+                      {...field}
+                      data-testid="login-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder=" "
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
+                      className={cn(
+                        "w-full h-12 px-4 pt-4 pb-2 text-sm text-slate-900 dark:text-white bg-transparent border-b border-slate-300 dark:border-slate-600 transition-all duration-200 outline-none",
+                        "focus:border-slate-900 dark:focus:border-white focus:ring-0",
+                        "hover:border-slate-400 dark:hover:border-slate-500",
+                        (field.value || focusedField === 'password') && "pt-4 pb-2"
+                      )}
+                    />
+                    <label className={cn(
+                      "absolute left-4 transition-all duration-200 pointer-events-none",
+                      "text-slate-500 dark:text-slate-400",
+                      (field.value || focusedField === 'password')
+                        ? "top-1 text-xs font-medium text-slate-700 dark:text-slate-300"
+                        : "top-1/2 -translate-y-1/2 text-sm"
+                    )}>
+                      Password
+                    </label>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {formError && (
@@ -150,7 +153,7 @@ export function LoginForm() {
           type="submit"
           disabled={isSubmitting}
           className={cn(
-            "w-full h-14 rounded-xl font-medium text-base transition-all duration-200",
+            "w-full h-12 rounded-xl font-medium text-sm transition-all duration-200",
             "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
             "hover:bg-slate-800 dark:hover:bg-slate-100",
             "focus:outline-none focus:ring-2 focus:ring-slate-900/20 dark:focus:ring-white/20",
@@ -172,6 +175,3 @@ export function LoginForm() {
   )
 }
 
-function FormItem({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={className}>{children}</div>
-}

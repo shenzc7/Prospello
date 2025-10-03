@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { calcProgress, calcProgressFromProgress, getTrafficLightStatus } from '@/lib/okr'
-import { getIndianFiscalQuarter } from '@/lib/india'
+import { getFiscalQuarter } from '@/lib/india'
 import { calculateKRProgress } from '@/lib/utils'
 import { updateObjectiveRequestSchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
@@ -153,7 +153,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (updateData.startAt) {
       const startDate = new Date(updateData.startAt)
       data.startAt = startDate
-      data.fiscalQuarter = getIndianFiscalQuarter(startDate)
+      data.fiscalQuarter = getFiscalQuarter(startDate)
     }
     if (updateData.endAt) data.endAt = new Date(updateData.endAt)
     if (updateData.parentObjectiveId !== undefined) data.parentId = updateData.parentObjectiveId || null

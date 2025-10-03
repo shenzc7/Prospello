@@ -29,3 +29,13 @@ export function calculateObjectiveProgress(keyResults: Array<{ weight: number; p
 
   return Math.max(0, Math.min(100, totalWeightedProgress))
 }
+
+/**
+ * Calculate automated score for completed objectives (0.0 - 1.0 scale)
+ * @param progress Final progress percentage (0-100)
+ * @returns Score on 0.0-1.0 scale
+ */
+export function calculateObjectiveScore(progress: number): number {
+  // Convert progress percentage to 0.0-1.0 score
+  return Math.max(0, Math.min(1, progress / 100))
+}

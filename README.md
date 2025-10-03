@@ -1,259 +1,153 @@
 # Prospello
 
-Modern OKR and weekly check-in workspace built on Next.js 15 with Prisma, NextAuth, and shadcn/ui.
+A modern OKR (Objectives and Key Results) tracking platform built with Next.js 15, designed to help teams set, track, and align organizational goals with real-time progress monitoring.
 
-## Getting Started
-1. Install dependencies: `npm install`
-2. Configure environment: copy `.env.example` to `.env` and fill values.
+## Features
 
-### Runbook
-- `npx prisma migrate dev` — apply latest schema to your local database.
-- `npm run db:seed` — load demo users, objectives, and key results.
-- `npm run dev` — start the application at `http://localhost:3000`.
+- **OKR Management**: Create and track objectives with measurable key results
+- **Weekly Check-ins**: Traffic light status system (Green/Yellow/Red) for progress updates
+- **Role-based Access**: Separate dashboards for Admins, Managers, and Employees
+- **Team Collaboration**: Commenting system and progress sharing
+- **Analytics & Reporting**: Trend analysis and export capabilities
+- **Goal Alignment**: Hierarchical goal structure (Company → Team → Individual)
 
-### Branding
-- `NEXT_PUBLIC_BRAND_NAME` — app display name (default: Prospello)
-- `NEXT_PUBLIC_BRAND_TAGLINE` — short tagline for the login page
-- `NEXT_PUBLIC_BRAND_LOGO_URL` — optional absolute URL for the brand logo image (falls back to an icon)
+## Tech Stack
 
-### Demo Accounts (after seeding)
-- Admin: `admin@okrflow.test` / `Pass@123`
-- Manager: `manager@okrflow.test` / `Pass@123`
-- Meena: `me@okrflow.test` / `Pass@123`
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui, Radix UI
+- **Database**: Prisma ORM with SQLite (development) / PostgreSQL (production)
+- **Authentication**: NextAuth.js
+- **Deployment**: Vercel-ready
 
-### Demo Script
-1. Sign in as `admin@okrflow.test`.
-2. Open `/board` from the address bar.
-3. Drag an objective between status columns and watch the board refresh live.
-4. Filter by an Indian fiscal quarter, then open “Grow MRR to ₹50L” to view ₹-formatted pipeline targets.
+## Quick Start
 
-## Deployment
-Deploy on Vercel with the same environment variables; set `DATABASE_URL` to a managed Postgres instance and run `prisma migrate deploy` during the build step.
-
-## Database Setup with Prisma
-
-### Quick Start:
-```bash
-# 1. Set up database URL in .env
-DATABASE_URL="file:./dev.db"
-
-# 2. Generate Prisma client and run migrations
-npx prisma generate
-npx prisma migrate dev
-
-# 3. Seed with demo data
-npm run db:seed
-```
-
-### Database Schema Overview:
-- **SQLite database** for development (easily switchable to PostgreSQL for production)
-- **NextAuth.js integration** with User, Account, Session models
-- **OKR entities**: Organization → Teams → Objectives → Key Results → Initiatives
-- **Check-ins**: Weekly progress tracking with status (GREEN/YELLOW/RED)
-- **Role-based access**: ADMIN, MANAGER, EMPLOYEE permissions
-
-### Key Relationships:
-```
-Organization
-├── Users (with roles)
-├── Teams
-└── Objectives (owned by users, assigned to teams)
-
-Objectives
-├── Key Results (weighted progress tracking)
-├── Initiatives (action items per KR)
-└── Check-ins (weekly updates per KR)
-
-Users can:
-- Create/manage their objectives
-- View team objectives (role-based)
-- Submit weekly check-ins on key results
-```
-
-## Real-time Collaboration Setup
-
-### Working from Any Device:
-1. **Clone the repository:**
+1. **Clone the repository**
    ```bash
-   git clone https://github.com/shenzc7/Prospello.git
-   cd Prospello
+   git clone https://github.com/yourusername/prospello.git
+   cd prospello
    ```
 
-2. **Install dependencies:**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-3. **Set up environment:**
+3. **Set up environment**
    ```bash
-   cp .env.example .env
-   # Edit .env with your database and auth credentials
+   cp .env.example .env.local
+   # Edit .env.local with your configuration
    ```
 
-4. **Set up database:**
+4. **Set up database**
    ```bash
    npx prisma generate
    npx prisma migrate dev
    npm run db:seed
    ```
 
-5. **Start development:**
+5. **Start development server**
    ```bash
    npm run dev
    ```
 
-### Sync Changes:
-- **Push changes:** `git add . && git commit -m "Your changes" && git push`
-- **Pull changes:** `git pull origin main`
-- **Check status:** `git status` and `gh repo view Prospello`
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-## Database Monitoring & Debugging
+## Demo Accounts
 
-### Prisma Query Logging:
+After seeding the database, you can use these accounts to explore different user roles:
+
+- **Admin**: `admin@techflow.dev` / `Pass@123`
+- **Manager**: `manager@techflow.dev` / `Pass@123`
+- **Employee**: `me@techflow.dev` / `Pass@123`
+
+## Environment Variables
+
+Create a `.env.local` file with the following variables:
+
 ```bash
-# Enable query logging in .env.local
-PRISMA_LOG_LEVEL="query"
-PRISMA_LOG_QUERIES="true"
+# Database
+DATABASE_URL="file:./dev.db"
 
-# Restart your dev server to see all database queries in terminal
-npm run dev
+# NextAuth.js
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+
+# Optional Branding
+NEXT_PUBLIC_BRAND_NAME="Prospello"
+NEXT_PUBLIC_BRAND_TAGLINE="Modern OKR & Check-in Platform"
+NEXT_PUBLIC_BRAND_LOGO_URL=""
 ```
 
-### Prisma Studio (Database GUI):
+## Database Schema
+
+The application uses Prisma ORM with the following main entities:
+
+- **Users**: Authentication and role management (ADMIN, MANAGER, EMPLOYEE)
+- **Organizations**: Multi-tenant support
+- **Teams**: Department/team groupings
+- **Objectives**: Main OKRs with goal types (COMPANY, DEPARTMENT, TEAM, INDIVIDUAL)
+- **Key Results**: Measurable outcomes with weighted progress
+- **Initiatives**: Action items per key result
+- **Check-ins**: Weekly progress updates with traffic light status
+- **Comments**: Discussion system for objectives and key results
+
+## Development Scripts
+
 ```bash
-# Open visual database browser
-npx prisma studio
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
 
-# Opens at http://localhost:5555 by default
-# View/edit data, run queries, see schema relationships
+# Database
+npm run db:seed      # Seed database with demo data
+npx prisma studio    # Open database GUI
+npx prisma migrate dev  # Create and apply migrations
 ```
 
-### Database Commands:
-```bash
-# View current migration status
-npx prisma migrate status
+## Deployment
 
-# Reset database (WARNING: deletes all data)
-npx prisma migrate reset
+### Vercel (Recommended)
 
-# Generate new migration
-npx prisma migrate dev --name "your-migration-name"
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on git push
 
-# View database schema
-npx prisma db push --preview-feature
-```
+### Manual Deployment
 
-### Database Seed & Reset:
-```bash
-# Reset and reseed database
-npm run db:seed
+For other platforms, ensure you have:
 
-# Clean database (removes all data)
-npx prisma db push --force-reset
-```
+- Node.js 18+
+- PostgreSQL database
+- Environment variables configured
+- `npm run build && npm start` for production
 
-## Vercel Deployment Setup
-
-### 1. Connect Repository:
-1. Go to [vercel.com](https://vercel.com) and sign up/login
-2. Click "New Project" → "Import Git Repository"
-3. Connect your GitHub account and select `Prospello` repository
-4. Vercel will auto-detect Next.js settings
-
-### 2. Environment Variables:
-In Vercel dashboard → Project Settings → Environment Variables:
+## Project Structure
 
 ```
-DATABASE_URL=postgresql://username:password@host:5432/database
-NEXTAUTH_URL=https://your-app.vercel.app
-NEXTAUTH_SECRET=your-production-secret-key
-NEXT_PUBLIC_BRAND_NAME=Prospello
-NEXT_PUBLIC_BRAND_TAGLINE=Modern OKR & Check-in Platform
+├── app/                    # Next.js app directory
+│   ├── (app)/             # Protected routes
+│   ├── (auth)/            # Authentication routes
+│   └── api/               # API routes
+├── components/            # React components
+│   ├── ui/               # Reusable UI components
+│   ├── dashboard/        # Dashboard components
+│   └── auth/             # Authentication components
+├── lib/                  # Utility libraries
+├── prisma/               # Database schema and migrations
+└── types/                # TypeScript type definitions
 ```
 
-### 3. Database Setup for Production:
-```bash
-# 1. Create PostgreSQL database (use Vercel Postgres, Supabase, or Railway)
-# 2. Run migrations on production
-npx prisma migrate deploy
+## Contributing
 
-# 3. Seed production data (optional)
-npm run db:seed
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
 
-### 4. Build Settings:
-Vercel auto-detects Next.js, but verify:
-- **Framework Preset:** Next.js
-- **Root Directory:** `./` (leave empty)
-- **Build Command:** `npm run build`
-- **Output Directory:** `.next` (auto-detected)
+## License
 
-### 5. Deploy:
-```bash
-# Push to main branch to auto-deploy
-git push origin main
-
-# Or deploy manually from Vercel dashboard
-```
-
-### Vercel CLI Commands:
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Login to Vercel
-vercel login
-
-# Deploy project
-vercel
-
-# Check deployment status
-vercel ls
-```
-
-## Production Database Migration
-
-### Switching from SQLite to PostgreSQL:
-
-1. **Update schema.prisma:**
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-2. **Run migration:**
-```bash
-npx prisma migrate dev --name "switch-to-postgres"
-npx prisma db push
-```
-
-3. **Update environment:**
-```bash
-DATABASE_URL="postgresql://user:pass@host:5432/db"
-```
-
-### Monitoring Production:
-- **Vercel Analytics:** Real-time performance metrics
-- **Vercel Logs:** Application logs and errors
-- **Database Monitoring:** Check your PostgreSQL provider's dashboard
-
-## Troubleshooting
-
-### Common Issues:
-```bash
-# Database connection issues
-npx prisma db push --force-reset
-
-# Migration conflicts
-npx prisma migrate resolve --applied 20231201123456_migration_name
-
-# Clean node_modules
-rm -rf node_modules && npm install
-```
-
-### Performance Monitoring:
-- Use Vercel's built-in analytics
-- Monitor database query performance with Prisma logging
-- Check bundle size with `npm run build && npx @next/bundle-analyzer`
+This project is licensed under the MIT License.

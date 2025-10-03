@@ -1,16 +1,64 @@
 'use client'
 
 import { Users, Target, TrendingUp } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useMemo } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useObjectives } from '@/hooks/useObjectives'
+import { UserRole } from '@/lib/rbac'
 
-export function TeamProgressWidget() {
-  const { data: objectivesData } = useObjectives({})
-  const objectives = objectivesData?.objectives ?? []
+interface TeamProgressWidgetProps {
+  userRole?: UserRole
+  userId?: string
+}
+
+export function TeamProgressWidget({ userRole, userId }: TeamProgressWidgetProps = {}) {
+  const { data: session } = useSession()
+  const user = session?.user
+  const currentUserRole = userRole || user?.role as UserRole
+  const currentUserId = userId || user?.id
+
+  // Only show for managers and admins
+  if (currentUserRole !== 'ADMIN' && currentUserRole !== 'MANAGER') return null
+
+  // Build query params based on user role - managers and admins see team data
+  const queryParams = useMemo(() => {
+    if (!currentUserId) return {}
+
+    switch (currentUserRole) {
+      case 'ADMIN':
+        return {} // Admin sees all
+      case 'MANAGER':
+        return {} // Manager sees all team data
+      case 'EMPLOYEE':
+        return { ownerId: currentUserId } // Employee only sees their own
+      default:
+        return { ownerId: currentUserId }
+    }
+  }, [currentUserId, currentUserRole])
+
+  const { data: objectivesData } = useObjectives(queryParams)
+  const allObjectives = objectivesData?.objectives ?? []
+
+  // Filter objectives based on user role
+  const objectives = useMemo(() => {
+    if (!currentUserId) return allObjectives
+
+    switch (currentUserRole) {
+      case 'ADMIN':
+        return allObjectives // Admin sees all objectives
+      case 'MANAGER':
+        return allObjectives.filter(obj => obj.team?.name?.includes('Team')) // Manager sees team objectives
+      case 'EMPLOYEE':
+        return allObjectives.filter(obj => obj.owner.id === currentUserId) // Employee sees only their own
+      default:
+        return allObjectives.filter(obj => obj.owner.id === currentUserId)
+    }
+  }, [allObjectives, currentUserId, currentUserRole])
 
   // Group objectives by team
   const teamStats = objectives.reduce((acc, obj) => {

@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
 import { ProgressChip } from '@/components/ui/ProgressChip'
-import { getIndianFiscalLabel } from '@/lib/india'
+import { getFiscalQuarterLabel } from '@/lib/india'
 import { getTrafficLightStatus } from '@/lib/okr'
 import { cn, fmtPercent } from '@/lib/ui'
 import type { Objective } from '@/hooks/useObjectives'
@@ -49,7 +49,7 @@ export function ObjectiveCard({ objective, isUpdating }: ObjectiveCardProps) {
             {objective.title}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {objective.team?.name ?? 'Unassigned team'} • {getIndianFiscalLabel(objective.fiscalQuarter)}
+            {objective.team?.name ?? 'Unassigned team'} • {getFiscalQuarterLabel(objective.fiscalQuarter)}
           </p>
         </div>
         <ProgressChip tone={tone}>{fmtPercent(objective.progress)}</ProgressChip>

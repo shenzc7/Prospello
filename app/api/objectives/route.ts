@@ -4,11 +4,12 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { calcProgress, calcProgressFromProgress, getTrafficLightStatus } from '@/lib/okr'
-import { getIndianFiscalQuarter } from '@/lib/india'
+import { getFiscalQuarter } from '@/lib/india'
 import { calculateKRProgress } from '@/lib/utils'
 import { createObjectiveRequestSchema, listObjectivesQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { monitorDatabaseQuery } from '@/lib/performance'
+import { Role, ObjectiveStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,13 +31,29 @@ export async function GET(request: NextRequest) {
       return createErrorResponse(validation.error)
     }
 
-    const { search, cycle, ownerId, teamId, fiscalQuarter, status, limit, offset } = validation.data
+    const { search, cycle, ownerId, teamId, fiscalQuarter, status, limit, offset } = validation.data as {
+      search?: string
+      cycle?: string
+      ownerId?: string
+      teamId?: string
+      fiscalQuarter?: number
+      status?: ObjectiveStatus
+      limit: number
+      offset: number
+    }
 
     // Build where clause
-    const where: any = {}
+    const where: {
+      ownerId?: string
+      teamId?: string
+      fiscalQuarter?: number
+      cycle?: string
+      status?: ObjectiveStatus
+      OR?: Array<{ title?: { contains: string; mode: 'insensitive' } } | { description?: { contains: string; mode: 'insensitive' } }>
+    } = {}
 
     // If not admin/manager, only show own objectives
-    if (session?.user && !isManagerOrHigher(session.user.role as any)) {
+    if (session?.user && !isManagerOrHigher(session.user.role as Role)) {
       where.ownerId = session.user.id
     } else if (ownerId) {
       where.ownerId = ownerId
@@ -107,10 +124,36 @@ export async function GET(request: NextRequest) {
       () => prisma.objective.count({ where }),
       'count objectives',
       'objectives'
-    )
+    ) as number
 
     // Calculate progress for each objective
-    const objectivesWithProgress = objectives.map((objective) => {
+    const objectivesWithProgress = (objectives as Array<{
+      id: string
+      title: string
+      description: string | null
+      cycle: string
+      startAt: Date
+      endAt: Date
+      status: ObjectiveStatus
+      fiscalQuarter: number
+      createdAt: Date
+      updatedAt: Date
+      ownerId: string
+      teamId: string | null
+      parentId: string | null
+      owner: { id: string; name: string | null; email: string }
+      team: { id: string; name: string } | null
+      parent: { id: string; title: string } | null
+      keyResults: Array<{
+        id: string
+        title: string
+        weight: number
+        target: number
+        current: number
+        unit: string | null
+      }>
+      _count: { children: number }
+    }>).map((objective) => {
       const keyResultsWithProgress = objective.keyResults.map((kr) => ({
         ...kr,
         progress: calculateKRProgress(kr.current, kr.target),
@@ -130,7 +173,7 @@ export async function GET(request: NextRequest) {
         total,
         limit,
         offset,
-        hasMore: offset + limit < total,
+        hasMore: (offset as number) + (limit as number) < total,
       },
     })
 
@@ -164,6 +207,31 @@ export async function POST(request: NextRequest) {
 
     const { title, description, cycle, startAt, endAt, parentObjectiveId, keyResults } = validation.data
 
+    // Role-based limits and validation
+    const userRole = session.user.role as Role
+
+    // Employee limits: max 5 objectives
+    if (userRole === 'EMPLOYEE') {
+      const userObjectiveCount = await prisma.objective.count({
+        where: { ownerId: session.user.id }
+      })
+
+      if (userObjectiveCount >= 5) {
+        return createErrorResponse(errors.validation('Employees can create a maximum of 5 objectives'))
+      }
+    }
+
+    // Key Result limits based on role
+    if (keyResults.length > 5) {
+      return createErrorResponse(errors.validation('Maximum 5 Key Results allowed per objective'))
+    }
+
+    // Additional validation for non-admin users
+    if (userRole === 'EMPLOYEE') {
+      // Employees can only create individual objectives (no team assignment)
+      // Additional restrictions can be added here
+    }
+
     // Validate parent objective exists and belongs to same cycle
     if (parentObjectiveId) {
       const parentObjective = await prisma.objective.findUnique({
@@ -180,7 +248,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user can align to this parent (own objective or if manager/admin)
-      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
       }
     }
@@ -204,7 +272,7 @@ export async function POST(request: NextRequest) {
           endAt: endDate,
           ownerId: session.user.id,
           parentId: parentObjectiveId || null,
-          fiscalQuarter: getIndianFiscalQuarter(startDate),
+          fiscalQuarter: getFiscalQuarter(startDate),
         },
         include: {
           owner: {

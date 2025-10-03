@@ -60,41 +60,41 @@ export function QuickCheckInRow({
       const toastId = `check-in-${keyResultId}`
       toast.loading(strings.toasts.checkIns.loading, { id: toastId })
 
-      const objectiveSnapshots = queryClient.getQueriesData<any>({ queryKey: ['objective'] })
-      const objectivesSnapshots = queryClient.getQueriesData<any>({ queryKey: ['objectives'] })
+      const objectiveSnapshots = queryClient.getQueriesData<{ objective?: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> } }>({ queryKey: ['objective'] })
+      const objectivesSnapshots = queryClient.getQueriesData<{ objectives?: Array<{ keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }> }>({ queryKey: ['objectives'] })
 
-      function updateObjectiveData(data: any) {
+      function updateObjectiveData(data: { objective?: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> } }) {
         if (!data?.objective) return data
-        const containsKR = data.objective.keyResults?.some((kr: any) => kr.id === keyResultId)
+        const containsKR = data.objective.keyResults?.some((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => kr.id === keyResultId)
         if (!containsKR) return data
 
-        const keyResults = data.objective.keyResults.map((kr: any) => {
+        const keyResults = data.objective.keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => {
           if (kr.id !== keyResultId) return kr
           const nextProgress = calculateKRProgress(values.value, kr.target)
           return { ...kr, current: values.value, progress: nextProgress }
         })
 
         const progress = calculateObjectiveProgress(
-          keyResults.map((kr: any) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
+          keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
         )
 
         return { ...data, objective: { ...data.objective, keyResults, progress } }
       }
 
-      function updateObjectivesData(data: any) {
+      function updateObjectivesData(data: { objectives?: Array<{ keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }> }) {
         if (!data?.objectives) return data
-        const objectives = data.objectives.map((objective: any) => {
-          const hasKR = objective.keyResults?.some((kr: any) => kr.id === keyResultId)
+        const objectives = data.objectives.map((objective: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }) => {
+          const hasKR = objective.keyResults?.some((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => kr.id === keyResultId)
           if (!hasKR) return objective
 
-          const keyResults = objective.keyResults.map((kr: any) => {
+          const keyResults = objective.keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => {
             if (kr.id !== keyResultId) return kr
             const nextProgress = calculateKRProgress(values.value, kr.target)
             return { ...kr, current: values.value, progress: nextProgress }
           })
 
           const progress = calculateObjectiveProgress(
-            keyResults.map((kr: any) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
+            keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
           )
 
           return { ...objective, keyResults, progress }
@@ -124,14 +124,14 @@ export function QuickCheckInRow({
       form.reset({ value: values.value, status: values.status, comment: '' })
       onSuccess?.()
     },
-    onError: (error: any, _values, context) => {
+    onError: (error: Error, _values, context) => {
       if (context?.toastId) {
         toast.error(error?.message || strings.toasts.checkIns.error, { id: context.toastId })
       }
-      context?.objectiveSnapshots?.forEach(([queryKey, data]: any[]) => {
+      context?.objectiveSnapshots?.forEach(([queryKey, data]: [string[], any]) => {
         queryClient.setQueryData(queryKey, data)
       })
-      context?.objectivesSnapshots?.forEach(([queryKey, data]: any[]) => {
+      context?.objectivesSnapshots?.forEach(([queryKey, data]: [string[], any]) => {
         queryClient.setQueryData(queryKey, data)
       })
     },

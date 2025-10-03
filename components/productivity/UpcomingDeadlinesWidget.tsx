@@ -2,16 +2,64 @@
 
 import { format, addDays, isWithinInterval } from 'date-fns'
 import { Calendar, AlertTriangle } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { useMemo } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { useObjectives } from '@/hooks/useObjectives'
+import { UserRole } from '@/lib/rbac'
 
-export function UpcomingDeadlinesWidget() {
-  const { data: objectivesData } = useObjectives({})
-  const objectives = objectivesData?.objectives ?? []
+interface UpcomingDeadlinesWidgetProps {
+  userRole?: UserRole
+  userId?: string
+}
+
+export function UpcomingDeadlinesWidget({ userRole, userId }: UpcomingDeadlinesWidgetProps = {}) {
+  const { data: session } = useSession()
+  const user = session?.user
+  const currentUserRole = userRole || user?.role as UserRole
+  const currentUserId = userId || user?.id
+
+  // Build query params based on user role
+  const queryParams = useMemo(() => {
+    if (!currentUserId) return {}
+
+    switch (currentUserRole) {
+      case 'ADMIN':
+        return {}
+      case 'MANAGER':
+        return {}
+      case 'EMPLOYEE':
+        return { ownerId: currentUserId }
+      default:
+        return { ownerId: currentUserId }
+    }
+  }, [currentUserId, currentUserRole])
+
+  const { data: objectivesData } = useObjectives(queryParams)
+  const allObjectives = objectivesData?.objectives ?? []
+
+  // Filter objectives based on user role
+  const objectives = useMemo(() => {
+    if (!currentUserId) return allObjectives
+
+    switch (currentUserRole) {
+      case 'ADMIN':
+        return allObjectives
+      case 'MANAGER':
+        return allObjectives.filter(obj =>
+          obj.owner.id === currentUserId ||
+          obj.team?.name?.includes('Team')
+        )
+      case 'EMPLOYEE':
+        return allObjectives.filter(obj => obj.owner.id === currentUserId)
+      default:
+        return allObjectives.filter(obj => obj.owner.id === currentUserId)
+    }
+  }, [allObjectives, currentUserId, currentUserRole])
 
   const today = new Date()
   const nextWeek = addDays(today, 7)

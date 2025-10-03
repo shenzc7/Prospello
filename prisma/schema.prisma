@@ -34,6 +34,13 @@ enum ObjectiveStatus {
   DONE
 }
 
+enum GoalType {
+  COMPANY
+  DEPARTMENT
+  TEAM
+  INDIVIDUAL
+}
+
 // NextAuth.js models
 model Account {
   id                String  @id @default(cuid())
@@ -102,6 +109,7 @@ model User {
   // OKR relations
   objectives Objective[]
   checkIns   CheckIn[]
+  comments   Comment[]
 
   @@index([role])
   @@index([orgId])
@@ -119,7 +127,9 @@ model Objective {
   endAt       DateTime
   parentId    String?
   status      ObjectiveStatus @default(NOT_STARTED)
+  goalType    GoalType  @default(INDIVIDUAL)
   fiscalQuarter Int @default(1)
+  score       Float?    // Automated score at end of cycle (0.0 - 1.0)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -129,6 +139,7 @@ model Objective {
   parent      Objective?   @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
   children    Objective[]  @relation("ObjectiveHierarchy")
   keyResults  KeyResult[]
+  comments    Comment[]
 
   @@index([ownerId, cycle])
   @@index([teamId])
@@ -166,6 +177,7 @@ model KeyResult {
   objective   Objective    @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
   initiatives Initiative[]
   checkIns    CheckIn[]
+  comments    Comment[]
 
   @@map("key_results")
 }
@@ -184,6 +196,23 @@ model Initiative {
 
   @@index([keyResultId])
   @@map("initiatives")
+}
+
+model Comment {
+  id           String   @id @default(cuid())
+  content      String
+  objectiveId  String?
+  keyResultId  String?
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  objective    Objective? @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  keyResult    KeyResult? @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
 }
 
 model CheckIn {

@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { createCheckInRequestSchema, listCheckInsQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
+import { Role, CheckInStatus } from '@prisma/client'
 
 function startOfISOWeek(d: Date) {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
@@ -42,18 +43,22 @@ export async function GET(request: NextRequest) {
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
-    if (!isOwner && !isManagerOrHigher(session.user.role as any)) {
+    if (!isOwner && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 
-    const where: any = { keyResultId }
+    const where: {
+      keyResultId: string
+      weekStart?: { gte?: Date; lte?: Date }
+      userId?: string
+    } = { keyResultId }
     if (from || to) {
       where.weekStart = {}
       if (from) where.weekStart.gte = new Date(from)
       if (to) where.weekStart.lte = new Date(to)
     }
     if (userId) where.userId = userId
-    else if (!isManagerOrHigher(session.user.role as any)) where.userId = session.user.id
+    else if (!isManagerOrHigher(session.user.role as Role)) where.userId = session.user.id
 
     const [items, total] = await Promise.all([
       prisma.checkIn.findMany({
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
-    if (!isOwner && !isManagerOrHigher(session.user.role as any)) {
+    if (!isOwner && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 
@@ -125,7 +130,7 @@ export async function POST(request: NextRequest) {
     })
 
     return createSuccessResponse({ checkIn }, 201)
-  } catch (err: any) {
+  } catch (err) {
     console.error('POST /api/check-ins failed', err)
     return createErrorResponse(err)
   }

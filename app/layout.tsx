@@ -45,16 +45,17 @@ const envLabel = process.env.NEXT_PUBLIC_APP_ENV
 
 function buildNavItems(role?: string): AppNavItem[] {
   const base: AppNavItem[] = [
-    { href: '/okrs', label: strings.navigation.items.okrs, icon: 'Target' },
-    { href: '/my', label: strings.navigation.items.myUpdates, icon: 'ClipboardList' },
+    { href: '/', label: strings.navigation.items.company, icon: 'Target' },
+    { href: '/teams', label: strings.navigation.items.teams, icon: 'UserRound' },
+    { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
   ]
 
   if (role === 'ADMIN' || role === 'MANAGER') {
-    base.push({ href: '/my-okrs', label: strings.navigation.items.team, icon: 'UserRound' })
+    base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
   }
 
   if (role === 'ADMIN') {
-    base.push({ href: '/admin/users', label: strings.navigation.items.admin, icon: 'ShieldCheck' })
+    base.push({ href: '/admin/users', label: strings.navigation.items.settings, icon: 'ShieldCheck' })
   }
 
   return base
