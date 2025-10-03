@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
+import { Prisma } from '@prisma/client'
 import { createCheckInRequestSchema, listCheckInsQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 
@@ -42,18 +43,18 @@ export async function GET(request: NextRequest) {
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
-    if (!isOwner && !isManagerOrHigher(session.user.role as any)) {
+    if (!isOwner && !isManagerOrHigher(session.user.role)) {
       return createErrorResponse(errors.forbidden())
     }
 
-    const where: any = { keyResultId }
+    const where: Prisma.CheckInWhereInput = { keyResultId }
     if (from || to) {
       where.weekStart = {}
       if (from) where.weekStart.gte = new Date(from)
       if (to) where.weekStart.lte = new Date(to)
     }
     if (userId) where.userId = userId
-    else if (!isManagerOrHigher(session.user.role as any)) where.userId = session.user.id
+    else if (!isManagerOrHigher(session.user.role)) where.userId = session.user.id
 
     const [items, total] = await Promise.all([
       prisma.checkIn.findMany({
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
-    if (!isOwner && !isManagerOrHigher(session.user.role as any)) {
+    if (!isOwner && !isManagerOrHigher(session.user.role)) {
       return createErrorResponse(errors.forbidden())
     }
 
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
     })
 
     return createSuccessResponse({ checkIn }, 201)
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('POST /api/check-ins failed', err)
     return createErrorResponse(err)
   }

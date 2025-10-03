@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
+import { FormField, FormItem } from '@/components/ui/form'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
@@ -172,6 +173,3 @@ export function LoginForm() {
   )
 }
 
-function FormItem({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={className}>{children}</div>
-}

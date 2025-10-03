@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check admin role
-    if (!isAdmin(session.user.role as any)) {
+    if (!isAdmin(session.user.role)) {
       return createErrorResponse(errors.forbidden())
     }
 
