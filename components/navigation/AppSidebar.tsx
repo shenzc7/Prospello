@@ -4,12 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
-  CalendarRange,
-  ChevronRight,
   ClipboardList,
-  Flame,
   Menu,
-  PlusCircle,
   ShieldCheck,
   Target,
   UserRound,
@@ -20,7 +16,6 @@ import {
 import { AppNav, AppNavItem } from '@/components/navigation/AppNavigation'
 import { UserMenu } from '@/components/navigation/UserMenu'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/ui'
 
 type AppSidebarProps = {
   items: AppNavItem[]
@@ -45,7 +40,6 @@ const navIcons: Record<string, LucideIcon> = {
 }
 
 export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
-  const pathname = usePathname()
   const workingItems = items.length ? items : fallbackLinks
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 

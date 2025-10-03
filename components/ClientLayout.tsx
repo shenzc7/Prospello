@@ -1,7 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode } from 'react'
 
 import { AppHeader } from '@/components/navigation/AppHeader'
 import { AppSidebar } from '@/components/navigation/AppSidebar'
@@ -25,7 +25,7 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
       <div className="relative min-h-screen">
         <AppSidebar items={navItems} envLabel={envLabel} user={session.user} />
         <div className="flex min-h-screen flex-1 flex-col lg:ml-56">
-          <AppHeader navItems={navItems} user={session.user} />
+          <AppHeader user={session.user} />
           <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
             <ErrorBoundary>
               <div className="flex-1">{children}</div>

@@ -7,7 +7,6 @@ import { ClientLayout } from '@/components/ClientLayout'
 import { Providers } from '@/components/providers'
 import { strings } from '@/config/strings'
 import { authOptions } from '@/lib/auth'
-import { buildNavItems } from '@/lib/navigation'
 
 import './globals.css'
 

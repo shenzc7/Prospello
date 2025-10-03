@@ -3,21 +3,20 @@
 import Link from 'next/link'
 import { Search, PlusCircle } from 'lucide-react'
 
-import { AppNav, type AppNavItem } from '@/components/navigation/AppNavigation'
+import { type AppNavItem } from '@/components/navigation/AppNavigation'
 import { UserMenu } from '@/components/navigation/UserMenu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 export type AppHeaderProps = {
-  navItems: AppNavItem[]
   user?: {
     name?: string | null
     email?: string | null
   }
 }
 
-export function AppHeader({ navItems, user }: AppHeaderProps) {
+export function AppHeader({ user }: AppHeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/30 bg-background/95 backdrop-blur-md shadow-sm">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:gap-4">
