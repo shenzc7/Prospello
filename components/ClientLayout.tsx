@@ -15,23 +15,9 @@ type ClientLayoutProps = {
 
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
-  const [isHydrated, setIsHydrated] = useState(false)
 
-  // Wait for hydration to complete
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
-
-  // Show loading state while hydrating
-  if (!isHydrated || status === 'loading') {
-    return (
-      <ErrorBoundary>
-        <div className="flex flex-1 flex-col">{children}</div>
-      </ErrorBoundary>
-    )
-  }
-
-  // User is authenticated - show full layout
+  // If we have a session, show full layout regardless of loading state
+  // This prevents the flash of unauthenticated layout
   if (session?.user) {
     const navItems = buildNavItems(session.user.role)
 
@@ -47,6 +33,15 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
           </main>
         </div>
       </>
+    )
+  }
+
+  // If we're still loading and don't have a session, show simple layout
+  if (status === 'loading') {
+    return (
+      <ErrorBoundary>
+        <div className="flex flex-1 flex-col">{children}</div>
+      </ErrorBoundary>
     )
   }
 

@@ -38,7 +38,10 @@ export function LoginForm() {
   // Redirect to callback URL when session becomes available
   React.useEffect(() => {
     if (session?.user && status === 'authenticated') {
-      router.push(callbackUrl)
+      // Small delay to ensure session is fully established
+      setTimeout(() => {
+        router.push(callbackUrl)
+      }, 100)
     }
   }, [session, status, router, callbackUrl])
 

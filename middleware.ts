@@ -63,7 +63,7 @@ export default async function middleware(req: any) {
   const token = await getToken({ req })
 
   // If no token and not on login/auth pages, redirect to login
-  if (!token && !pathname.startsWith('/login') && !pathname.startsWith('/api/auth') && !pathname.startsWith('/my-okrs')) {
+  if (!token && !pathname.startsWith('/login') && !pathname.startsWith('/api/auth') && !pathname.startsWith('/my-okrs') && !pathname.startsWith('/okrs')) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
