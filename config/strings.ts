@@ -1,6 +1,6 @@
 export const strings = {
   app: {
-    name: process.env.NEXT_PUBLIC_BRAND_NAME || 'DevFlow',
+    name: process.env.NEXT_PUBLIC_BRAND_NAME || 'Prospello',
     tagline:
       process.env.NEXT_PUBLIC_BRAND_TAGLINE ||
       'Project management and team collaboration for software development.',

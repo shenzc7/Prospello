@@ -60,7 +60,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
@@ -70,9 +70,9 @@ export function LoginForm() {
               <FormControl>
                 <Input
                   data-testid="login-email"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   autoComplete="email"
-                  className="h-11 border-border/40 bg-background/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="h-12 rounded-lg border-border bg-background px-4 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                   {...field}
                 />
               </FormControl>
@@ -93,7 +93,7 @@ export function LoginForm() {
                   type="password"
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="h-11 border-border/40 bg-background/50 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="h-12 rounded-lg border-border bg-background px-4 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
                   {...field}
                 />
               </FormControl>
@@ -103,24 +103,27 @@ export function LoginForm() {
         />
 
         {formError ? (
-          <Alert data-testid="login-error" variant="destructive" className="text-sm">
-            {formError}
+          <Alert data-testid="login-error" variant="destructive" className="rounded-lg border-destructive/20 bg-destructive/5 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-destructive">⚠️</span>
+              {formError}
+            </div>
           </Alert>
         ) : null}
 
         <Button
           data-testid="login-submit"
-          className="h-11 w-full rounded-full bg-primary text-primary-foreground font-medium shadow-soft hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
+          className="h-12 w-full rounded-lg bg-primary text-primary-foreground font-medium text-sm shadow-card hover:shadow-card-hover hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
           type="submit"
           disabled={isSubmitting}
         >
           {isSubmitting ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
               Signing in...
             </div>
           ) : (
-            'Sign in'
+            'Sign in to your account'
           )}
         </Button>
       </form>
