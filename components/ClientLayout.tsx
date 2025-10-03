@@ -1,6 +1,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { usePathname } from 'next/navigation'
 import { ReactNode } from 'react'
 
 import { AppHeader } from '@/components/navigation/AppHeader'
@@ -15,6 +16,19 @@ type ClientLayoutProps = {
 
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
+  const pathname = usePathname()
+
+  // Auth pages should manage their own layout completely
+  const isAuthPage = pathname?.startsWith('/login')
+
+  // If we're on an auth page, just render children without any layout wrapper
+  if (isAuthPage) {
+    return (
+      <ErrorBoundary>
+        {children}
+      </ErrorBoundary>
+    )
+  }
 
   // If we have a session, show full layout regardless of loading state
   // This prevents the flash of unauthenticated layout
@@ -45,7 +59,7 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
     )
   }
 
-  // User is not authenticated - show simple layout
+  // User is not authenticated - show simple layout for non-auth pages
   return (
     <ErrorBoundary>
       <div className="flex flex-1 flex-col">{children}</div>

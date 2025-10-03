@@ -43,7 +43,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang="en" className={`${fontSans.variable} ${fontDisplay.variable}`}>
-      <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
+      <body className="antialiased">
         <Providers session={session}>
           <ClientLayout envLabel={envLabel}>
             {children}

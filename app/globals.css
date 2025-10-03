@@ -94,6 +94,11 @@
   --progress-high: 142 76% 36%;
 }
 
+/* Ensure CSS custom properties are available for all pages */
+html {
+  color-scheme: light dark;
+}
+
 .dark {
   --background: 222 84% 4.9%;
   --foreground: 210 40% 98%;
