@@ -14,6 +14,24 @@
     * {
       -webkit-overflow-scrolling: touch;
     }
+
+    /* Prevent horizontal scroll on mobile */
+    body {
+      overflow-x: hidden;
+    }
+
+    /* Improve text selection on mobile */
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    /* Adjust spacing for tablets */
+    .glass-panel {
+      padding: 1rem;
+    }
   }
 
   /* Focus visible for keyboard navigation */
@@ -274,5 +292,50 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Responsive utilities */
+  .text-responsive-sm {
+    font-size: clamp(0.875rem, 2.5vw, 1rem);
+  }
+
+  .text-responsive-base {
+    font-size: clamp(1rem, 3vw, 1.125rem);
+  }
+
+  .text-responsive-lg {
+    font-size: clamp(1.125rem, 4vw, 1.25rem);
+  }
+
+  .text-responsive-xl {
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+  }
+
+  .text-responsive-2xl {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  .text-responsive-3xl {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+  /* Mobile-first spacing utilities */
+  .space-y-responsive {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
+  }
+
+  .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+  }
+
+  @media (min-width: 640px) {
+    .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
+      margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+      margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
+    }
   }
 }

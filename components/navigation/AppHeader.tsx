@@ -19,8 +19,8 @@ export type AppHeaderProps = {
 
 export function AppHeader({ navItems, user }: AppHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border/30 bg-background/80 backdrop-blur-sm">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-border/30 bg-background/95 backdrop-blur-md shadow-sm">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:px-6 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="relative hidden max-w-sm flex-1 sm:flex">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden />
@@ -44,13 +44,13 @@ export function AppHeader({ navItems, user }: AppHeaderProps) {
       </div>
 
       {/* Mobile search */}
-      <div className="border-t border-border/20 px-4 pb-3 pt-3 sm:hidden">
+      <div className="border-t border-border/20 bg-muted/20 px-3 pb-4 pt-4 sm:hidden">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden />
           <Input
             type="search"
-            placeholder="Search..."
-            className="w-full border-border/30 bg-muted/30 pl-10 text-sm placeholder:text-muted-foreground/60"
+            placeholder="Search objectives, key results..."
+            className="w-full border-border/40 bg-background/90 pl-10 text-sm placeholder:text-muted-foreground/70 shadow-sm focus:shadow-md transition-shadow"
           />
         </div>
       </div>

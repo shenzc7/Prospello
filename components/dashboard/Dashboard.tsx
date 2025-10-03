@@ -632,18 +632,18 @@ export function Dashboard() {
   const headerContent = getHeaderContent()
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             {headerContent.title}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {headerContent.description}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {headerContent.actions}
         </div>
       </div>
@@ -656,7 +656,7 @@ export function Dashboard() {
       )}
 
       {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Objectives"
           value={metrics.totalObjectives}
@@ -759,7 +759,7 @@ export function Dashboard() {
         const quickActions = getQuickActions()
 
         return (
-          <div className="grid gap-6 xl:grid-cols-4">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-4">
             {/* Left Column - Quick Actions & Check-ins */}
             <div className="space-y-6 xl:col-span-1">
               {quickActions.length > 0 && (

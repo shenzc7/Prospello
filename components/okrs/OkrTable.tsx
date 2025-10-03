@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronUp, ChevronDown, ArrowUpDown, MoreHorizontal, CheckSquare, Square, Filter } from 'lucide-react'
 
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
+import { ProgressChip } from '@/components/okrs/ProgressChip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { Button } from '@/components/ui/button'
@@ -402,8 +403,10 @@ export function OkrTable() {
       ) : null}
 
       {objectives.length ? (
-        <div className="overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
-          <Table className="min-w-full">
+        <>
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
+            <Table className="min-w-full">
             <TableHeader className="bg-muted/50">
               <TableRow className="!border-0">
                 <TableHead className="w-12 px-6 py-4">
@@ -515,8 +518,21 @@ export function OkrTable() {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
-        </div>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {sortedObjectives.map((objective) => (
+              <MobileObjectiveCard
+                key={objective.id}
+                objective={objective}
+                isSelected={selectedIds.has(objective.id)}
+                onSelect={(selected) => handleSelectObjective(objective.id, selected)}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
     </div>
   )
@@ -597,6 +613,80 @@ function OwnerCell({ name, email, team, progress }: OwnerCellProps) {
         <p className="font-semibold text-foreground">{displayName}</p>
         {team ? <p className="text-xs text-muted-foreground">{team}</p> : null}
         {momentum != null ? <p className="text-xs text-muted-foreground">Momentum {momentum}%</p> : null}
+      </div>
+    </div>
+  )
+}
+
+type MobileObjectiveCardProps = {
+  objective: any
+  isSelected: boolean
+  onSelect: (selected: boolean) => void
+}
+
+function MobileObjectiveCard({ objective, isSelected, onSelect }: MobileObjectiveCardProps) {
+  return (
+    <div className={cn(
+      "rounded-xl border border-border/60 bg-card p-4 shadow-sm transition-all hover:shadow-md",
+      isSelected && "ring-2 ring-primary/20 border-primary/40"
+    )}>
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onSelect}
+          className="mt-1"
+          aria-label={`Select ${objective.title}`}
+        />
+        <div className="flex-1 min-w-0">
+          <Link
+            href={`/okrs/${objective.id}`}
+            className="text-base font-semibold text-foreground hover:text-primary transition-colors"
+          >
+            {objective.title}
+          </Link>
+
+          <div className="flex items-center gap-2 mt-2">
+            <ObjectiveStatusBadge status={objective.status} />
+            <ProgressChip value={objective.progress} />
+            <span className="text-sm font-medium text-muted-foreground">
+              {Math.round(objective.progress)}%
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{objective.owner.name || objective.owner.email}</span>
+              {objective.team && <span>•</span>}
+              {objective.team && <span>{objective.team.name}</span>}
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {objective.cycle}
+            </Badge>
+          </div>
+
+          {objective.keyResults.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Key Results ({objective.keyResults.length})
+              </p>
+              <div className="space-y-1">
+                {objective.keyResults.slice(0, 2).map((kr: any) => (
+                  <div key={kr.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2">
+                    <span className="text-xs text-foreground truncate flex-1 mr-2">{kr.title}</span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {Math.round(kr.progress ?? 0)}%
+                    </span>
+                  </div>
+                ))}
+                {objective.keyResults.length > 2 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    +{objective.keyResults.length - 2} more
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

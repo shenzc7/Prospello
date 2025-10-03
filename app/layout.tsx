@@ -2,14 +2,9 @@ import type { Metadata } from 'next'
 import { ReactNode } from 'react'
 import { getServerSession } from 'next-auth'
 import { Plus_Jakarta_Sans, Space_Grotesk } from 'next/font/google'
-// Icons are now handled in the Client Component to avoid serialization issues
 
-import { AppHeader } from '@/components/navigation/AppHeader'
-import { AppSidebar } from '@/components/navigation/AppSidebar'
-import { AppBreadcrumbs } from '@/components/navigation/AppBreadcrumbs'
-import { type AppNavItem } from '@/components/navigation/AppNavigation'
+import { ClientLayout } from '@/components/ClientLayout'
 import { Providers } from '@/components/providers'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { strings } from '@/config/strings'
 import { authOptions } from '@/lib/auth'
 
@@ -43,8 +38,8 @@ const envLabel = process.env.NEXT_PUBLIC_APP_ENV
     ? undefined
     : process.env.NODE_ENV?.toUpperCase()
 
-function buildNavItems(role?: string): AppNavItem[] {
-  const base: AppNavItem[] = [
+export function buildNavItems(role?: string) {
+  const base = [
     { href: '/', label: strings.navigation.items.company, icon: 'Target' },
     { href: '/teams', label: strings.navigation.items.teams, icon: 'UserRound' },
     { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
@@ -63,31 +58,14 @@ function buildNavItems(role?: string): AppNavItem[] {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions)
-  const navItems = session?.user ? buildNavItems(session.user.role) : []
 
   return (
-    <html lang="en" className={`${fontSans.variable} ${fontDisplay.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${fontSans.variable} ${fontDisplay.variable}`}>
       <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
         <Providers session={session}>
-          <div className="relative flex min-h-screen" suppressHydrationWarning>
-            {session?.user ? (
-              <>
-                <AppSidebar items={navItems} envLabel={envLabel} user={session.user} />
-                <div className="flex min-h-screen flex-1 flex-col lg:ml-0">
-                  <AppHeader navItems={navItems} user={session.user} />
-                  <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-6 sm:px-6 lg:pl-6">
-                    <ErrorBoundary>
-                      <div className="flex-1">{children}</div>
-                    </ErrorBoundary>
-                  </main>
-                </div>
-              </>
-            ) : (
-              <ErrorBoundary>
-                <div className="flex flex-1 flex-col">{children}</div>
-              </ErrorBoundary>
-            )}
-          </div>
+          <ClientLayout envLabel={envLabel}>
+            {children}
+          </ClientLayout>
         </Providers>
       </body>
     </html>

@@ -111,7 +111,7 @@ export function OkrBoard() {
       ) : null}
 
       {objectives.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Status Columns */}
           {['NOT_STARTED', 'IN_PROGRESS', 'AT_RISK', 'DONE'].map((status) => {
             const statusObjectives = objectives.filter(obj => obj.status === status)
@@ -148,7 +148,7 @@ export function OkrBoard() {
 
 function Card({ objective }: { objective: any }) {
   return (
-    <div className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl p-5 shadow-card hover:shadow-card-hover hover:border-border/80 transition-all duration-200 cursor-pointer group hover:scale-[1.02]"
+    <div className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:border-border/80 transition-all duration-200 cursor-pointer group hover:scale-[1.02]"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -170,9 +170,9 @@ function Card({ objective }: { objective: any }) {
       </div>
 
       {objective.keyResults.length > 0 && (
-        <div className="space-y-3 mb-4">
+        <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
           {objective.keyResults.slice(0, 2).map((kr: any) => (
-            <div key={kr.id} className="bg-muted/30 rounded-lg p-3 border border-border/30">
+            <div key={kr.id} className="bg-muted/30 rounded-lg p-2 sm:p-3 border border-border/30">
               <p className="text-xs font-medium text-foreground truncate mb-2" title={kr.title}>
                 {kr.title}
               </p>
@@ -198,14 +198,14 @@ function Card({ objective }: { objective: any }) {
       )}
 
       <div className="flex items-center justify-between pt-3 border-t border-border/40">
-        <div className="flex items-center gap-3">
-          <div className="w-7 h-7 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center border border-primary/20">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center border border-primary/20">
             <span className="text-xs font-semibold text-primary">
               {(objective.owner.name ?? objective.owner.email).charAt(0).toUpperCase()}
             </span>
           </div>
-          <div>
-            <span className="text-xs font-medium text-foreground block">
+          <div className="min-w-0 flex-1">
+            <span className="text-xs font-medium text-foreground block truncate">
               {objective.owner.name ?? objective.owner.email}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -213,7 +213,7 @@ function Card({ objective }: { objective: any }) {
             </span>
           </div>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-7 text-xs hover:bg-primary/5 hover:text-primary">
+        <Button asChild variant="ghost" size="sm" className="h-7 px-2 sm:px-3 text-xs hover:bg-primary/5 hover:text-primary flex-shrink-0">
           <Link href={`/okrs/${objective.id}`}>View</Link>
         </Button>
       </div>

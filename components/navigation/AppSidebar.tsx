@@ -102,7 +102,7 @@ export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
             aria-label="Close navigation menu"
           />
           <aside
-            className="fixed left-0 top-0 h-full w-64 flex-col border-r border-border/20 bg-background px-4 pb-6 pt-16 shadow-lg"
+            className="fixed left-0 top-0 h-full w-72 flex-col border-r border-border/20 bg-background/95 backdrop-blur-md px-5 pb-6 pt-20 shadow-xl"
             role="complementary"
             aria-label="Mobile navigation"
           >
