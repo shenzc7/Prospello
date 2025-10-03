@@ -109,20 +109,75 @@ npx prisma migrate dev  # Create and apply migrations
 
 ## Deployment
 
-### Vercel (Recommended)
+### Vercel Deployment (Recommended)
 
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on git push
+#### Option 1: Using Vercel Web Interface
+
+1. **Connect Repository:**
+   - Go to [vercel.com](https://vercel.com) and sign up/login
+   - Click "New Project" → "Import Git Repository"
+   - Connect your GitHub account and select the Prospello repository
+
+2. **Configure Project:**
+   - Framework Preset: **Next.js** (auto-detected)
+   - Root Directory: `./` (leave empty)
+   - Build Command: `npm run build` (auto-detected)
+
+3. **Set Environment Variables:**
+   In Project Settings → Environment Variables, add:
+
+   ```
+   DATABASE_URL=postgresql://username:password@host:5432/database
+   NEXTAUTH_URL=https://your-app.vercel.app
+   NEXTAUTH_SECRET=your-production-secret-key
+   NEXT_PUBLIC_BRAND_NAME=Prospello
+   NEXT_PUBLIC_BRAND_TAGLINE=Modern OKR & Check-in Platform
+   ```
+
+4. **Deploy:**
+   - Click "Deploy"
+   - Wait for build completion
+   - Your app will be live at `https://your-app.vercel.app`
+
+#### Option 2: Using Vercel CLI
+
+```bash
+# Install Vercel CLI
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy (from project root)
+vercel --prod
+
+# Or use the provided script
+./deploy.sh
+```
+
+#### Database Setup for Production
+
+**Recommended: Vercel Postgres**
+1. In Vercel dashboard, go to Storage → Create Database → Postgres
+2. Copy the connection string
+3. Set `DATABASE_URL` environment variable
+4. Run database migrations:
+   ```bash
+   npx prisma migrate deploy
+   npm run db:seed  # Optional: seed demo data
+   ```
+
+**Alternative: External PostgreSQL**
+- Use services like Supabase, Railway, or PlanetScale
+- Ensure the database is accessible from Vercel's IP ranges
 
 ### Manual Deployment
 
 For other platforms, ensure you have:
-
 - Node.js 18+
 - PostgreSQL database
 - Environment variables configured
-- `npm run build && npm start` for production
+- Run `npm run build && npm start` for production
 
 ## Project Structure
 
