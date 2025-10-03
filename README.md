@@ -29,3 +29,33 @@ Modern OKR and weekly check-in workspace built on Next.js 14 with Prisma, NextAu
 
 ## Deployment
 Deploy on Vercel with the same environment variables; set `DATABASE_URL` to a managed Postgres instance and run `prisma migrate deploy` during the build step.
+
+## Real-time Collaboration Setup
+
+### Working from Any Device:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/shenzc7/Prospello.git
+   cd Prospello
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database and auth credentials
+   ```
+
+4. **Start development:**
+   ```bash
+   npm run dev
+   ```
+
+### Sync Changes:
+- **Push changes:** `git add . && git commit -m "Your changes" && git push`
+- **Pull changes:** `git pull origin main`
+- **Check status:** `git status` and `gh repo view Prospello`
