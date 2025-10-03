@@ -1,6 +1,4 @@
-// Why: align quarter calculations with Indian fiscal reporting for board filters.
-// Tradeoff: relies on UTC month boundaries; regional timezone quirks still slip through.
-// Next: TODO support locale-aware fiscal calendars once multi-region orgs land.
+// Fiscal quarter calculations aligned with Indian business reporting standards.
 
 const INDIAN_QUARTER_BOUNDS = [
   { startMonth: 3, endMonth: 5, value: 1 },
@@ -10,7 +8,7 @@ const INDIAN_QUARTER_BOUNDS = [
 
 export function getIndianFiscalQuarter(date: Date): number {
   const probe = new Date(date)
-  // TODO tighten this when check-ins use org timezone instead of UTC.
+  // Note: Currently uses UTC; will be enhanced for organization-specific timezones.
   const month = probe.getUTCMonth()
 
   for (const bound of INDIAN_QUARTER_BOUNDS) {

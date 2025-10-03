@@ -2,9 +2,7 @@ import { KeyResult } from '@prisma/client';
 
 type KeyResultWithProgress = Pick<KeyResult, 'current' | 'target' | 'weight'>;
 
-// Why: keep server/client progress math identical for the board view chips.
-// Tradeoff: rounds to integers, so sub-percent precision disappears.
-// Next: revisit status thresholds once live velocity data rolls in.
+// Objective progress calculation with weighted key result contributions.
 
 /**
  * Calculates the progress of an objective based on its key results.
