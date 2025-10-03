@@ -8,20 +8,14 @@ import { calcProgressFromProgress } from '@/lib/okr'
 import { updateObjectiveStatusSchema } from '@/lib/schemas'
 import { calculateKRProgress } from '@/lib/utils'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     const objective = await prisma.objective.findUnique({
       where: { id },

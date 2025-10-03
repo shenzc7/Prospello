@@ -6,20 +6,14 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { updateInitiativeRequestSchema } from '@/lib/schemas'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if initiative exists and get objective ownership info through key result
     const initiative = await prisma.initiative.findUnique({
@@ -73,14 +67,14 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if initiative exists and get objective ownership info through key result
     const initiative = await prisma.initiative.findUnique({

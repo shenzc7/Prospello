@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { signIn } from 'next-auth/react'
+import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
@@ -21,6 +21,7 @@ type FormValues = z.infer<typeof schema>
 export function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
+  const { data: session, status } = useSession()
   const callbackUrl = params?.get('callbackUrl') ?? '/okrs'
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -34,6 +35,13 @@ export function LoginForm() {
     }
   })
 
+  // Redirect to callback URL when session becomes available
+  React.useEffect(() => {
+    if (session?.user && status === 'authenticated') {
+      router.push(callbackUrl)
+    }
+  }, [session, status, router, callbackUrl])
+
   const onSubmit = async (values: FormValues) => {
     setFormError(null)
     setIsSubmitting(true)
@@ -42,7 +50,7 @@ export function LoginForm() {
         email: values.email,
         password: values.password,
         callbackUrl: callbackUrl,
-        redirect: true
+        redirect: false // Handle redirect manually
       })
 
       if (result?.error) {
@@ -51,7 +59,13 @@ export function LoginForm() {
         return
       }
 
-      // If signIn returns without error, it will handle the redirect automatically
+      // If signIn succeeds, the session will be updated and useEffect will handle the redirect
+      // If for some reason the session doesn't update, we'll redirect manually after a short delay
+      setTimeout(() => {
+        if (status !== 'authenticated') {
+          router.push(callbackUrl)
+        }
+      }, 100)
     } catch (error) {
       console.error('login failed', error)
       setFormError('Unable to sign in right now. Please try again.')

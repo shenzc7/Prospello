@@ -6,20 +6,14 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { createInitiativeRequestSchema } from '@/lib/schemas'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id: keyResultId } = params
+    const { id: keyResultId } = await params
 
     // Check if key result exists and user has access through objective ownership
     const keyResult = await prisma.keyResult.findUnique({

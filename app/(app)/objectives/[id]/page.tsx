@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation'
 import { ObjectiveDetail } from '@/components/objectives/objective-detail'
 
 type ObjectivePageProps = {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function ObjectivePage({ params }: ObjectivePageProps) {
-  const id = params.id
+export default async function ObjectivePage({ params }: ObjectivePageProps) {
+  const { id } = await params
   if (!id) {
     notFound()
   }

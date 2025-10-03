@@ -6,20 +6,14 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { updateKeyResultRequestSchema } from '@/lib/schemas'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if key result exists and get objective ownership info
     const keyResult = await prisma.keyResult.findUnique({
@@ -98,14 +92,14 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if key result exists and get objective ownership info
     const keyResult = await prisma.keyResult.findUnique({

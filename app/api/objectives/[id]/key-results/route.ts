@@ -6,20 +6,14 @@ import { isManagerOrHigher } from '@/lib/rbac'
 import { createKeyResultRequestSchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function POST(request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id: objectiveId } = params
+    const { id: objectiveId } = await params
 
     // Check if objective exists and user has access
     const objective = await prisma.objective.findUnique({

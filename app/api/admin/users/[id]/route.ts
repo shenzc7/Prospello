@@ -13,13 +13,7 @@ const updateUserSchema = z.object({
   role: z.nativeEnum(Role)
 })
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
 
@@ -38,7 +32,7 @@ export async function PATCH(request: Request, { params }: Params) {
       return createErrorResponse(parsed.error)
     }
 
-    const { id } = params
+    const { id } = await params
 
     const updatedUser = await prisma.user.update({
       where: { id },

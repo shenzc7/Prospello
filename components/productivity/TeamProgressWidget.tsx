@@ -29,15 +29,11 @@ export function TeamProgressWidget({ userRole, userId }: TeamProgressWidgetProps
   const queryParams = useMemo(() => {
     if (!currentUserId) return {}
 
-    switch (currentUserRole) {
+    switch (currentUserRole as 'ADMIN' | 'MANAGER') {
       case 'ADMIN':
         return {} // Admin sees all
       case 'MANAGER':
         return {} // Manager sees all team data
-      case 'EMPLOYEE':
-        return { ownerId: currentUserId } // Employee only sees their own
-      default:
-        return { ownerId: currentUserId }
     }
   }, [currentUserId, currentUserRole])
 
@@ -48,15 +44,11 @@ export function TeamProgressWidget({ userRole, userId }: TeamProgressWidgetProps
   const objectives = useMemo(() => {
     if (!currentUserId) return allObjectives
 
-    switch (currentUserRole) {
+    switch (currentUserRole as 'ADMIN' | 'MANAGER') {
       case 'ADMIN':
         return allObjectives // Admin sees all objectives
       case 'MANAGER':
         return allObjectives.filter(obj => obj.team?.name?.includes('Team')) // Manager sees team objectives
-      case 'EMPLOYEE':
-        return allObjectives.filter(obj => obj.owner.id === currentUserId) // Employee sees only their own
-      default:
-        return allObjectives.filter(obj => obj.owner.id === currentUserId)
     }
   }, [allObjectives, currentUserId, currentUserRole])
 

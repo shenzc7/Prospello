@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation'
 import { ObjectiveDetailView } from '@/components/okrs/ObjectiveDetailView'
 
 type OkrPageProps = {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export default function OkrDetailPage({ params }: OkrPageProps) {
-  const id = params?.id
+export default async function OkrDetailPage({ params }: OkrPageProps) {
+  const { id } = await params
   if (!id) {
     notFound()
   }

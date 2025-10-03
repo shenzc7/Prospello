@@ -9,20 +9,14 @@ import { calculateKRProgress } from '@/lib/utils'
 import { updateObjectiveRequestSchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     const objective = await prisma.objective.findUnique({
       where: { id },
@@ -84,14 +78,14 @@ export async function GET(request: Request, { params }: Params) {
   }
 }
 
-export async function PATCH(request: Request, { params }: Params) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // First check if objective exists and get ownership info
     const existingObjective = await prisma.objective.findUnique({
@@ -241,14 +235,14 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(request: Request, { params }: Params) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if objective exists and get ownership info
     const objective = await prisma.objective.findUnique({

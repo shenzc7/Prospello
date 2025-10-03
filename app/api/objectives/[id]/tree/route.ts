@@ -6,20 +6,14 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { calculateKRProgress, calculateObjectiveProgress } from '@/lib/utils'
 
-type Params = {
-  params: {
-    id: string
-  }
-}
-
-export async function GET(request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
 
-    const { id } = params
+    const { id } = await params
 
     // First check if the objective exists and user has access
     const objective = await prisma.objective.findUnique({
