@@ -1,0 +1,206 @@
+// Prisma schema for OKR application with NextAuth.js integration
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+}
+
+enum CheckInStatus {
+  GREEN
+  YELLOW
+  RED
+}
+
+enum InitiativeStatus {
+  TODO
+  DOING
+  DONE
+}
+
+enum ObjectiveStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  AT_RISK
+  DONE
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Core application models
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  teams     Team[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("organizations")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  role         Role          @default(EMPLOYEE)
+  passwordHash String
+  orgId        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relations
+  org          Organization? @relation(fields: [orgId], references: [id])
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // OKR relations
+  objectives Objective[]
+  checkIns   CheckIn[]
+
+  @@index([role])
+  @@index([orgId])
+  @@map("users")
+}
+
+model Objective {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  ownerId     String
+  teamId      String?
+  cycle       String
+  startAt     DateTime
+  endAt       DateTime
+  parentId    String?
+  status      ObjectiveStatus @default(NOT_STARTED)
+  fiscalQuarter Int @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team        Team?        @relation(fields: [teamId], references: [id])
+  parent      Objective?   @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
+  children    Objective[]  @relation("ObjectiveHierarchy")
+  keyResults  KeyResult[]
+
+  @@index([ownerId, cycle])
+  @@index([teamId])
+  @@index([status])
+  @@index([fiscalQuarter])
+  @@map("objectives")
+}
+
+model Team {
+  id        String        @id @default(cuid())
+  name      String
+  orgId     String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  objectives Objective[]
+
+  @@unique([orgId, name])
+  @@map("teams")
+}
+
+model KeyResult {
+  id          String    @id @default(cuid())
+  objectiveId String
+  title       String
+  weight      Int       // 1-100 range, must sum to ≤100 per objective
+  target      Float     // >0
+  current     Float     @default(0) // >=0
+  unit        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  objective   Objective    @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  initiatives Initiative[]
+  checkIns    CheckIn[]
+
+  @@map("key_results")
+}
+
+model Initiative {
+  id          String           @id @default(cuid())
+  keyResultId String
+  title       String
+  notes       String?
+  status      InitiativeStatus @default(TODO)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  keyResult KeyResult @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+
+  @@index([keyResultId])
+  @@map("initiatives")
+}
+
+model CheckIn {
+  id          String        @id @default(cuid())
+  keyResultId String
+  userId      String
+  weekStart   DateTime      // ISO week Monday 00:00 UTC
+  value       Float         // 0-100 range
+  status      CheckInStatus
+  comment     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  keyResult KeyResult @relation(fields: [keyResultId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([keyResultId, userId, weekStart])
+  @@map("check_ins")
+}
