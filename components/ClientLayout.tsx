@@ -22,17 +22,17 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
     const navItems = buildNavItems(session.user.role)
 
     return (
-      <>
+      <div className="relative min-h-screen">
         <AppSidebar items={navItems} envLabel={envLabel} user={session.user} />
-        <div className="flex min-h-screen flex-1 flex-col lg:ml-0">
+        <div className="flex min-h-screen flex-1 flex-col lg:ml-56">
           <AppHeader navItems={navItems} user={session.user} />
-          <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:pl-6">
+          <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
             <ErrorBoundary>
               <div className="flex-1">{children}</div>
             </ErrorBoundary>
           </main>
         </div>
-      </>
+      </div>
     )
   }
 

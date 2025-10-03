@@ -65,7 +65,7 @@ export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
 
       {/* Desktop sidebar */}
       <aside
-        className="hidden h-screen w-56 flex-col border-r border-border/20 bg-background/50 px-4 pb-6 pt-4 lg:flex"
+        className="fixed left-0 top-0 hidden h-screen w-56 flex-col border-r border-border/20 bg-background/50 px-4 pb-6 pt-4 lg:flex"
         role="complementary"
         aria-label="Main navigation"
       >
