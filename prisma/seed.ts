@@ -103,11 +103,11 @@ Seed complete:
 }
 
 async function upsertUser(email: string, name: string, role: Role, orgId: string) {
-  const passwordHash = await hash('Pass@123', 10)
+  const password = await hash('Pass@123', 10)
   return prisma.user.upsert({
     where: { email },
-    update: { name, role, orgId, passwordHash },
-    create: { email, name, role, orgId, passwordHash },
+    update: { name, role, orgId, password },
+    create: { email, name, role, orgId, password },
   })
 }
 type ObjectiveSeedInput = {
