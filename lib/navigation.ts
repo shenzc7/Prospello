@@ -1,0 +1,26 @@
+import { strings } from '@/config/strings'
+
+export type AppNavItem = {
+  href: string
+  label: string
+  icon: string
+  exact?: boolean
+}
+
+export function buildNavItems(role?: string): AppNavItem[] {
+  const base: AppNavItem[] = [
+    { href: '/', label: strings.navigation.items.company, icon: 'Target' },
+    { href: '/teams', label: strings.navigation.items.teams, icon: 'UserRound' },
+    { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
+  ]
+
+  if (role === 'ADMIN' || role === 'MANAGER') {
+    base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
+  }
+
+  if (role === 'ADMIN') {
+    base.push({ href: '/admin/users', label: strings.navigation.items.settings, icon: 'ShieldCheck' })
+  }
+
+  return base
+}

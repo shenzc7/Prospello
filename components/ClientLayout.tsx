@@ -6,7 +6,7 @@ import { ReactNode, useEffect, useState } from 'react'
 import { AppHeader } from '@/components/navigation/AppHeader'
 import { AppSidebar } from '@/components/navigation/AppSidebar'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { buildNavItems } from '@/app/layout'
+import { buildNavItems } from '@/lib/navigation'
 
 type ClientLayoutProps = {
   children: ReactNode

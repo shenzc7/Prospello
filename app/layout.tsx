@@ -7,6 +7,7 @@ import { ClientLayout } from '@/components/ClientLayout'
 import { Providers } from '@/components/providers'
 import { strings } from '@/config/strings'
 import { authOptions } from '@/lib/auth'
+import { buildNavItems } from '@/lib/navigation'
 
 import './globals.css'
 
@@ -37,24 +38,6 @@ const envLabel = process.env.NEXT_PUBLIC_APP_ENV
   : process.env.NODE_ENV === 'production'
     ? undefined
     : process.env.NODE_ENV?.toUpperCase()
-
-export function buildNavItems(role?: string) {
-  const base = [
-    { href: '/', label: strings.navigation.items.company, icon: 'Target' },
-    { href: '/teams', label: strings.navigation.items.teams, icon: 'UserRound' },
-    { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
-  ]
-
-  if (role === 'ADMIN' || role === 'MANAGER') {
-    base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
-  }
-
-  if (role === 'ADMIN') {
-    base.push({ href: '/admin/users', label: strings.navigation.items.settings, icon: 'ShieldCheck' })
-  }
-
-  return base
-}
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions)
