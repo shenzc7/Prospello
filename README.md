@@ -1,6 +1,6 @@
 # Prospello
 
-Modern OKR and weekly check-in workspace built on Next.js 14 with Prisma, NextAuth, and shadcn/ui.
+Modern OKR and weekly check-in workspace built on Next.js 15 with Prisma, NextAuth, and shadcn/ui.
 
 ## Getting Started
 1. Install dependencies: `npm install`
@@ -30,6 +30,46 @@ Modern OKR and weekly check-in workspace built on Next.js 14 with Prisma, NextAu
 ## Deployment
 Deploy on Vercel with the same environment variables; set `DATABASE_URL` to a managed Postgres instance and run `prisma migrate deploy` during the build step.
 
+## Database Setup with Prisma
+
+### Quick Start:
+```bash
+# 1. Set up database URL in .env
+DATABASE_URL="file:./dev.db"
+
+# 2. Generate Prisma client and run migrations
+npx prisma generate
+npx prisma migrate dev
+
+# 3. Seed with demo data
+npm run db:seed
+```
+
+### Database Schema Overview:
+- **SQLite database** for development (easily switchable to PostgreSQL for production)
+- **NextAuth.js integration** with User, Account, Session models
+- **OKR entities**: Organization → Teams → Objectives → Key Results → Initiatives
+- **Check-ins**: Weekly progress tracking with status (GREEN/YELLOW/RED)
+- **Role-based access**: ADMIN, MANAGER, EMPLOYEE permissions
+
+### Key Relationships:
+```
+Organization
+├── Users (with roles)
+├── Teams
+└── Objectives (owned by users, assigned to teams)
+
+Objectives
+├── Key Results (weighted progress tracking)
+├── Initiatives (action items per KR)
+└── Check-ins (weekly updates per KR)
+
+Users can:
+- Create/manage their objectives
+- View team objectives (role-based)
+- Submit weekly check-ins on key results
+```
+
 ## Real-time Collaboration Setup
 
 ### Working from Any Device:
@@ -50,7 +90,14 @@ Deploy on Vercel with the same environment variables; set `DATABASE_URL` to a ma
    # Edit .env with your database and auth credentials
    ```
 
-4. **Start development:**
+4. **Set up database:**
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev
+   npm run db:seed
+   ```
+
+5. **Start development:**
    ```bash
    npm run dev
    ```
