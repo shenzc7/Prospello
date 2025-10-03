@@ -3,12 +3,13 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
-import { calcProgress, calcProgressFromProgress, getTrafficLightStatus } from '@/lib/okr'
+import { calcProgressFromProgress } from '@/lib/okr'
 import { getIndianFiscalQuarter } from '@/lib/india'
 import { calculateKRProgress } from '@/lib/utils'
 import { createObjectiveRequestSchema, listObjectivesQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { monitorDatabaseQuery } from '@/lib/performance'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,10 +34,10 @@ export async function GET(request: NextRequest) {
     const { search, cycle, ownerId, teamId, fiscalQuarter, status, limit, offset } = validation.data
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.ObjectiveWhereInput = {}
 
     // If not admin/manager, only show own objectives
-    if (session?.user && !isManagerOrHigher(session.user.role as any)) {
+    if (session?.user && !isManagerOrHigher(session.user.role)) {
       where.ownerId = session.user.id
     } else if (ownerId) {
       where.ownerId = ownerId
@@ -180,7 +181,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user can align to this parent (own objective or if manager/admin)
-      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
       }
     }

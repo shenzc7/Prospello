@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 import { logger } from './logger'
 
-export type APIResponse<T = any> = {
+export type APIResponse<T = unknown> = {
   ok: boolean
   data?: T
   error?: {
     code: string
     msg: string
-    details?: any
+    details?: unknown
   }
 }
 
@@ -17,9 +17,9 @@ export type APIErrorType = 'VALIDATION_ERROR' | 'UNAUTHORIZED' | 'FORBIDDEN' | '
 export class APIError extends Error {
   public readonly code: APIErrorType
   public readonly statusCode: number
-  public readonly details?: any
+  public readonly details?: unknown
 
-  constructor(code: APIErrorType, message: string, details?: any) {
+  constructor(code: APIErrorType, message: string, details?: unknown) {
     super(message)
     this.code = code
     this.details = details
@@ -38,7 +38,7 @@ export class APIError extends Error {
 
 export function createErrorResponse(
   error: APIError | ZodError | Error | string | unknown,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): NextResponse<APIResponse> {
   let apiError: APIError
 
@@ -108,9 +108,9 @@ export const errors = {
   notFound: (resource = 'Resource', message?: string) =>
     new APIError('NOT_FOUND', message || `${resource} not found`),
 
-  validation: (message = 'Validation failed', details?: any) =>
+  validation: (message = 'Validation failed', details?: unknown) =>
     new APIError('VALIDATION_ERROR', message, details),
 
-  internal: (message = 'Internal server error', details?: any) =>
+  internal: (message = 'Internal server error', details?: unknown) =>
     new APIError('INTERNAL_ERROR', message, details),
 }
