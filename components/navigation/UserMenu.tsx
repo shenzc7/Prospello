@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { signOut } from 'next-auth/react'
 import { LogOut } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -74,16 +75,15 @@ export function UserMenu({ name, email }: UserMenuProps) {
             <p className="font-medium text-foreground">{name ?? email ?? strings.navigation.fallbackUser}</p>
             {name && email ? <p className="text-xs text-muted-foreground">{email}</p> : null}
           </div>
-          <form action="/api/auth/signout" method="post" className="flex">
-            <Button
-              type="submit"
-              variant="ghost"
-              className="group w-full justify-start gap-2 rounded-full px-3 py-2 text-sm"
-            >
-              <LogOut className="h-4 w-4 text-muted-foreground transition group-hover:text-destructive" aria-hidden />
-              {strings.navigation.signOut}
-            </Button>
-          </form>
+          <Button
+            type="button"
+            variant="ghost"
+            className="group w-full justify-start gap-2 rounded-full px-3 py-2 text-sm"
+            onClick={() => signOut({ callbackUrl: '/login' })}
+          >
+            <LogOut className="h-4 w-4 text-muted-foreground transition group-hover:text-destructive" aria-hidden />
+            {strings.navigation.signOut}
+          </Button>
         </div>
       ) : null}
     </div>

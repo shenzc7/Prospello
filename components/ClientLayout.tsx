@@ -37,7 +37,7 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
 
     return (
       <div className="relative h-screen flex">
-        <AppSidebar items={navItems} envLabel={envLabel} user={session.user} />
+        <AppSidebar items={navItems} envLabel={envLabel} />
         <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
           <AppHeader user={session.user} />
           <main className="flex-1 overflow-y-auto">

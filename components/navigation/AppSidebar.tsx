@@ -20,11 +20,6 @@ import { Button } from '@/components/ui/button'
 type AppSidebarProps = {
   items: AppNavItem[]
   envLabel?: string
-  user?: {
-    name?: string | null
-    email?: string | null
-    role?: string | null
-  }
 }
 
 const fallbackLinks: AppNavItem[] = [
@@ -39,7 +34,7 @@ const navIcons: Record<string, LucideIcon> = {
   ShieldCheck,
 }
 
-export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
+export function AppSidebar({ items, envLabel }: AppSidebarProps) {
   const workingItems = items.length ? items : fallbackLinks
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -81,10 +76,6 @@ export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
         <nav className="mt-8 flex-1" role="navigation" aria-label="Primary navigation">
           <AppNav items={workingItems} orientation="vertical" />
         </nav>
-
-        <div className="mt-8 border-t border-border/20 pt-4">
-          <UserMenu name={user?.name} email={user?.email} />
-        </div>
       </aside>
 
       {/* Mobile sidebar overlay */}
@@ -113,10 +104,6 @@ export function AppSidebar({ items, envLabel, user }: AppSidebarProps) {
             <nav className="mt-4 flex-1" role="navigation" aria-label="Primary navigation">
               <AppNav items={workingItems} orientation="vertical" />
             </nav>
-
-            <div className="mt-8 border-t border-border/20 pt-4">
-              <UserMenu name={user?.name} email={user?.email} />
-            </div>
           </aside>
         </div>
       )}
