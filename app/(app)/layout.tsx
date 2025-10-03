@@ -1,8 +1,4 @@
 import { ReactNode } from 'react'
-import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
-
-import { authOptions } from '@/lib/auth'
 
 type AppLayoutProps = {
   children: ReactNode

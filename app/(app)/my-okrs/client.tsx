@@ -100,7 +100,7 @@ function MyOkrsContent() {
           <CardContent>
             <div className="text-2xl font-bold">{pendingCheckIns.length}</div>
             <p className="text-xs text-muted-foreground">
-              This week's updates
+              This week&apos;s updates
             </p>
           </CardContent>
         </Card>
@@ -150,7 +150,7 @@ function MyOkrsContent() {
                   <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
                   <h3 className="text-lg font-medium mb-2">All caught up!</h3>
                   <p className="text-muted-foreground text-center">
-                    You've completed all your check-ins for this week.
+                    You&apos;ve completed all your check-ins for this week.
                     Great job staying on top of your goals!
                   </p>
                 </CardContent>

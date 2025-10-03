@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 
 import { Suspense } from 'react'
 import { strings } from '@/config/strings'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { Logo } from '@/components/brand/Logo'
 
 export const metadata: Metadata = {
   title: `Sign in | ${strings.app.name}`,
@@ -12,77 +13,86 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background px-4 py-8 sm:px-6 lg:px-8">
-      {/* Background decorative elements */}
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/4 top-1/4 h-64 w-64 rounded-full bg-primary/5 blur-3xl"></div>
-        <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-accent/10 blur-3xl"></div>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-gradient-to-br from-blue-400/10 to-purple-400/10 blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-tr from-indigo-400/10 to-blue-400/10 blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-gradient-to-r from-violet-400/5 to-blue-400/5 blur-2xl animate-pulse delay-500"></div>
       </div>
 
-      {/* Main content container */}
-      <div className="w-full max-w-lg">
-        {/* Header section */}
-        <div className="mb-12 text-center">
-          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-card">
-            <span className="text-3xl font-bold text-primary-foreground">P</span>
+      {/* Main content */}
+      <div className="relative z-10 w-full max-w-md px-6 py-8">
+        {/* Logo and branding */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl mb-8 group hover:shadow-3xl transition-all duration-500">
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <span className="text-3xl font-black text-white tracking-tight">P</span>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-4">{strings.app.name}</h1>
-          <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-            {strings.app.tagline}
-          </p>
+
+          <div className="space-y-3">
+            <h1 className="text-4xl font-semibold text-slate-900 dark:text-white tracking-tight leading-tight">
+              {strings.app.name}
+            </h1>
+            <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-sm mx-auto">
+              {strings.app.tagline}
+            </p>
+          </div>
         </div>
 
         {/* Login card */}
-        <Card className="shadow-card border-border/50 bg-card/95 backdrop-blur-sm">
-          <CardHeader className="space-y-2 pb-8">
-            <CardTitle className="text-2xl font-semibold text-foreground">Sign in to your account</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Enter your credentials to access your workspace
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted/60"></div>
-                  <div className="h-12 w-full animate-pulse rounded-lg bg-muted/60"></div>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 w-20 animate-pulse rounded bg-muted/60"></div>
-                  <div className="h-12 w-full animate-pulse rounded-lg bg-muted/60"></div>
-                </div>
-                <div className="h-12 w-full animate-pulse rounded-full bg-primary/20"></div>
-              </div>
-            }>
+        <Card className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-0 shadow-2xl shadow-slate-900/10 dark:shadow-slate-900/20">
+          <CardContent className="p-8 space-y-8">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Welcome back</h2>
+              <p className="text-slate-600 dark:text-slate-400">Sign in to your account</p>
+            </div>
+
+            <Suspense fallback={<LoginFormSkeleton />}>
               <LoginForm />
             </Suspense>
           </CardContent>
         </Card>
 
-        {/* Additional info */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
-            New to {strings.app.name}?{' '}
-            <a href="#" className="font-medium text-primary hover:text-primary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 rounded">
-              Contact your administrator
-            </a>
-          </p>
-        </div>
-
         {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-xs text-muted-foreground">
-            By signing in, you agree to our{' '}
-            <a href="#" className="text-primary underline hover:text-primary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 rounded">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="#" className="text-primary underline hover:text-primary/80 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 rounded">
-              Privacy Policy
-            </a>
+        <div className="mt-12 text-center space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            New to {strings.app.name}?{' '}
+            <button className="font-medium text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-slate-300 transition-colors duration-200 underline-offset-4 hover:underline">
+              Contact your administrator
+            </button>
           </p>
+
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            <p>
+              By signing in, you agree to our{' '}
+              <button className="text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-slate-300 transition-colors duration-200 underline-offset-2 hover:underline">
+                Terms of Service
+              </button>{' '}
+              and{' '}
+              <button className="text-slate-900 dark:text-white hover:text-slate-700 dark:hover:text-slate-300 transition-colors duration-200 underline-offset-2 hover:underline">
+                Privacy Policy
+              </button>
+            </p>
+          </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function LoginFormSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        <div className="h-12 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+      </div>
+      <div className="space-y-2">
+        <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        <div className="h-12 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+      </div>
+      <div className="h-12 w-full bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
     </div>
   )
 }

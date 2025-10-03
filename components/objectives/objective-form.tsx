@@ -36,7 +36,7 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
   const router = useRouter()
   const [parentSearch, setParentSearch] = useState('')
   const createMutation = useCreateObjective()
-  const updateMutation = objectiveId ? useUpdateObjective(objectiveId) : null
+  const updateMutation = useUpdateObjective(objectiveId || '')
   const parentQuery = useObjectives({ search: parentSearch })
 
   const form = useForm<ObjectiveFormData>({

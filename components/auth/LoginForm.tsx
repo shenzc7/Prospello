@@ -7,13 +7,11 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
-import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters')
 })
 
@@ -25,6 +23,7 @@ export function LoginForm() {
   const callbackUrl = params?.get('callbackUrl') ?? '/dashboard'
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [focusedField, setFocusedField] = React.useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -59,74 +58,120 @@ export function LoginForm() {
   }
 
   return (
-    <Form {...form}>
+    <div className="space-y-8">
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-foreground">Email address</FormLabel>
-              <FormControl>
-                <Input
-                  data-testid="login-email"
-                  placeholder="Enter your email address"
-                  autoComplete="email"
-                  className="h-12 rounded-lg border-border bg-background px-4 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-xs" />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-5">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <div className="relative">
+                  <input
+                    {...field}
+                    data-testid="login-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder=" "
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                    className={cn(
+                      "w-full h-14 px-4 pt-5 pb-2 text-slate-900 dark:text-white bg-transparent border rounded-xl transition-all duration-200 outline-none",
+                      "border-slate-200 dark:border-slate-700",
+                      "focus:border-slate-900 dark:focus:border-white focus:ring-0",
+                      "hover:border-slate-300 dark:hover:border-slate-600",
+                      (field.value || focusedField === 'email') && "pt-5 pb-2"
+                    )}
+                  />
+                  <label className={cn(
+                    "absolute left-4 transition-all duration-200 pointer-events-none",
+                    "text-slate-500 dark:text-slate-400",
+                    (field.value || focusedField === 'email')
+                      ? "top-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+                      : "top-1/2 -translate-y-1/2 text-base"
+                  )}>
+                    Email address
+                  </label>
+                </div>
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-foreground">Password</FormLabel>
-              <FormControl>
-                <Input
-                  data-testid="login-password"
-                  type="password"
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  className="h-12 rounded-lg border-border bg-background px-4 text-sm transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-xs" />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <div className="relative">
+                  <input
+                    {...field}
+                    data-testid="login-password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder=" "
+                    onFocus={() => setFocusedField('password')}
+                    onBlur={() => setFocusedField(null)}
+                    className={cn(
+                      "w-full h-14 px-4 pt-5 pb-2 text-slate-900 dark:text-white bg-transparent border rounded-xl transition-all duration-200 outline-none",
+                      "border-slate-200 dark:border-slate-700",
+                      "focus:border-slate-900 dark:focus:border-white focus:ring-0",
+                      "hover:border-slate-300 dark:hover:border-slate-600",
+                      (field.value || focusedField === 'password') && "pt-5 pb-2"
+                    )}
+                  />
+                  <label className={cn(
+                    "absolute left-4 transition-all duration-200 pointer-events-none",
+                    "text-slate-500 dark:text-slate-400",
+                    (field.value || focusedField === 'password')
+                      ? "top-2 text-xs font-medium text-slate-700 dark:text-slate-300"
+                      : "top-1/2 -translate-y-1/2 text-base"
+                  )}>
+                    Password
+                  </label>
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
 
-        {formError ? (
-          <Alert data-testid="login-error" variant="destructive" className="rounded-lg border-destructive/20 bg-destructive/5 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-destructive">⚠️</span>
-              {formError}
+        {formError && (
+          <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs">!</span>
+              </div>
+              <p className="text-sm text-red-700 dark:text-red-300 font-medium">{formError}</p>
             </div>
-          </Alert>
-        ) : null}
+          </div>
+        )}
 
         <Button
           data-testid="login-submit"
-          className="h-12 w-full rounded-lg bg-primary text-primary-foreground font-medium text-sm shadow-card hover:shadow-card-hover hover:bg-primary/90 focus:ring-2 focus:ring-primary/20 transition-all"
           type="submit"
           disabled={isSubmitting}
+          className={cn(
+            "w-full h-14 rounded-xl font-medium text-base transition-all duration-200",
+            "bg-slate-900 dark:bg-white text-white dark:text-slate-900",
+            "hover:bg-slate-800 dark:hover:bg-slate-100",
+            "focus:outline-none focus:ring-2 focus:ring-slate-900/20 dark:focus:ring-white/20",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "shadow-lg shadow-slate-900/25 dark:shadow-white/25"
+          )}
         >
           {isSubmitting ? (
-            <div className="flex items-center gap-3">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
-              Signing in...
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-5 h-5 border-2 border-white/30 dark:border-slate-900/30 border-t-white dark:border-t-slate-900 rounded-full animate-spin"></div>
+              <span>Signing in...</span>
             </div>
           ) : (
             'Sign in to your account'
           )}
         </Button>
       </form>
-    </Form>
+    </div>
   )
+}
+
+function FormItem({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={className}>{children}</div>
 }

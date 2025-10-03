@@ -215,7 +215,7 @@ function ThisWeekCheckIns() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>This Week's Check-ins</CardTitle>
+        <CardTitle>This Week&apos;s Check-ins</CardTitle>
         <CardDescription>
           {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}
         </CardDescription>
