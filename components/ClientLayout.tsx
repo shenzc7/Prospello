@@ -36,14 +36,16 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
     const navItems = buildNavItems(session.user.role)
 
     return (
-      <div className="relative min-h-screen">
+      <div className="relative h-screen flex">
         <AppSidebar items={navItems} envLabel={envLabel} user={session.user} />
-        <div className="flex min-h-screen flex-1 flex-col lg:ml-56">
+        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
           <AppHeader user={session.user} />
-          <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-            <ErrorBoundary>
-              <div className="flex-1">{children}</div>
-            </ErrorBoundary>
+          <main className="flex-1 overflow-y-auto">
+            <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </div>
           </main>
         </div>
       </div>
