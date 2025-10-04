@@ -40,13 +40,27 @@ type HeatMapProps = {
   className?: string
 }
 
+// Calculate traffic light status based on progress percentage
+function calculateStatus(progress: number): 'green' | 'yellow' | 'red' | 'gray' {
+  if (progress === null || progress === undefined || progress === 0) {
+    return 'gray'
+  }
+  if (progress >= 70) {
+    return 'green'
+  }
+  if (progress >= 30) {
+    return 'yellow'
+  }
+  return 'red'
+}
+
 // Mock data for demonstration
 const mockTeamData: TeamStatus[] = [
   {
     teamId: '1',
     teamName: 'Engineering',
     progress: 85,
-    status: 'green',
+    status: calculateStatus(85), // Will be 'green' (≥70%)
     objectiveCount: 12,
     memberCount: 8
   },
@@ -54,7 +68,7 @@ const mockTeamData: TeamStatus[] = [
     teamId: '2',
     teamName: 'Product',
     progress: 65,
-    status: 'yellow',
+    status: calculateStatus(65), // Will be 'yellow' (30-69%)
     objectiveCount: 8,
     memberCount: 5
   },
@@ -62,7 +76,7 @@ const mockTeamData: TeamStatus[] = [
     teamId: '3',
     teamName: 'Marketing',
     progress: 45,
-    status: 'red',
+    status: calculateStatus(45), // Will be 'yellow' (30-69%)
     objectiveCount: 6,
     memberCount: 4
   },
@@ -70,7 +84,7 @@ const mockTeamData: TeamStatus[] = [
     teamId: '4',
     teamName: 'Sales',
     progress: 78,
-    status: 'green',
+    status: calculateStatus(78), // Will be 'green' (≥70%)
     objectiveCount: 10,
     memberCount: 6
   },
@@ -78,7 +92,7 @@ const mockTeamData: TeamStatus[] = [
     teamId: '5',
     teamName: 'Design',
     progress: 92,
-    status: 'green',
+    status: calculateStatus(92), // Will be 'green' (≥70%)
     objectiveCount: 7,
     memberCount: 3
   }
@@ -91,11 +105,11 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Improve API Performance',
     ownerName: 'John Doe',
     weeklyProgress: [
-      { value: 0, status: 'gray', date: subWeeks(new Date(), 4) },
-      { value: 25, status: 'yellow', date: subWeeks(new Date(), 3) },
-      { value: 45, status: 'yellow', date: subWeeks(new Date(), 2) },
-      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
-      { value: 85, status: 'green', date: new Date() }
+      { value: 0, status: calculateStatus(0), date: subWeeks(new Date(), 4) },    // gray
+      { value: 25, status: calculateStatus(25), date: subWeeks(new Date(), 3) },  // red (<30%)
+      { value: 45, status: calculateStatus(45), date: subWeeks(new Date(), 2) },  // yellow (30-69%)
+      { value: 75, status: calculateStatus(75), date: subWeeks(new Date(), 1) },  // green (≥70%)
+      { value: 85, status: calculateStatus(85), date: new Date() }                // green (≥70%)
     ]
   },
   {
@@ -104,11 +118,11 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Increase Product Adoption',
     ownerName: 'Jane Smith',
     weeklyProgress: [
-      { value: 30, status: 'yellow', date: subWeeks(new Date(), 4) },
-      { value: 35, status: 'yellow', date: subWeeks(new Date(), 3) },
-      { value: 40, status: 'yellow', date: subWeeks(new Date(), 2) },
-      { value: 55, status: 'yellow', date: subWeeks(new Date(), 1) },
-      { value: 60, status: 'yellow', date: new Date() }
+      { value: 30, status: calculateStatus(30), date: subWeeks(new Date(), 4) },  // yellow (30-69%)
+      { value: 35, status: calculateStatus(35), date: subWeeks(new Date(), 3) },  // yellow (30-69%)
+      { value: 40, status: calculateStatus(40), date: subWeeks(new Date(), 2) },  // yellow (30-69%)
+      { value: 55, status: calculateStatus(55), date: subWeeks(new Date(), 1) },  // yellow (30-69%)
+      { value: 60, status: calculateStatus(60), date: new Date() }                // yellow (30-69%)
     ]
   },
   {
@@ -117,11 +131,11 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Improve Customer Satisfaction',
     ownerName: 'Mike Johnson',
     weeklyProgress: [
-      { value: 65, status: 'green', date: subWeeks(new Date(), 4) },
-      { value: 68, status: 'green', date: subWeeks(new Date(), 3) },
-      { value: 72, status: 'green', date: subWeeks(new Date(), 2) },
-      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
-      { value: 78, status: 'green', date: new Date() }
+      { value: 65, status: calculateStatus(65), date: subWeeks(new Date(), 4) },  // yellow (30-69%)
+      { value: 68, status: calculateStatus(68), date: subWeeks(new Date(), 3) },  // yellow (30-69%)
+      { value: 72, status: calculateStatus(72), date: subWeeks(new Date(), 2) },  // green (≥70%)
+      { value: 75, status: calculateStatus(75), date: subWeeks(new Date(), 1) },  // green (≥70%)
+      { value: 78, status: calculateStatus(78), date: new Date() }                // green (≥70%)
     ]
   }
 ]
@@ -198,7 +212,7 @@ function TeamHeatMap({ data }: { data: TeamStatus[] }) {
         </div>
         <div className="flex items-center gap-2">
           <Clock className="h-3 w-3 text-gray-400" />
-          <span>No Data</span>
+          <span>No Progress</span>
         </div>
       </div>
     </div>
@@ -269,7 +283,7 @@ function ProgressHeatMap({ data }: { data: KeyResultProgress[] }) {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded border-2 bg-gray-100 border-gray-200"></div>
-          <span>No Check-in</span>
+          <span>No Progress</span>
         </div>
       </div>
     </div>
