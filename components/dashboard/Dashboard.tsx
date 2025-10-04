@@ -20,6 +20,7 @@ import { ObjectiveStatusValue } from '@/hooks/useObjectives'
 import { UpcomingDeadlinesWidget } from '@/components/productivity/UpcomingDeadlinesWidget'
 import { AtRiskObjectivesWidget } from '@/components/productivity/AtRiskObjectivesWidget'
 import { TeamProgressWidget } from '@/components/productivity/TeamProgressWidget'
+import { HeatMap } from '@/components/analytics/HeatMap'
 import { cn } from '@/lib/ui'
 import { UserRole } from '@/lib/rbac'
 
@@ -680,6 +681,13 @@ export function Dashboard() {
           trend={{ value: 8, label: "from last week" }}
         />
       </div>
+
+      {/* Heat Map - PRD Requirement: Team Status Overview */}
+      {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
+        <div className="mb-8">
+          <HeatMap type="teams" />
+        </div>
+      )}
 
       {/* Main Content Grid - Role-based */}
       {(() => {

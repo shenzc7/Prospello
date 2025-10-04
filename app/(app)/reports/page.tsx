@@ -19,15 +19,20 @@ function ExportSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" disabled>
             <FileText className="h-4 w-4" />
             PDF Report
+            <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-1 rounded">Coming Soon</span>
           </Button>
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" disabled>
             <FileSpreadsheet className="h-4 w-4" />
             Excel Export
+            <span className="ml-2 text-xs bg-muted text-muted-foreground px-2 py-1 rounded">Coming Soon</span>
           </Button>
         </div>
+        <p className="text-sm text-muted-foreground">
+          Export functionality is currently under development. Check back soon!
+        </p>
       </CardContent>
     </Card>
   )

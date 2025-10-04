@@ -18,8 +18,11 @@ export function buildNavItems(role?: string): AppNavItem[] {
     base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
   }
 
+  // Settings page for all users (PRD requirement)
+  base.push({ href: '/settings', label: strings.navigation.items.settings, icon: 'Settings' })
+
   if (role === 'ADMIN') {
-    base.push({ href: '/admin/users', label: strings.navigation.items.settings, icon: 'ShieldCheck' })
+    base.push({ href: '/admin/users', label: 'Admin', icon: 'ShieldCheck' })
   }
 
   return base
