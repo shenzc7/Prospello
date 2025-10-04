@@ -39,3 +39,53 @@ export function calculateObjectiveScore(progress: number): number {
   // Convert progress percentage to 0.0-1.0 score
   return Math.max(0, Math.min(1, progress / 100))
 }
+
+// PRD-compliant traffic light status calculation
+export type TrafficLightStatus = 'green' | 'yellow' | 'red' | 'gray'
+
+export function calculateTrafficLightStatus(progress: number | null | undefined): TrafficLightStatus {
+  if (progress === null || progress === undefined || progress === 0) {
+    return 'gray'
+  }
+  if (progress >= 70) {
+    return 'green'
+  }
+  if (progress >= 30) {
+    return 'yellow'
+  }
+  return 'red'
+}
+
+// Get CSS classes for traffic light status
+export function getTrafficLightClasses(status: TrafficLightStatus) {
+  switch (status) {
+    case 'green':
+      return {
+        bg: 'bg-green-100',
+        border: 'border-green-200',
+        text: 'text-green-700',
+        hover: 'hover:bg-green-200'
+      }
+    case 'yellow':
+      return {
+        bg: 'bg-yellow-100',
+        border: 'border-yellow-200',
+        text: 'text-yellow-700',
+        hover: 'hover:bg-yellow-200'
+      }
+    case 'red':
+      return {
+        bg: 'bg-red-100',
+        border: 'border-red-200',
+        text: 'text-red-700',
+        hover: 'hover:bg-red-200'
+      }
+    default:
+      return {
+        bg: 'bg-gray-100',
+        border: 'border-gray-200',
+        text: 'text-gray-700',
+        hover: 'hover:bg-gray-200'
+      }
+  }
+}

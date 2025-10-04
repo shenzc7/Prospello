@@ -23,6 +23,7 @@ import { TeamProgressWidget } from '@/components/productivity/TeamProgressWidget
 import { HeatMap } from '@/components/analytics/HeatMap'
 import { cn } from '@/lib/ui'
 import { UserRole } from '@/lib/rbac'
+import { calculateTrafficLightStatus } from '@/lib/utils'
 
 interface MetricCardProps {
   title: string
@@ -268,9 +269,17 @@ function HeroSection({ metrics }: { metrics: any }) {
   const quarterProgress = ((now.getTime() - quarterStart.getTime()) / (quarterEnd.getTime() - quarterStart.getTime())) * 100
 
   const getTrafficLightStatus = (progress: number) => {
-    if (progress >= 70) return { color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle, label: 'On Track' }
-    if (progress >= 40) return { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle, label: 'At Risk' }
-    return { color: 'text-red-600', bg: 'bg-red-50', icon: AlertTriangle, label: 'Off Track' }
+    const status = calculateTrafficLightStatus(progress)
+    switch (status) {
+      case 'green':
+        return { color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle, label: 'On Track' }
+      case 'yellow':
+        return { color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle, label: 'At Risk' }
+      case 'red':
+        return { color: 'text-red-600', bg: 'bg-red-50', icon: AlertTriangle, label: 'Off Track' }
+      default:
+        return { color: 'text-gray-600', bg: 'bg-gray-50', icon: Clock, label: 'No Progress' }
+    }
   }
 
   const status = getTrafficLightStatus(metrics?.avgProgress || 0)

@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useObjectives } from '@/hooks/useObjectives'
 import { useSession } from 'next-auth/react'
 import { UserRole } from '@/lib/rbac'
+import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
 
 type ObjectiveData = {
   progress: number
@@ -25,15 +26,20 @@ function TeamCard({ team, objectives }: { team: { id: string; name: string }; ob
     : 0
 
   const getStatusColor = (progress: number) => {
-    if (progress >= 70) return 'text-green-600 bg-green-50'
-    if (progress >= 40) return 'text-yellow-600 bg-yellow-50'
-    return 'text-red-600 bg-red-50'
+    const status = calculateTrafficLightStatus(progress)
+    const classes = getTrafficLightClasses(status)
+    return `${classes.text} ${classes.bg}`
   }
 
   const getStatusBadge = (progress: number) => {
-    if (progress >= 70) return <Badge className="bg-green-100 text-green-800">On Track</Badge>
-    if (progress >= 40) return <Badge className="bg-yellow-100 text-yellow-800">At Risk</Badge>
-    return <Badge className="bg-red-100 text-red-800">Off Track</Badge>
+    const status = calculateTrafficLightStatus(progress)
+    const classes = getTrafficLightClasses(status)
+
+    const label = status === 'green' ? 'On Track' :
+                  status === 'yellow' ? 'At Risk' :
+                  status === 'red' ? 'Off Track' : 'No Progress'
+
+    return <Badge className={`${classes.bg} ${classes.text}`}>{label}</Badge>
   }
 
   return (
