@@ -73,7 +73,15 @@ export function Providers({ children, session }: ProvidersProps) {
   return (
     <SessionProvider session={session}>
       <QueryClientProvider client={client}>
-        <NextThemesProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <NextThemesProvider
+          attribute="class"
+          defaultTheme="light"
+          themes={['light']}
+          enableSystem={false}
+          forcedTheme="light"
+          storageKey="prospello-theme"
+          disableTransitionOnChange
+        >
           <React.Suspense fallback={null}>
             <NavigationProgress />
           </React.Suspense>

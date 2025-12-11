@@ -11,7 +11,7 @@ type AppLayoutProps = {
 
 export default async function AppLayout({ children }: AppLayoutProps) {
   const session = await getServerSession(authOptions)
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const demoMode = cookieStore.get('demoMode')?.value === '1'
 
   if (!session?.user && !demoMode) {

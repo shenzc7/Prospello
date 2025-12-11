@@ -15,14 +15,14 @@ type ClientLayoutProps = {
 }
 
 // Memoized header to prevent re-renders
-const MemoizedHeader = memo(function MemoizedHeader({ 
-  user, 
-  navItems, 
-  envLabel 
-}: { 
-  user: { name?: string | null; email?: string | null } | undefined
+const MemoizedHeader = memo(function MemoizedHeader({
+  user,
+  navItems,
+  envLabel,
+}: {
+  user: { name?: string | null; email?: string | null; role?: string | null } | undefined
   navItems: ReturnType<typeof buildNavItems>
-  envLabel?: string 
+  envLabel?: string
 }) {
   return <AppHeader user={user} navItems={navItems} envLabel={envLabel} />
 })
@@ -42,8 +42,8 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-background">
-        <div className="h-14 border-b border-border/40 bg-background/80 backdrop-blur-xl" />
-        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+        <div className="h-[52px] border-b border-border/40 bg-background/95 backdrop-blur-xl" />
+        <main className="mx-auto w-full max-w-screen-xl px-4 py-6 sm:px-6">
           <div className="animate-pulse space-y-4">
             <div className="h-8 w-48 bg-muted rounded" />
             <div className="h-4 w-96 bg-muted rounded" />
@@ -62,7 +62,7 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
     return (
       <div className="min-h-screen bg-background">
         <MemoizedHeader user={session.user} navItems={navItems} envLabel={label} />
-        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+        <main className="mx-auto w-full max-w-screen-xl px-4 py-6 sm:px-6">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>

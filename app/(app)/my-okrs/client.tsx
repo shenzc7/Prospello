@@ -11,12 +11,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { strings } from '@/config/strings'
 import { useObjectives } from '@/hooks/useObjectives'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { calculateKRProgress } from '@/lib/utils'
 import { useDemoMode } from '@/components/demo/DemoProvider'
+
+const ALL_CYCLES = '__all_cycles__'
 
 function fmtPercent(value?: number) {
   if (value == null || Number.isNaN(value)) return '0%'
@@ -26,7 +29,7 @@ function fmtPercent(value?: number) {
 export function MyOkrsClient() {
   const { data: session, status } = useSession()
   const { enabled: demoEnabled, role: demoRole } = useDemoMode()
-  const [cycle, setCycle] = useState('')
+  const [cycle, setCycle] = useState<string>(ALL_CYCLES)
   const ownerId = demoEnabled
     ? demoRole === 'EMPLOYEE'
       ? 'user-employee'
@@ -36,7 +39,7 @@ export function MyOkrsClient() {
     : session?.user?.id
 
   const query = useObjectives(
-    { ownerId: ownerId ?? undefined, cycle: cycle || undefined, limit: 100 },
+    { ownerId: ownerId ?? undefined, cycle: cycle === ALL_CYCLES ? undefined : cycle, limit: 100 },
     { enabled: demoEnabled ? true : status !== 'loading' && Boolean(ownerId) }
   )
 
@@ -57,10 +60,10 @@ export function MyOkrsClient() {
     [demoEnabled, demoRole, objectives, ownerId]
   )
   const cycles = useMemo(() => Array.from(new Set(myObjectives.map((objective) => objective.cycle))).sort(), [myObjectives])
-  const filteredObjectives = useMemo(
-    () => (cycle ? myObjectives.filter((objective) => objective.cycle === cycle) : myObjectives),
-    [myObjectives, cycle]
-  )
+  const filteredObjectives = useMemo(() => {
+    if (cycle === ALL_CYCLES) return myObjectives
+    return myObjectives.filter((objective) => objective.cycle === cycle)
+  }, [myObjectives, cycle])
 
   const averageProgress = filteredObjectives.length
     ? filteredObjectives.reduce((sum, objective) => sum + objective.progress, 0) / filteredObjectives.length
@@ -167,19 +170,19 @@ export function MyOkrsClient() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="space-y-2">
-            <select
-              aria-label="Filter by cycle"
-              value={cycle}
-              onChange={(event) => setCycle(event.target.value)}
-              className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
-            >
-              <option value="">{strings.selects.currentCycle}</option>
-              {cycles.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <Select value={cycle} onValueChange={setCycle}>
+              <SelectTrigger aria-label="Filter by cycle" className="w-full rounded-lg px-3 py-2">
+                <SelectValue placeholder={strings.selects.currentCycle} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_CYCLES}>{strings.selects.currentCycle}</SelectItem>
+                {cycles.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-xs text-muted-foreground">
               Filter your personal objectives by goal cycle.
             </p>

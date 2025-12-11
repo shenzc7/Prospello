@@ -1,6 +1,9 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
+const NO_PARENT = '__no_parent__'
 
 type ParentOption = {
   id: string
@@ -22,18 +25,22 @@ type ParentSelectorProps = {
 export function ObjectiveParentSelector({ field, options, search, onSearch, loading }: ParentSelectorProps) {
   return (
     <div className="space-y-3">
-      <select
-        value={field.value ?? ''}
-        onChange={(event) => field.onChange(event.target.value)}
-        className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <Select
+        value={field.value ?? NO_PARENT}
+        onValueChange={(value) => field.onChange(value === NO_PARENT ? '' : value)}
       >
-        <option value="">No parent</option>
-        {options.map((objective) => (
-          <option key={objective.id} value={objective.id}>
-            {objective.title} ({objective.cycle})
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="h-11">
+          <SelectValue placeholder="No parent" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NO_PARENT}>No parent</SelectItem>
+          {options.map((objective) => (
+            <SelectItem key={objective.id} value={objective.id}>
+              {objective.title} ({objective.cycle})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       <Input
         placeholder="Search objectives..."
         value={search}

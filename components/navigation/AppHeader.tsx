@@ -18,6 +18,7 @@ export type AppHeaderProps = {
   user?: {
     name?: string | null
     email?: string | null
+    role?: string | null
   }
   navItems?: AppNavItem[]
   envLabel?: string
@@ -33,6 +34,7 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const { enabled: demoEnabled, role } = useDemoMode()
+  const showAlerts = isFeatureEnabled('notificationFeed')
 
   const submitSearch = () => {
     const term = query.trim()
@@ -42,89 +44,92 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3 rounded-lg px-2 py-1 transition hover:bg-muted/60">
-              <Logo size={38} />
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold leading-tight">OKRFlow</span>
-                <span className="text-xs text-muted-foreground">Strategy → Outcomes</span>
-              </div>
-            </Link>
-            {envLabel ? (
-              <span className="rounded-full border border-border/60 bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-                {envLabel}
-              </span>
-            ) : null}
-            {demoEnabled ? (
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                Demo • {role}
-              </span>
-            ) : (
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                {getQuarterLabel()}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1.5 shadow-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-muted-foreground">Weekly check-in due</span>
+    <header className="sticky top-0 z-40 border-b border-border/40 bg-background/95 backdrop-blur-xl">
+      {/* Top Bar */}
+      <div className="mx-auto flex w-full max-w-screen-xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
+        {/* Left: Logo + Badge */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2.5 rounded-lg transition hover:opacity-80">
+            <Logo size={36} />
+            <div className="hidden sm:flex flex-col">
+              <span className="text-sm font-semibold leading-tight">OKRFlow</span>
+              <span className="text-[11px] text-muted-foreground">Strategy → Outcomes</span>
             </div>
-            <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex items-center gap-2">
-              <Link href="/okrs/new">
-                <PlusCircle className="h-4 w-4" aria-hidden />
-                New Objective
-              </Link>
-            </Button>
-            {isFeatureEnabled('demoMode') ? <DemoToggle compact showRole={false} /> : null}
-            <UserMenu name={user?.name} email={user?.email} />
+          </Link>
+          {envLabel ? (
+            <span className="rounded-full border border-border/60 bg-muted/60 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {envLabel}
+            </span>
+          ) : null}
+          {demoEnabled ? (
+            <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              Demo • {role}
+            </span>
+          ) : (
+            <span className="hidden sm:inline-flex rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+              {getQuarterLabel()}
+            </span>
+          )}
+        </div>
+
+        {/* Center: Search */}
+        <div className="flex-1 max-w-md mx-4 hidden md:block">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden />
+            <Input
+              type="search"
+              placeholder="Search objectives, key results, or people"
+              className="w-full h-9 rounded-full border-border/60 bg-card pl-9 pr-16 text-sm placeholder:text-muted-foreground/60 shadow-sm"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  submitSearch()
+                }
+              }}
+            />
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5 text-[10px] text-muted-foreground">
+              <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5">Ctrl</kbd>
+              <kbd className="rounded border border-border/60 bg-muted px-1.5 py-0.5">K</kbd>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex-1">
-            <div className="relative max-w-2xl">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" aria-hidden />
-              <Input
-                type="search"
-                placeholder="Search objectives, key results, or people"
-                className="w-full rounded-full border-border/60 bg-card pl-11 text-sm placeholder:text-muted-foreground/70 shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    submitSearch()
-                  }
-                }}
-              />
-              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-full bg-muted/80 px-2 py-1 text-[11px] text-muted-foreground">
-                <kbd className="rounded border border-border/70 bg-background px-1">Ctrl</kbd>
-                <kbd className="rounded border border-border/70 bg-background px-1">K</kbd>
-              </div>
-            </div>
-          </div>
-
-          {navItems.length ? (
-            <div className="flex items-center gap-3">
-              <AppNav items={navItems} orientation="horizontal" className="flex-wrap gap-1" />
-              <Button
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2"
-                onClick={() => router.push('/settings?tab=notifications')}
-              >
-                <BellDot className="h-4 w-4" />
-                Alerts
-              </Button>
-            </div>
-          ) : null}
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex h-8 items-center gap-1.5 text-xs">
+            <Link href="/okrs/new">
+              <PlusCircle className="h-3.5 w-3.5" aria-hidden />
+              New Objective
+            </Link>
+          </Button>
+          {isFeatureEnabled('demoMode') ? <DemoToggle compact showRole={false} userRole={user?.role as any} /> : null}
+          <UserMenu name={user?.name} email={user?.email} />
         </div>
       </div>
+
+      {/* Navigation Bar */}
+      {navItems.length ? (
+        <div className="mx-auto w-full max-w-screen-xl border-t border-border/30 px-4 sm:px-6">
+          <div className="flex items-center justify-between py-1.5">
+            <AppNav items={navItems} orientation="horizontal" className="gap-0.5" />
+            {showAlerts ? (
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <Link href="/alerts">
+                  <BellDot className="h-3.5 w-3.5" />
+                  Alerts
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }

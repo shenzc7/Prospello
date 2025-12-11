@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { FiltersBar } from '@/components/layout/FiltersBar'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,6 +24,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/ui'
 import { isFeatureEnabled } from '@/config/features'
 
+const ALL_CYCLES = '__all_cycles__'
 
 const statusFilters: Array<{ value: ObjectiveStatusValue | ''; label: string }> = [
   { value: '', label: 'All statuses' },
@@ -68,7 +70,7 @@ function resolveGoalType(objective: Objective): GoalType {
 
 export function OkrTable() {
   const [search, setSearch] = useState('')
-  const [cycle, setCycle] = useState('')
+  const [cycle, setCycle] = useState<string>(ALL_CYCLES)
   const [status, setStatus] = useState<ObjectiveStatusValue | ''>('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -79,7 +81,7 @@ export function OkrTable() {
 
   const query = useObjectives({
     search: search || undefined,
-    cycle: cycle || undefined,
+    cycle: cycle === ALL_CYCLES ? undefined : cycle,
     status: status || undefined,
   })
 
@@ -357,20 +359,19 @@ export function OkrTable() {
           <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground" htmlFor="okrs-cycle-select">
             {strings.selects.cycleLabel}
           </label>
-          <select
-            id="okrs-cycle-select"
-            data-testid="okrs-cycle-select"
-            value={cycle}
-            onChange={(event) => setCycle(event.target.value)}
-            className="h-9 rounded-lg border-border/40 bg-background/80 px-3 text-sm"
-          >
-            <option value="">{strings.selects.allCycles}</option>
-            {cycles.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <Select value={cycle} onValueChange={setCycle}>
+            <SelectTrigger id="okrs-cycle-select" data-testid="okrs-cycle-select" className="h-9 min-w-[160px] rounded-lg">
+              <SelectValue placeholder={strings.selects.allCycles} />
+            </SelectTrigger>
+            <SelectContent align="end">
+            <SelectItem value={ALL_CYCLES}>{strings.selects.allCycles}</SelectItem>
+              {cycles.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -408,7 +409,7 @@ export function OkrTable() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => {
                 setStatus('')
-                setCycle('')
+                setCycle(ALL_CYCLES)
                 setSearch('')
                 setSortField('createdAt')
                 setSortDirection('desc')
@@ -417,14 +418,14 @@ export function OkrTable() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 setStatus('AT_RISK')
-                setCycle('')
+                setCycle(ALL_CYCLES)
                 setSearch('')
               }}>
                 At Risk Only
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 setStatus('DONE')
-                setCycle('')
+                setCycle(ALL_CYCLES)
                 setSearch('')
               }}>
                 Completed Only
@@ -432,7 +433,7 @@ export function OkrTable() {
               <DropdownMenuItem onClick={() => {
                 setSearch('my')
                 setStatus('')
-                setCycle('')
+                setCycle(ALL_CYCLES)
               }}>
                 My Objectives
               </DropdownMenuItem>

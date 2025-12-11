@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, Settings, type LucideIcon } from 'lucide-react'
+import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, Settings, Bell, type LucideIcon } from 'lucide-react'
 import { useEffect, useCallback, useTransition } from 'react'
 
 import { cn } from '@/lib/ui'
@@ -22,6 +22,7 @@ const iconMap: Record<string, LucideIcon> = {
   ShieldCheck,
   BarChart3,
   Settings,
+  Bell,
 }
 
 type AppNavProps = {
@@ -111,27 +112,15 @@ export function AppNav({ items, orientation = 'horizontal', className }: AppNavP
             }}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'group relative flex items-center gap-2 rounded-full border border-transparent text-sm font-medium transition-all duration-100',
-              'px-3 py-2 min-h-[40px]',
+              'group relative flex items-center gap-1.5 rounded-full text-sm font-medium transition-all duration-150',
+              'px-3 py-1.5 h-8',
               isActive
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
             )}
           >
-            <span
-              className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
-                isActive ? 'bg-primary/15 text-primary' : 'bg-muted/80 text-muted-foreground/80'
-              )}
-            >
-              <Icon className="h-4 w-4" />
-            </span>
-            <span className="flex-1">{label}</span>
-            {shortcut && (
-              <span className="ml-auto text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                {shortcut}
-              </span>
-            )}
+            <Icon className={cn('h-4 w-4', isActive ? 'text-primary' : 'text-muted-foreground')} />
+            <span>{label}</span>
           </Link>
         )
       })}

@@ -56,17 +56,18 @@ export function UserRow({ user, onUpdate, onUpdateTeams, availableTeams, pending
               render={({ field }) => (
                 <FormItem className="min-w-[150px]">
                   <FormControl>
-                    <select
-                      {...field}
-                      data-testid={`admin-users-role-${user.id}`}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      {ROLE_OPTIONS.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger data-testid={`admin-users-role-${user.id}`} className="h-10">
+                        <SelectValue placeholder="Choose role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLE_OPTIONS.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

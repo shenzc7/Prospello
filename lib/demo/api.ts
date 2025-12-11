@@ -123,7 +123,9 @@ export function maybeHandleDemoRequest<T>(url: string, init?: RequestInit): T | 
 
   if (pathname === '/api/notifications') {
     if (method === 'GET') {
-      return { notifications: demoNotifications, unread: demoNotifications.filter((n) => !n.read).length } as T
+      const userId = searchParams.get('userId')
+      const notifications = userId ? demoNotifications.filter((n) => n.userId === userId) : demoNotifications
+      return { notifications, unread: notifications.filter((n) => !n.read).length } as T
     }
     // Marking as read is a no-op but we keep UX smooth
     return { ok: true } as T

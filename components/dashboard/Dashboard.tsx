@@ -51,23 +51,21 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, description, trend, icon }: MetricCardProps) {
   return (
-    <Card className="shadow-card hover:shadow-card-hover transition-all duration-200 hover:scale-[1.02]">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon && <div className="h-4 w-4 text-muted-foreground">{icon}</div>}
-      </CardHeader>
-      <CardContent>
+    <Card className="shadow-card hover:shadow-card-hover transition-all duration-200">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+          {icon && <div className="h-4 w-4 text-muted-foreground">{icon}</div>}
+        </div>
         <div className="text-2xl font-bold">{value}</div>
         <p className="text-xs text-muted-foreground">{description}</p>
         {trend && (
-          <div className="flex items-center pt-1">
-            <span className={cn(
-              "text-xs font-medium",
-              trend.value > 0 ? "progress-high" : "progress-low"
-            )}>
-              {trend.value > 0 ? "+" : ""}{trend.value}% {trend.label}
-            </span>
-          </div>
+          <span className={cn(
+            "text-xs font-medium",
+            trend.value > 0 ? "progress-high" : "progress-low"
+          )}>
+            {trend.value > 0 ? "+" : ""}{trend.value}% {trend.label}
+          </span>
         )}
       </CardContent>
     </Card>
@@ -83,19 +81,15 @@ interface QuickActionProps {
 
 function QuickAction({ title, description, href, icon }: QuickActionProps) {
   return (
-    <Card className="shadow-card hover:shadow-card-hover transition-all duration-200 hover:scale-[1.02] hover:bg-muted/30">
-      <CardContent className="p-4">
-        <Link href={href} className="block">
-          <div className="flex items-center gap-3">
-            {icon && <div className="flex-shrink-0 text-primary">{icon}</div>}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-sm">{title}</h3>
-              <p className="text-xs text-muted-foreground mt-1">{description}</p>
-            </div>
-          </div>
-        </Link>
-      </CardContent>
-    </Card>
+    <Link href={href} className="block rounded-lg border bg-card p-3 hover:bg-muted/50 transition-colors">
+      <div className="flex items-center gap-2">
+        {icon && <div className="flex-shrink-0 text-primary">{icon}</div>}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-sm">{title}</h3>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+    </Link>
   )
 }
 
@@ -294,57 +288,55 @@ function HeroSection({ metrics, hero }: { metrics: DashboardMetrics | null; hero
 
   return (
     <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-      <CardContent className="p-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            {/* Progress Ring */}
-            <div className="relative">
-              <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  className="text-muted-foreground/20"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="none"
-                  strokeDasharray={`${2 * Math.PI * 40}`}
-                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - (progressValue || 0) / 100)}`}
-                  className="text-primary transition-all duration-1000"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold">{Math.round(progressValue || 0)}%</span>
-              </div>
-            </div>
-
-            {/* Status and Info */}
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Company OKRs</h2>
-              <div className="flex items-center gap-2">
-                <StatusIcon className={`h-5 w-5 ${status.color}`} />
-                <span className={`font-medium ${status.color}`}>{status.label}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {(hero?.objectiveCount ?? metrics?.totalObjectives) || 0} active objectives
-              </p>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-6">
+          {/* Progress Ring */}
+          <div className="relative flex-shrink-0">
+            <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                stroke="currentColor"
+                strokeWidth="10"
+                fill="none"
+                className="text-muted-foreground/20"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="40"
+                stroke="currentColor"
+                strokeWidth="10"
+                fill="none"
+                strokeDasharray={`${2 * Math.PI * 40}`}
+                strokeDashoffset={`${2 * Math.PI * 40 * (1 - (progressValue || 0) / 100)}`}
+                className="text-primary transition-all duration-1000"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xl font-bold">{Math.round(progressValue || 0)}%</span>
             </div>
           </div>
 
+          {/* Status and Info */}
+          <div className="space-y-1 min-w-0">
+            <h2 className="text-xl font-bold">Company OKRs</h2>
+            <div className="flex items-center gap-2">
+              <StatusIcon className={`h-4 w-4 ${status.color}`} />
+              <span className={`text-sm font-medium ${status.color}`}>{status.label}</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {(hero?.objectiveCount ?? metrics?.totalObjectives) || 0} active objectives
+            </p>
+          </div>
+
           {/* Quarter Timeline */}
-          <div className="flex-1 max-w-md ml-8">
-            <div className="space-y-2">
+          <div className="flex-1 min-w-0 ml-auto max-w-xs">
+            <div className="space-y-1.5">
               <div className="flex justify-between text-sm">
-                <span>Q4 2024</span>
-                <span>{Math.round(quarterProgress)}% complete</span>
+                <span className="font-medium">Q4 2024</span>
+                <span className="text-muted-foreground">{Math.round(quarterProgress)}% complete</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
                 <div
@@ -881,13 +873,14 @@ export function Dashboard() {
   const showHeatMap = userRole === 'ADMIN' || userRole === 'MANAGER'
 
   return (
-    <div className="space-y-7 sm:space-y-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-primary">
             {headerContent.title}
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {headerContent.description}
           </p>
         </div>
@@ -896,19 +889,49 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <HeroSection metrics={metrics} hero={checkInSummary?.hero} />
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle>Action Feed</CardTitle>
+      {/* Hero + Metrics | Action Feed */}
+      <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+        {/* Left Column: Hero + Metrics */}
+        <div className="space-y-3">
+          <HeroSection metrics={metrics} hero={checkInSummary?.hero} />
+          <div className="grid grid-cols-2 gap-3">
+            <MetricCard
+              title="Total Objectives"
+              value={metrics.totalObjectives}
+              description="Active OKRs across the company"
+            />
+            <MetricCard
+              title="Completion Rate"
+              value={`${metrics.completionRate}%`}
+              description="Objectives scored as done"
+              trend={{ value: 12, label: "from last month" }}
+            />
+            <MetricCard
+              title="At Risk"
+              value={metrics.atRiskObjectives}
+              description="Needs attention this week"
+            />
+            <MetricCard
+              title="Average Progress"
+              value={`${metrics.avgProgress}%`}
+              description="Weighted across all objectives"
+              trend={{ value: 8, label: "from last week" }}
+            />
+          </div>
+        </div>
+        
+        {/* Right Column: Action Feed */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Action Feed</CardTitle>
             <CardDescription>Notifications, reminders, and quick steps</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-sm text-primary">
+          <CardContent className="space-y-2.5">
+            <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary leading-relaxed">
               Within 30 seconds know where to act: green = on track, yellow = at risk, red = off track.
             </div>
             {quickActions.length ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {quickActions.map((action, index) => (
                   <div key={`quick-${index}`}>{action}</div>
                 ))}
@@ -921,39 +944,15 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Total Objectives"
-          value={metrics.totalObjectives}
-          description="Active OKRs across the company"
-        />
-        <MetricCard
-          title="Completion Rate"
-          value={`${metrics.completionRate}%`}
-          description="Objectives scored as done"
-          trend={{ value: 12, label: "from last month" }}
-        />
-        <MetricCard
-          title="At Risk"
-          value={metrics.atRiskObjectives}
-          description="Needs attention this week"
-        />
-        <MetricCard
-          title="Average Progress"
-          value={`${metrics.avgProgress}%`}
-          description="Weighted across all objectives"
-          trend={{ value: 8, label: "from last week" }}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="space-y-6">
+      {/* Main Content Grid */}
+      <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+        <div className="space-y-5">
           <ObjectiveProgressList objectives={filteredObjectives} />
           <TimelineView objectives={filteredObjectives} isLoading={isLoading} />
           {showHeatMap && <HeatMap type="teams" data={teamHeatmapData} />}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {filteredObjectives.length > 0 && (
             <TopObjectivesWidget objectives={filteredObjectives} />
           )}
@@ -963,24 +962,26 @@ export function Dashboard() {
             userRole={userRole}
           />
           {userRole !== 'ADMIN' && <ThisWeekCheckIns />}
+          <AlignmentMap objectives={filteredObjectives} alignment={checkInSummary?.alignment} />
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        {showProductivityExtras && <TeamProgressWidget userRole={userRole} userId={user?.id} />}
-        {showNotificationFeed && <NotificationsFeed userRole={userRole} userId={user?.id} />}
-        <AlignmentMap objectives={filteredObjectives} alignment={checkInSummary?.alignment} />
-      </div>
-
+      {/* Bottom Widgets */}
       {showProductivityExtras && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
+          <TeamProgressWidget userRole={userRole} userId={user?.id} />
+          {showNotificationFeed && <NotificationsFeed userRole={userRole} userId={user?.id} />}
           <UpcomingDeadlinesWidget userRole={userRole} userId={user?.id} />
-          <AtRiskObjectivesWidget userRole={userRole} userId={user?.id} />
         </div>
       )}
 
-      {showProductivityExtras && (userRole === 'ADMIN' || userRole === 'MANAGER') && (
-        <RecentActivity userRole={userRole} recentCheckIns={checkInSummary?.recentCheckIns} />
+      {showProductivityExtras && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <AtRiskObjectivesWidget userRole={userRole} userId={user?.id} />
+          {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
+            <RecentActivity userRole={userRole} recentCheckIns={checkInSummary?.recentCheckIns} />
+          )}
+        </div>
       )}
     </div>
   )

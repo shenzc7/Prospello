@@ -15,7 +15,7 @@ export function NotificationsFeed({ userRole, userId }: { userRole?: UserRole; u
   const currentUserRole = userRole || (user?.role as UserRole)
   const currentUserId = userId || user?.id
 
-  const { notifications, unread, isLoading, markAllRead } = useNotifications()
+  const { notifications, unread, isLoading, markAllRead } = useNotifications(currentUserId)
 
   const iconFor = (type: AppNotification['type']) => {
     if (type === 'CHECKIN_DUE' || type === 'REMINDER') return <CalendarClock className="h-4 w-4 text-amber-600" />

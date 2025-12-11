@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { StatusChip } from '@/components/check-ins/StatusChip'
 import { strings } from '@/config/strings'
 import { toast } from 'sonner'
@@ -274,15 +275,16 @@ export function QuickCheckInRow({
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <select
-                    {...field}
-                    data-testid={`my-okrs-status-${keyResultId}`}
-                    className="flex h-10 rounded-full border border-input bg-background px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="GREEN">GREEN</option>
-                    <option value="YELLOW">YELLOW</option>
-                    <option value="RED">RED</option>
-                  </select>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger data-testid={`my-okrs-status-${keyResultId}`} className="h-10 rounded-full px-4">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent align="start">
+                      <SelectItem value="GREEN">GREEN</SelectItem>
+                      <SelectItem value="YELLOW">YELLOW</SelectItem>
+                      <SelectItem value="RED">RED</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </FormControl>
                 <FormMessage />
               </FormItem>

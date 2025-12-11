@@ -9,6 +9,7 @@ import { isManagerOrHigher } from '@/lib/rbac'
 import { createNotification, broadcastReminder } from '@/lib/notifications'
 
 export async function POST(req: NextRequest) {
+  const started = Date.now()
   try {
     const cronSecret = process.env.CRON_SECRET
     const providedSecret = req.headers.get('x-cron-secret')
@@ -64,7 +65,9 @@ export async function POST(req: NextRequest) {
       await broadcastReminder(`OKRFlow: ${reminders} check-ins are due this week. Owners have been notified.`)
     }
 
-    return NextResponse.json({ ok: true, reminders })
+    const ms = Date.now() - started
+    console.log('cron:reminders complete', { orgId, reminders, ms })
+    return NextResponse.json({ ok: true, reminders, ms })
   } catch (error) {
     console.error('POST /api/cron/reminders failed', error)
     return new NextResponse('Internal Server Error', { status: 500 })

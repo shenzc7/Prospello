@@ -8,19 +8,22 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FiltersBar } from '@/components/layout/FiltersBar'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { strings } from '@/config/strings'
 import { useObjectives, type Objective } from '@/hooks/useObjectives'
 import { fmtMetric } from '@/lib/ui'
 
+const ALL_CYCLES = '__all_cycles__'
+
 export function OkrBoard() {
   const [search, setSearch] = useState('')
-  const [cycle, setCycle] = useState('')
+  const [cycle, setCycle] = useState<string>(ALL_CYCLES)
 
   const query = useObjectives({
     search: search || undefined,
-    cycle: cycle || undefined,
+    cycle: cycle === ALL_CYCLES ? undefined : cycle,
     limit: 100,
   })
 
@@ -67,19 +70,19 @@ export function OkrBoard() {
             <label className="text-sm text-muted-foreground" htmlFor="okrs-board-cycle">
               {strings.selects.cycleLabel}
             </label>
-            <select
-              id="okrs-board-cycle"
-              value={cycle}
-              onChange={(e) => setCycle(e.target.value)}
-              className="h-10 rounded-full border border-border/70 bg-background/95 px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">{strings.selects.allCycles}</option>
-              {cycles.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <Select value={cycle} onValueChange={setCycle}>
+              <SelectTrigger id="okrs-board-cycle" className="h-10 min-w-[160px] rounded-full px-4">
+                <SelectValue placeholder={strings.selects.allCycles} />
+              </SelectTrigger>
+              <SelectContent align="end">
+              <SelectItem value={ALL_CYCLES}>{strings.selects.allCycles}</SelectItem>
+                {cycles.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
       </FiltersBar>
 

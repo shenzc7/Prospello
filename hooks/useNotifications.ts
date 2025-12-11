@@ -18,17 +18,18 @@ type NotificationResponse =
     unread: number
   }
 
-export function useNotifications() {
+export function useNotifications(userId?: string) {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery<NotificationResponse>({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', userId],
     queryFn: async () => {
-      const demoPayload = maybeHandleDemoRequest<NotificationResponse>('/api/notifications')
+      const suffix = userId ? `?userId=${encodeURIComponent(userId)}` : ''
+      const demoPayload = maybeHandleDemoRequest<NotificationResponse>(`/api/notifications${suffix}`)
       if (demoPayload !== null) {
         return demoPayload
       }
-      const res = await fetch('/api/notifications')
+      const res = await fetch(`/api/notifications${suffix}`)
       if (!res.ok) throw new Error('Failed to fetch notifications')
       return res.json()
     },
@@ -57,6 +58,7 @@ export function useNotifications() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications', userId] })
     },
   })
 

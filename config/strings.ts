@@ -1,15 +1,16 @@
 export const strings = {
   app: {
-    name: process.env.NEXT_PUBLIC_BRAND_NAME || 'OKR Builder',
+    name: process.env.NEXT_PUBLIC_BRAND_NAME || 'OKRFlow',
     tagline:
       process.env.NEXT_PUBLIC_BRAND_TAGLINE ||
-      'Build, track, and align your Objectives and Key Results.',
+      'Build, track, and align your OKRs.',
   },
   navigation: {
     items: {
       company: 'Company',
       teams: 'Teams',
       myOkrs: 'My OKRs',
+      alerts: 'Alerts',
       reports: 'Reports',
       settings: 'Settings',
     },

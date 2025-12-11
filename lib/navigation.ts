@@ -15,6 +15,10 @@ export function buildNavItems(role?: string): AppNavItem[] {
     { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
   ]
 
+  if (isFeatureEnabled('notificationFeed')) {
+    base.push({ href: '/alerts', label: strings.navigation.items.alerts, icon: 'Bell' })
+  }
+
   if (role === 'ADMIN' || role === 'MANAGER') {
     base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
   }

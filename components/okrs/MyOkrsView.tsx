@@ -7,14 +7,17 @@ import { HistoryPanel } from '@/components/check-ins/HistoryPanel'
 import { ProgressChip } from '@/components/okrs/ProgressChip'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { strings } from '@/config/strings'
 import { useMyOkrs } from '@/hooks/useMyOkrs'
 import { fmtPercent } from '@/lib/ui'
 import { calculateKRProgress } from '@/lib/utils'
 
+const ALL_CYCLES = '__all_cycles__'
+
 export function MyOkrsView({ ownerId }: { ownerId: string }) {
-  const [cycle, setCycle] = useState('')
-  const query = useMyOkrs({ ownerId, cycle: cycle || undefined })
+  const [cycle, setCycle] = useState<string>(ALL_CYCLES)
+  const query = useMyOkrs({ ownerId, cycle: cycle === ALL_CYCLES ? undefined : cycle })
 
   if (query.isLoading) {
     return (
@@ -47,19 +50,19 @@ export function MyOkrsView({ ownerId }: { ownerId: string }) {
           <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground" htmlFor="my-okrs-cycle">
             {strings.selects.cycleLabel}
           </label>
-          <select
-            id="my-okrs-cycle"
-            value={cycle}
-            onChange={(event) => setCycle(event.target.value)}
-            className="h-10 rounded-full border border-border/70 bg-background/95 px-4 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">{strings.selects.currentCycle}</option>
-            {cycles.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <Select value={cycle} onValueChange={setCycle}>
+            <SelectTrigger id="my-okrs-cycle" className="h-10 min-w-[160px] rounded-full px-4">
+              <SelectValue placeholder={strings.selects.currentCycle} />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value={ALL_CYCLES}>{strings.selects.currentCycle}</SelectItem>
+              {cycles.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </header>
 

@@ -7,6 +7,7 @@ import { ObjectiveStatus, ProgressType, Role } from '@prisma/client';
 import { calculateTrafficLightStatus } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
+    const started = Date.now();
     try {
         const cronSecret = process.env.CRON_SECRET;
         const providedSecret = req.headers.get('x-cron-secret');
@@ -69,10 +70,14 @@ export async function POST(req: NextRequest) {
             updatedCount++;
         }
 
+        const ms = Date.now() - started;
+        console.log('cron:scoring complete', { orgId, cycle, updatedCount, ms });
+
         return NextResponse.json({
             success: true,
             message: `Updated scores for ${updatedCount} objectives${cycle ? ` in cycle ${cycle}` : ''}`,
-            updatedCount
+            updatedCount,
+            ms,
         });
 
     } catch (error) {

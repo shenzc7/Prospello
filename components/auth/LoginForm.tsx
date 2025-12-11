@@ -25,6 +25,11 @@ export function LoginForm() {
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [ssoLoading, setSsoLoading] = React.useState<string | null>(null)
+  const [hydrated, setHydrated] = React.useState(false)
+
+  React.useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -90,15 +95,20 @@ export function LoginForm() {
       {/* Divider */}
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-700/50"></div>
+          <div className="w-full border-t border-slate-600/60"></div>
         </div>
-        <span className="relative bg-slate-900 px-4 text-xs text-slate-500 uppercase tracking-wider">
+        <span className="relative bg-slate-900 px-4 text-xs text-slate-200 uppercase tracking-wider">
           or continue with email
         </span>
       </div>
 
       {/* Email/Password Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+        data-testid="login-form"
+        data-hydrated={hydrated ? 'true' : 'false'}
+      >
         <div className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
@@ -166,11 +176,11 @@ export function LoginForm() {
           data-testid="login-submit"
           className={cn(
             "w-full h-12 rounded-lg font-semibold text-sm transition-all duration-200",
-            "bg-emerald-500 text-white",
-            "hover:bg-emerald-400",
-            "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:ring-offset-2 focus:ring-offset-slate-900",
-            "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-500",
-            "shadow-lg shadow-emerald-500/20"
+            "bg-emerald-700 text-white",
+            "hover:bg-emerald-600",
+            "focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-slate-900",
+            "disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-emerald-700",
+            "shadow-lg shadow-emerald-500/25"
           )}
         >
           {isSubmitting ? (

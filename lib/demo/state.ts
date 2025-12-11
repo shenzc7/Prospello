@@ -4,6 +4,7 @@ export type DemoState = {
   enabled: boolean
   role: DemoRole
   autoCycle: boolean
+  hudHidden: boolean
   startedAt?: number
 }
 
@@ -12,7 +13,8 @@ type Listener = () => void
 let state: DemoState = {
   enabled: false,
   role: 'ADMIN',
-  autoCycle: true,
+  autoCycle: false,
+  hudHidden: false,
   startedAt: undefined,
 }
 
@@ -48,6 +50,20 @@ export function disableDemo() {
   setDemoState({
     enabled: false,
     autoCycle: false,
+    hudHidden: false,
+  })
+}
+
+export function hideDemoHud() {
+  setDemoState({
+    hudHidden: true,
+    autoCycle: false,
+  })
+}
+
+export function showDemoHud() {
+  setDemoState({
+    hudHidden: false,
   })
 }
 

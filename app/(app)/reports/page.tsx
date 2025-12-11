@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useObjectives } from '@/hooks/useObjectives'
 import { TimelineView } from '@/components/analytics/TimelineView'
-import { Input } from '@/components/ui/input'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
 import { AlignmentTree } from '@/components/analytics/AlignmentTree'
+import { DateRangePicker } from '@/components/ui/date-range-picker'
 import type { AlignmentNode } from '@/lib/checkin-summary'
 
 function ExportSection() {
@@ -242,24 +242,14 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 rounded-lg border px-3 py-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="h-8 w-36"
-              aria-label="From date"
-            />
-            <span className="text-xs text-muted-foreground">to</span>
-            <Input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="h-8 w-36"
-              aria-label="To date"
-            />
-          </div>
+          <DateRangePicker
+            from={fromDate}
+            to={toDate}
+            onChange={(from, to) => {
+              setFromDate(from ?? '')
+              setToDate(to ?? '')
+            }}
+          />
           <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
             <SelectTrigger className="w-40">
               <SelectValue />

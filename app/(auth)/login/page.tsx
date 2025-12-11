@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-
+import { Suspense } from 'react'
 import { strings } from '@/config/strings'
 import { LoginForm } from '@/components/auth/LoginForm'
 import { Logo } from '@/components/brand/Logo'
@@ -16,7 +16,7 @@ export default function LoginPage() {
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/5 rounded-full blur-[120px]" />
 
-      <div className="relative w-full max-w-sm">
+      <main className="relative w-full max-w-sm" role="main">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
           <Logo size={48} showName={true} textClassName="text-white" />
@@ -28,13 +28,15 @@ export default function LoginPage() {
             Sign in to your workspace
           </h1>
 
-          <LoginForm />
+          <Suspense fallback={<div className="text-sm text-slate-200 text-center">Loading form…</div>}>
+            <LoginForm />
+          </Suspense>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-4">
-          New here? <a href="/signup" className="text-emerald-400 hover:text-emerald-300">Create an account</a> or use SSO.
+        <p className="text-center text-xs text-slate-200 mt-4">
+          New here? <a href="/signup" className="text-emerald-300 hover:text-emerald-200 underline underline-offset-2">Create an account</a> or use SSO.
         </p>
-      </div>
+      </main>
     </div>
   )
 }
