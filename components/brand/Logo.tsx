@@ -9,10 +9,11 @@ type LogoProps = {
   size?: number
   showName?: boolean
   className?: string
+  textClassName?: string
   variant?: 'default' | 'hero'
 }
 
-export function Logo({ size = 36, showName = false, className, variant = 'default' }: LogoProps) {
+export function Logo({ size = 36, showName = false, className, textClassName, variant = 'default' }: LogoProps) {
   const logoUrl = process.env.NEXT_PUBLIC_BRAND_LOGO_URL
   const name = strings.app.name
 
@@ -45,7 +46,7 @@ export function Logo({ size = 36, showName = false, className, variant = 'defaul
         </span>
       )}
       {showName ? (
-        <span className={cn('font-display font-semibold tracking-tight', className)}>{name}</span>
+        <span className={cn('font-display font-semibold tracking-tight text-xl', textClassName || className)}>{name}</span>
       ) : null}
     </span>
   )

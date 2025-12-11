@@ -11,6 +11,11 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@/component
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UserRow } from './admin-users-row'
+import { useTeams } from '@/hooks/useObjectives'
+import { maybeHandleDemoRequest } from '@/lib/demo/api'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { toast } from 'sonner'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export type AdminUser = {
   id: string
@@ -19,16 +24,27 @@ export type AdminUser = {
   role: Role
   createdAt: string
   updatedAt: string
+  teams?: Array<{ id: string; name: string }>
 }
 
 type UsersResponse = {
   users: AdminUser[]
+  pagination?: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
 }
 
 export const ROLE_OPTIONS: Role[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
 
 async function fetchUsers(search: string): Promise<UsersResponse> {
   const qs = search ? `?search=${encodeURIComponent(search)}` : ''
+  const demoPayload = maybeHandleDemoRequest<UsersResponse>(`/api/admin/users${qs}`)
+  if (demoPayload !== null) {
+    return demoPayload
+  }
   const res = await fetch(`/api/admin/users${qs}`, {
     credentials: 'include',
     cache: 'no-store'
@@ -42,14 +58,25 @@ async function fetchUsers(search: string): Promise<UsersResponse> {
   return res.json()
 }
 
-async function patchUserRole(input: { userId: string; role: Role }) {
+async function patchUser(input: { userId: string; role?: Role; teamIds?: string[] }) {
+  const demoPayload = maybeHandleDemoRequest(`/api/admin/users/${input.userId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify({ role: input.role, teamIds: input.teamIds })
+  })
+  if (demoPayload !== null) {
+    return demoPayload
+  }
   const res = await fetch(`/api/admin/users/${input.userId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json'
     },
     credentials: 'include',
-    body: JSON.stringify({ role: input.role })
+    body: JSON.stringify({ role: input.role, teamIds: input.teamIds })
   })
 
   if (!res.ok) {
@@ -65,7 +92,10 @@ export function AdminUsersClient() {
   const [debouncedSearch, setDebouncedSearch] = React.useState('')
   const [alert, setAlert] = React.useState<{ variant: 'success' | 'destructive'; message: string } | null>(null)
   const [pendingId, setPendingId] = React.useState<string | null>(null)
+  const [roleFilter, setRoleFilter] = React.useState<Role | 'ALL'>('ALL')
+  const [teamFilter, setTeamFilter] = React.useState<string>('ALL')
   const queryClient = useQueryClient()
+  const teamsQuery = useTeams('')
 
   const searchForm = useForm<{ search: string }>({
     defaultValues: { search: '' }
@@ -84,15 +114,52 @@ export function AdminUsersClient() {
     queryFn: () => fetchUsers(debouncedSearch)
   })
 
-  const updateRole = useMutation({
-    mutationFn: patchUserRole,
+  const updateUser = useMutation({
+    mutationFn: patchUser,
     onSuccess: () => {
-      setAlert({ variant: 'success', message: 'Role updated' })
+      setAlert({ variant: 'success', message: 'Updated user' })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
     onError: (error: Error) => {
-      setAlert({ variant: 'destructive', message: error?.message ?? 'Role update failed' })
+      setAlert({ variant: 'destructive', message: error?.message ?? 'Update failed' })
     }
+  })
+
+  const createUser = useMutation({
+    mutationFn: async (input: { email: string; name?: string; role: Role; teamIds?: string[] }) => {
+      const demoPayload = maybeHandleDemoRequest('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (demoPayload !== null) {
+        return demoPayload
+      }
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Failed to create user')
+      }
+      return res.json()
+    },
+    onSuccess: (data?: { tempPassword?: string }) => {
+      setAlert({ variant: 'success', message: 'User created' })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      if (data?.tempPassword) {
+        toast.info(`Temporary password: ${data.tempPassword}`)
+      }
+    },
+    onError: (error: Error) => {
+      setAlert({ variant: 'destructive', message: error?.message ?? 'Create failed' })
+    }
+  })
+
+  const createForm = useForm<{ email: string; name: string; role: Role; teamId?: string }>({
+    defaultValues: { email: '', name: '', role: 'EMPLOYEE', teamId: undefined },
   })
 
   const handleUpdateRole = React.useCallback(
@@ -100,13 +167,37 @@ export function AdminUsersClient() {
       setAlert(null)
       setPendingId(userId)
       try {
-        await updateRole.mutateAsync({ userId, role })
+        await updateUser.mutateAsync({ userId, role })
       } finally {
         setPendingId(null)
       }
     },
-    [updateRole]
+    [updateUser]
   )
+
+  const handleUpdateTeams = React.useCallback(
+    async (userId: string, teamIds: string[]) => {
+      setAlert(null)
+      setPendingId(userId)
+      try {
+        await updateUser.mutateAsync({ userId, teamIds })
+      } finally {
+        setPendingId(null)
+      }
+    },
+    [updateUser]
+  )
+
+  const filteredUsers = React.useMemo(() => {
+    let users = usersQuery.data?.users ?? []
+    if (roleFilter !== 'ALL') {
+      users = users.filter((u) => u.role === roleFilter)
+    }
+    if (teamFilter !== 'ALL') {
+      users = users.filter((u) => u.teams?.some((t) => t.id === teamFilter))
+    }
+    return users
+  }, [usersQuery.data?.users, roleFilter, teamFilter])
 
   return (
     <div className="space-y-6">
@@ -115,29 +206,163 @@ export function AdminUsersClient() {
         <p className="text-sm text-muted-foreground">Manage access across your organisation.</p>
       </div>
 
-      <Form {...searchForm}>
-        <form className="flex flex-col gap-3 sm:flex-row" role="search">
-          <FormField
-            control={searchForm.control}
-            name="search"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormControl>
-                  <Input
-                    {...field}
-                    data-testid="admin-users-search"
-                    placeholder="Search by name or email"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <Button type="button" variant="outline" onClick={() => searchForm.reset({ search: '' })}>
-            Clear
-          </Button>
-        </form>
-      </Form>
+      <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
+        <Form {...searchForm}>
+          <form className="flex flex-col gap-3 sm:flex-row" role="search">
+            <FormField
+              control={searchForm.control}
+              name="search"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormControl>
+                    <Input
+                      {...field}
+                      data-testid="admin-users-search"
+                      placeholder="Search by name or email"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="button" variant="outline" onClick={() => searchForm.reset({ search: '' })}>
+              Clear
+            </Button>
+          </form>
+        </Form>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as Role | 'ALL')}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All roles</SelectItem>
+              {ROLE_OPTIONS.map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Filter by team" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All teams</SelectItem>
+              {teamsQuery.data?.teams?.map((team) => (
+                <SelectItem key={team.id} value={team.id}>
+                  {team.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Card className="border">
+        <CardHeader>
+          <CardTitle>Create / Invite User</CardTitle>
+          <CardDescription>Add a new member with role and optional team.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...createForm}>
+            <form
+              className="grid gap-3 md:grid-cols-4 md:items-end"
+              onSubmit={createForm.handleSubmit(async (values) => {
+                setAlert(null)
+                const teamIds = values.teamId && values.teamId !== '__none__' ? [values.teamId] : undefined
+                await createUser.mutateAsync({
+                  email: values.email,
+                  name: values.name,
+                  role: values.role,
+                  teamIds,
+                })
+                createForm.reset({ email: '', name: '', role: 'EMPLOYEE', teamId: undefined })
+              })}
+            >
+              <FormField
+                control={createForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Email" {...field} required />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Name (optional)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={(v) => field.onChange(v as Role)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLE_OPTIONS.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createForm.control}
+                name="teamId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign to team (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">No team</SelectItem>
+                          {teamsQuery.data?.teams?.map((team) => (
+                            <SelectItem key={team.id} value={team.id}>
+                              {team.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="md:col-span-4 flex gap-2">
+                <Button type="submit" disabled={createUser.isPending}>
+                  {createUser.isPending ? 'Creating...' : 'Create user'}
+                </Button>
+                {createUser.isPending && <span className="text-xs text-muted-foreground">Processing…</span>}
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
       {alert ? (
         <Alert data-testid={`alert-${alert.variant === 'success' ? 'success' : 'error'}`} variant={alert.variant}>
@@ -152,7 +377,8 @@ export function AdminUsersClient() {
               <TableHead>Email</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Updated / Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -170,19 +396,21 @@ export function AdminUsersClient() {
               </TableRow>
             ) : null}
 
-            {usersQuery.data?.users?.length ? (
-              usersQuery.data.users.map((user) => (
+            {filteredUsers.length ? (
+              filteredUsers.map((user) => (
                 <UserRow
                   key={user.id}
                   user={user}
                   onUpdate={handleUpdateRole}
+                  onUpdateTeams={handleUpdateTeams}
+                  availableTeams={teamsQuery.data?.teams ?? []}
                   pendingId={pendingId}
-                  isSaving={updateRole.isPending}
+                  isSaving={updateUser.isPending}
                 />
               ))
             ) : usersQuery.isLoading || usersQuery.isError ? null : (
               <TableRow>
-                <TableCell colSpan={4}>No users found for “{searchTerm}”.</TableCell>
+                <TableCell colSpan={5}>No users found for “{searchTerm}”.</TableCell>
               </TableRow>
             )}
           </TableBody>

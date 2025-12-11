@@ -12,13 +12,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
     // First check if the objective exists and user has access
     const objective = await prisma.objective.findUnique({
       where: { id },
-      select: { ownerId: true },
+      select: { ownerId: true, owner: { select: { orgId: true } } },
     })
 
     if (!objective) {
@@ -29,6 +33,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
+    if (objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
+    }
 
     // Get parent objective with full details
     const parent = await prisma.objective.findFirst({
@@ -36,10 +43,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         children: {
           some: { id },
         },
+        owner: { orgId },
       },
       include: {
         owner: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, orgId: true },
         },
         keyResults: {
           select: {
@@ -58,10 +66,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const children = await prisma.objective.findMany({
       where: {
         parentId: id,
+        owner: { orgId },
       },
       include: {
         owner: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, orgId: true },
         },
         keyResults: {
           select: {

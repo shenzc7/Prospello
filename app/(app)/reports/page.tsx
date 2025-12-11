@@ -17,10 +17,11 @@ import { AlignmentTree } from '@/components/analytics/AlignmentTree'
 import type { AlignmentNode } from '@/lib/checkin-summary'
 
 function ExportSection() {
+  const [downloading, setDownloading] = useState(false)
   const { data } = useObjectives({ limit: 200 })
   const objectives = data?.objectives ?? []
 
-  const exportCsv = () => {
+  const exportCsvClient = () => {
     const headers = ['Title', 'Owner', 'Cycle', 'Status', 'Progress']
     const rows = objectives.map((obj) => [
       `"${obj.title.replace(/"/g, '""')}"`,
@@ -39,45 +40,28 @@ function ExportSection() {
     URL.revokeObjectURL(url)
   }
 
-  const queueBackendExport = async (format: 'pdf' | 'xlsx') => {
+  const downloadFromApi = async (format: 'pdf' | 'xlsx' | 'csv') => {
+    setDownloading(true)
     try {
-      const res = await fetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format, scope: 'reports' }),
-      })
-      const body = await res.json()
-      if (!res.ok || !body?.ok) {
-        throw new Error(body?.error?.msg || 'Failed to queue export')
+      const res = await fetch(`/api/reports/export?format=${format}`)
+      if (!res.ok) {
+        const body = await res.text()
+        throw new Error(body || 'Failed to export report')
       }
-      const exportId = body.data?.export?.id ?? 'export'
-      toast.success(`Queued ${format.toUpperCase()} export (${exportId})`)
-    } catch (error: any) {
-      toast.error(error?.message || 'Unable to queue export')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `okr-report.${format === 'xlsx' ? 'xlsx' : format}`
+      link.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Downloaded ${format.toUpperCase()} report`)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unable to download report'
+      toast.error(message)
+    } finally {
+      setDownloading(false)
     }
-  }
-
-  const exportPrintPdf = () => {
-    const win = window.open('', '_blank', 'width=900,height=700')
-    if (!win) return
-    const rows = objectives.map(
-      (obj) =>
-        `<tr><td>${obj.title}</td><td>${obj.owner.name ?? obj.owner.email}</td><td>${obj.cycle}</td><td>${obj.status}</td><td>${obj.progress}%</td></tr>`
-    ).join('')
-    win.document.write(`
-      <html>
-        <head><title>OKR Report</title></head>
-        <body>
-          <h2>OKR Report</h2>
-          <table border="1" cellspacing="0" cellpadding="6" style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif; font-size:12px;">
-            <thead><tr><th>Title</th><th>Owner</th><th>Cycle</th><th>Status</th><th>Progress</th></tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `)
-    win.document.close()
   }
 
   return (
@@ -88,55 +72,30 @@ function ExportSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="flex items-center gap-2" onClick={exportPrintPdf}>
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => downloadFromApi('pdf')} disabled={downloading}>
             <FileText className="h-4 w-4" />
-            PDF Report
+            Download PDF
           </Button>
-          <Button variant="outline" className="flex items-center gap-2" onClick={exportCsv}>
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => downloadFromApi('xlsx')} disabled={downloading}>
             <FileSpreadsheet className="h-4 w-4" />
             Excel Export
           </Button>
-          <Button variant="secondary" className="flex items-center gap-2" onClick={() => queueBackendExport('pdf')}>
-            <FileText className="h-4 w-4" />
-            Queue PDF (API)
+          <Button variant="secondary" className="flex items-center gap-2" onClick={exportCsvClient} disabled={downloading}>
+            <FileSpreadsheet className="h-4 w-4" />
+            Quick CSV
           </Button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Exports include title, owner, cycle, status, and progress for all visible objectives.
+          Exports include title, owner, cycle, status, progress, and key results for visible objectives.
         </p>
       </CardContent>
     </Card>
   )
 }
 
-function TrendAnalysis() {
-  const trends = [
-    {
-      period: 'Q4 2024',
-      completion: 78,
-      trend: '+5%',
-      color: 'text-green-600'
-    },
-    {
-      period: 'Q3 2024',
-      completion: 73,
-      trend: '+12%',
-      color: 'text-green-600'
-    },
-    {
-      period: 'Q2 2024',
-      completion: 61,
-      trend: '-3%',
-      color: 'text-red-600'
-    },
-    {
-      period: 'Q1 2024',
-      completion: 64,
-      trend: '+8%',
-      color: 'text-green-600'
-    }
-  ]
+type TrendRow = { period: string; completion: number; delta: number }
 
+function TrendAnalysis({ trends }: { trends: TrendRow[] }) {
   return (
     <Card>
       <CardHeader>
@@ -154,11 +113,15 @@ function TrendAnalysis() {
                 <div className="text-sm font-medium">{trend.period}</div>
                 <Badge variant="outline">{trend.completion}%</Badge>
               </div>
-              <div className={`text-sm font-medium ${trend.color}`}>
-                {trend.trend}
+              <div className={`text-sm font-medium ${trend.delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {trend.delta >= 0 ? '+' : ''}
+                {trend.delta}%
               </div>
             </div>
           ))}
+          {trends.length === 0 && (
+            <p className="text-sm text-muted-foreground">No trend data yet.</p>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -190,12 +153,22 @@ function AlignmentVisualization({ nodes, isLoading }: { nodes?: AlignmentNode[];
   )
 }
 
-function CompletionAnalytics() {
+function CompletionAnalytics({
+  total,
+  completed,
+  avgProgress,
+  atRisk,
+}: {
+  total: number
+  completed: number
+  avgProgress: number
+  atRisk: number
+}) {
   const analytics = [
-    { label: 'Total Objectives', value: '47', change: '+12%' },
-    { label: 'Completed This Quarter', value: '23', change: '+8%' },
-    { label: 'Average Completion Time', value: '6.2 weeks', change: '-2 days' },
-    { label: 'On-Time Delivery Rate', value: '78%', change: '+5%' }
+    { label: 'Total Objectives', value: total.toString(), helper: 'Across all scopes' },
+    { label: 'Completed', value: completed.toString(), helper: 'Marked as done' },
+    { label: 'Average Progress', value: `${avgProgress}%`, helper: 'Weighted across KRs' },
+    { label: 'At Risk', value: atRisk.toString(), helper: 'Needs attention' },
   ]
 
   return (
@@ -207,7 +180,7 @@ function CompletionAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{item.value}</div>
-            <p className="text-xs text-muted-foreground">{item.change} from last quarter</p>
+            <p className="text-xs text-muted-foreground">{item.helper}</p>
           </CardContent>
         </Card>
       ))}
@@ -225,15 +198,36 @@ export default function ReportsPage() {
     cycle: cycleFilter === 'all' ? undefined : cycleFilter,
   })
   const { data: summary, isLoading: summaryLoading } = useCheckInSummary()
-  const objectives = data?.objectives ?? []
+  const objectives = useMemo(() => data?.objectives ?? [], [data?.objectives])
   const completionRate = objectives.length
     ? Math.round((objectives.filter((o) => o.status === 'DONE').length / objectives.length) * 100)
     : 0
+  const completedCount = objectives.filter((o) => o.status === 'DONE').length
   const avgProgress = objectives.length
     ? Math.round(objectives.reduce((sum, o) => sum + o.progress, 0) / objectives.length)
     : 0
   const atRiskCount = objectives.filter((o) => o.status === 'AT_RISK').length
   const cycles = useMemo(() => Array.from(new Set(objectives.map((o) => o.cycle))).sort(), [objectives])
+  const trends = useMemo(() => {
+    const map = new Map<string, { total: number; done: number; progressSum: number; start?: number }>()
+    objectives.forEach((obj) => {
+      const key = obj.cycle || `Q${obj.fiscalQuarter}`
+      const start = obj.startAt ? new Date(obj.startAt).getTime() : Date.now()
+      const existing = map.get(key) || { total: 0, done: 0, progressSum: 0, start }
+      existing.total += 1
+      existing.done += obj.status === 'DONE' ? 1 : 0
+      existing.progressSum += obj.progress || 0
+      existing.start = existing.start ? Math.min(existing.start, start) : start
+      map.set(key, existing)
+    })
+    const entries = Array.from(map.entries()).sort((a, b) => (a[1].start ?? 0) - (b[1].start ?? 0))
+    return entries.map(([period, value], idx) => {
+      const completion = value.total ? Math.round((value.done / value.total) * 100) : 0
+      const prev = entries[idx - 1]?.[1]
+      const prevCompletion = prev && prev.total ? Math.round((prev.done / prev.total) * 100) : completion
+      return { period, completion, delta: completion - prevCompletion }
+    })
+  }, [objectives])
 
   return (
     <div className="space-y-8">
@@ -318,7 +312,12 @@ export default function ReportsPage() {
       </Card>
 
       {/* Analytics Overview */}
-      <CompletionAnalytics />
+      <CompletionAnalytics
+        total={objectives.length}
+        completed={completedCount}
+        avgProgress={avgProgress}
+        atRisk={atRiskCount}
+      />
 
       <TimelineView objectives={objectives} isLoading={isLoading} fromDate={fromDate} toDate={toDate} />
 
@@ -331,7 +330,7 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="trends" className="space-y-6">
-          <TrendAnalysis />
+          <TrendAnalysis trends={trends} />
         </TabsContent>
 
         <TabsContent value="alignment" className="space-y-6">

@@ -4,16 +4,20 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { calcProgressFromProgress } from '@/lib/okr'
 import { getFiscalQuarter } from '@/lib/india'
-import { calculateKRProgress } from '@/lib/utils'
+import { calculateKRProgress, calculateObjectiveScore } from '@/lib/utils'
 import { updateObjectiveRequestSchema, type UpdateObjectiveRequest } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
-import { Role } from '@prisma/client'
+import { ProgressType, Role } from '@prisma/client'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
+    }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
     }
 
     const { id } = await params
@@ -22,10 +26,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       where: { id },
       include: {
         owner: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, orgId: true },
         },
         team: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, orgId: true },
         },
         parent: {
           select: { id: true, title: true, cycle: true },
@@ -57,18 +61,25 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
+    if (objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
+    }
 
     const keyResultsWithProgress = objective.keyResults.map((kr) => ({
       ...kr,
       progress: calculateKRProgress(kr.current, kr.target),
     }))
 
+    const progress = objective.progressType === ProgressType.MANUAL
+      ? Math.round(objective.progress ?? 0)
+      : calcProgressFromProgress(
+        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
+      )
+
     const objectiveWithProgress = {
       ...objective,
       keyResults: keyResultsWithProgress,
-      progress: calcProgressFromProgress(
-        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
-      ),
+      progress,
     }
 
     return createSuccessResponse({ objective: objectiveWithProgress })
@@ -84,13 +95,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
     // First check if objective exists and get ownership info
     const existingObjective = await prisma.objective.findUnique({
       where: { id },
-      select: { ownerId: true, cycle: true },
+      select: { ownerId: true, cycle: true, owner: { select: { orgId: true } } },
     })
 
     if (!existingObjective) {
@@ -100,6 +115,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Check permissions - only owner can edit unless manager/admin
     if (existingObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (existingObjective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)
@@ -115,7 +133,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (updateData.parentObjectiveId) {
       const parentObjective = await prisma.objective.findUnique({
         where: { id: updateData.parentObjectiveId },
-        select: { cycle: true, ownerId: true },
+        select: { cycle: true, ownerId: true, owner: { select: { orgId: true } } },
       })
 
       if (!parentObjective) {
@@ -131,6 +149,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       // Check permission to align to parent
       if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
+      }
+      if (parentObjective.owner?.orgId !== orgId) {
+        return createErrorResponse(errors.forbidden('Parent objective is in a different organization'))
       }
     }
 
@@ -159,8 +180,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return createErrorResponse(errors.forbidden('Only managers or admins can reassign owners'))
       }
       data.ownerId = updateData.ownerId
+      const newOwner = await prisma.user.findUnique({
+        where: { id: updateData.ownerId },
+        select: { orgId: true },
+      })
+      if (!newOwner || newOwner.orgId !== orgId) {
+        return createErrorResponse(errors.forbidden('Owner must belong to your organization'))
+      }
     }
     if (updateData.teamId !== undefined) {
+      if (updateData.teamId) {
+        const team = await prisma.team.findUnique({
+          where: { id: updateData.teamId },
+          select: { orgId: true },
+        })
+        if (!team || team.orgId !== orgId) {
+          return createErrorResponse(errors.forbidden('Team must belong to your organization'))
+        }
+      }
       data.teamId = updateData.teamId || null
     }
     if (updateData.startAt) {
@@ -206,10 +243,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       where: { id },
       include: {
         owner: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, orgId: true },
         },
         team: {
-          select: { id: true, name: true },
+          select: { id: true, name: true, orgId: true },
         },
         parent: {
           select: { id: true, title: true },
@@ -239,13 +276,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       progress: calculateKRProgress(kr.current, kr.target),
     }))
 
+    const progress = updatedObjective.progressType === ProgressType.MANUAL
+      ? Math.round(updatedObjective.progress ?? 0)
+      : calcProgressFromProgress(
+        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
+      )
+
     const objectiveWithProgress = {
       ...updatedObjective,
       keyResults: keyResultsWithProgress,
-      progress: calcProgressFromProgress(
-        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
-      ),
+      progress,
     }
+
+    await prisma.objective.update({
+      where: { id },
+      data: { progress, score: calculateObjectiveScore(progress) },
+    })
 
     return createSuccessResponse({ objective: objectiveWithProgress })
   } catch (error) {
@@ -260,13 +306,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
     // Check if objective exists and get ownership info
     const objective = await prisma.objective.findUnique({
       where: { id },
-      select: { ownerId: true },
+      select: { ownerId: true, owner: { select: { orgId: true } } },
     })
 
     if (!objective) {
@@ -276,6 +326,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     // Check permissions - only owner can delete unless manager/admin
     if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
     }
 
     // Delete objective (cascade will handle key results and initiatives)

@@ -16,6 +16,7 @@ import { useObjectives } from '@/hooks/useObjectives'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { calculateKRProgress } from '@/lib/utils'
+import { useDemoMode } from '@/components/demo/DemoProvider'
 
 function fmtPercent(value?: number) {
   if (value == null || Number.isNaN(value)) return '0%'
@@ -24,20 +25,36 @@ function fmtPercent(value?: number) {
 
 export function MyOkrsClient() {
   const { data: session, status } = useSession()
+  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
   const [cycle, setCycle] = useState('')
-  const ownerId = session?.user?.id
+  const ownerId = demoEnabled
+    ? demoRole === 'EMPLOYEE'
+      ? 'user-employee'
+      : demoRole === 'MANAGER'
+        ? 'user-manager'
+        : 'user-admin'
+    : session?.user?.id
 
   const query = useObjectives(
     { ownerId: ownerId ?? undefined, cycle: cycle || undefined, limit: 100 },
-    { enabled: status !== 'loading' && Boolean(ownerId) }
+    { enabled: demoEnabled ? true : status !== 'loading' && Boolean(ownerId) }
   )
 
   const isLoading = status === 'loading' || query.isLoading
   const isError = query.isError
   const objectives = useMemo(() => query.data?.objectives ?? [], [query.data?.objectives])
   const myObjectives = useMemo(
-    () => objectives.filter((objective) => !ownerId || objective.owner?.id === ownerId),
-    [objectives, ownerId]
+    () => {
+      if (demoEnabled) {
+        return objectives.filter((objective) => {
+          if (demoRole === 'EMPLOYEE') return objective.owner.id === 'user-employee'
+          if (demoRole === 'MANAGER') return objective.team?.id === 'team-gtm' || objective.owner.id === 'user-manager'
+          return objective.owner.id === 'user-admin' || !objective.team // admin personal slice
+        })
+      }
+      return objectives.filter((objective) => !ownerId || objective.owner?.id === ownerId)
+    },
+    [demoEnabled, demoRole, objectives, ownerId]
   )
   const cycles = useMemo(() => Array.from(new Set(myObjectives.map((objective) => objective.cycle))).sort(), [myObjectives])
   const filteredObjectives = useMemo(
@@ -87,6 +104,11 @@ export function MyOkrsClient() {
           <p className="text-sm text-muted-foreground">
             Track your objectives, update weekly check-ins, and keep your commitments on track.
           </p>
+          {demoEnabled && (
+            <p className="text-xs text-primary mt-1">
+              Demo mode: showing {demoRole.toLowerCase()} objectives with seeded check-ins.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild size="sm" variant="outline" className="rounded-full">

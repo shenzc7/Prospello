@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { Prisma, Role } from '@prisma/client'
 
@@ -18,22 +17,28 @@ import { calcProgressFromProgress } from '@/lib/okr'
 import { calculateKRProgress, calculateObjectiveScore } from '@/lib/utils'
 
 function objectiveScopeForUser(user: { id: string; role: Role; orgId?: string | null }): Prisma.ObjectiveWhereInput {
-  if (user.role === Role.ADMIN) return {}
-  if (user.role === Role.MANAGER && user.orgId) {
-    return { owner: { orgId: user.orgId } }
+  const orgFilter = user.orgId ? { owner: { orgId: user.orgId } } : {}
+
+  if (user.role === Role.ADMIN || user.role === Role.MANAGER) {
+    return orgFilter
   }
-  return { ownerId: user.id }
+
+  return {
+    ownerId: user.id,
+    ...orgFilter,
+  }
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    if (!session.user.orgId) return createErrorResponse(errors.forbidden('Organization not set for user'))
 
     const scope = objectiveScopeForUser({
       id: session.user.id as string,
       role: session.user.role as Role,
-      orgId: (session.user as any).orgId ?? null,
+      orgId: session.user.orgId ?? null,
     })
 
     const objectives = await prisma.objective.findMany({

@@ -113,4 +113,10 @@ export const errors = {
 
   internal: (message = 'Internal server error', details?: unknown) =>
     new APIError('INTERNAL_ERROR', message, details),
+
+  badRequest: (message = 'Bad request', details?: unknown) =>
+    new APIError('VALIDATION_ERROR', message, details),
+
+  rateLimit: (message = 'Too many requests', details?: unknown) =>
+    new APIError('RATE_LIMIT_EXCEEDED', message, details),
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 
 import { strings } from '@/config/strings'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { Logo } from '@/components/brand/Logo'
 
 export const metadata: Metadata = {
   title: `Sign in | ${strings.app.name}`,
@@ -18,13 +18,8 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-9 h-9 rounded-lg bg-emerald-500 flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-xl font-semibold text-white">OKRFlow</span>
+        <div className="flex items-center justify-center mb-8">
+          <Logo size={48} showName={true} textClassName="text-white" />
         </div>
 
         {/* Login card */}
@@ -33,31 +28,13 @@ export default function LoginPage() {
             Sign in to your workspace
           </h1>
 
-          <Suspense fallback={<LoginFormSkeleton />}>
-            <LoginForm />
-          </Suspense>
+          <LoginForm />
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-4">
-          Need access? Contact your admin.
+          New here? <a href="/signup" className="text-emerald-400 hover:text-emerald-300">Create an account</a> or use SSO.
         </p>
       </div>
-    </div>
-  )
-}
-
-function LoginFormSkeleton() {
-  return (
-    <div className="space-y-4 animate-pulse">
-      <div className="grid grid-cols-3 gap-2">
-        <div className="h-10 bg-slate-800 rounded-lg" />
-        <div className="h-10 bg-slate-800 rounded-lg" />
-        <div className="h-10 bg-slate-800 rounded-lg" />
-      </div>
-      <div className="h-px bg-slate-800" />
-      <div className="h-10 bg-slate-800 rounded-lg" />
-      <div className="h-10 bg-slate-800 rounded-lg" />
-      <div className="h-10 bg-slate-800 rounded-lg" />
     </div>
   )
 }

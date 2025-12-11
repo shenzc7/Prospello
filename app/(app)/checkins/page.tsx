@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
 import type { CheckInSummary, HeroSummary } from '@/lib/checkin-summary'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
+import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 type RecentCheckIn = CheckInSummary['recentCheckIns'][number]
 
@@ -215,19 +216,34 @@ export default function CheckinsPage() {
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
+      const demoPayload = maybeHandleDemoRequest('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, scope: 'weekly-checkins' }),
+      })
+      if (demoPayload !== null) {
+        throw new Error('Demo mode is read-only. Export available outside demo.')
+      }
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ format, scope: 'weekly-checkins' }),
       })
-      const body = await res.json()
-      if (!res.ok || !body?.ok) {
-        throw new Error(body?.error?.msg || 'Export failed')
+      if (!res.ok) {
+        const body = await res.text()
+        throw new Error(body || 'Export failed')
       }
-      const exportId = body.data?.export?.id ?? 'export'
-      toast.success(`Queued ${format.toUpperCase()} export (${exportId})`)
-    } catch (err: any) {
-      toast.error(err?.message || 'Unable to start export')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `checkins.${format === 'xlsx' ? 'xlsx' : 'pdf'}`
+      link.click()
+      URL.revokeObjectURL(url)
+      toast.success(`Downloaded ${format.toUpperCase()} export`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unable to start export'
+      toast.error(message)
     }
   }
 

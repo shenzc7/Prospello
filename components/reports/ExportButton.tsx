@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Objective } from '@/hooks/useObjectives'
+import { calculateKRProgress } from '@/lib/utils'
 
 interface ExportButtonProps {
     data: Objective[]
@@ -19,6 +20,8 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ data, filename = 'okr-report' }: ExportButtonProps) {
+    const formatPercent = (value: number) => `${Math.round(value)}%`
+
     const handleExportPDF = () => {
         const doc = new jsPDF()
 
@@ -49,7 +52,12 @@ export function ExportButton({ data, filename = 'okr-report' }: ExportButtonProp
 
             if (obj.keyResults?.length) {
                 obj.keyResults.forEach((kr) => {
-                    doc.text(`- ${kr.title} (${kr.current}/${kr.target})`, 20, y)
+                    const progress = calculateKRProgress(kr.current, kr.target)
+                    doc.text(
+                      `- ${kr.title} • weight ${kr.weight}% • ${kr.current}/${kr.target} (${progress}%)`,
+                      20,
+                      y
+                    )
                     y += 5
                 })
             }
@@ -65,11 +73,14 @@ export function ExportButton({ data, filename = 'okr-report' }: ExportButtonProp
             Description: obj.description || '',
             Owner: obj.owner.name,
             Status: obj.status,
-            Progress: `${obj.progress}%`,
+            Progress: formatPercent(obj.progress),
             Cycle: obj.cycle,
             Start: new Date(obj.startAt).toLocaleDateString(),
             End: new Date(obj.endAt).toLocaleDateString(),
-            KeyResults: obj.keyResults?.map(kr => `${kr.title} (${kr.current}/${kr.target})`).join('; ')
+            KeyResults: obj.keyResults?.map(kr => {
+                const progress = calculateKRProgress(kr.current, kr.target)
+                return `${kr.title} (weight ${kr.weight}% • ${kr.current}/${kr.target} • ${progress}%)`
+            }).join('; ')
         }))
 
         const ws = XLSX.utils.json_to_sheet(flattenedData)

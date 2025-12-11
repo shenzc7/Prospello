@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getServerSession } from 'next-auth'
 import { ReactNode } from 'react'
 
@@ -10,8 +11,10 @@ type AppLayoutProps = {
 
 export default async function AppLayout({ children }: AppLayoutProps) {
   const session = await getServerSession(authOptions)
+  const cookieStore = cookies()
+  const demoMode = cookieStore.get('demoMode')?.value === '1'
 
-  if (!session?.user) {
+  if (!session?.user && !demoMode) {
     redirect('/login')
   }
 

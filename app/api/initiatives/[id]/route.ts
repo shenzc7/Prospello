@@ -12,6 +12,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
@@ -22,7 +26,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         keyResult: {
           select: {
             objective: {
-              select: { ownerId: true },
+              select: { ownerId: true, owner: { select: { orgId: true } } },
             },
           },
         },
@@ -36,6 +40,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Check permissions - only objective owner can modify initiatives unless manager/admin
     if (initiative.keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (initiative.keyResult.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Initiative is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)
@@ -73,6 +80,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
@@ -83,7 +94,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         keyResult: {
           select: {
             objective: {
-              select: { ownerId: true },
+              select: { ownerId: true, owner: { select: { orgId: true } } },
             },
           },
         },
@@ -97,6 +108,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     // Check permissions - only objective owner can delete initiatives unless manager/admin
     if (initiative.keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (initiative.keyResult.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Initiative is in a different organization'))
     }
 
     // Delete the initiative

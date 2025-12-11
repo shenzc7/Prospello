@@ -103,7 +103,10 @@ export function buildProgressHeatmap(
     objectiveTitle: kr.objectiveTitle,
     ownerName: kr.ownerName || kr.ownerEmail,
     weeklyProgress: weeks.map((week) => {
-      const matching = kr.checkIns.find((checkIn) => isEqual(new Date(checkIn.weekStart), week))
+      const normalizedWeek = startOfWeek(week, { weekStartsOn: 1 }).getTime()
+      const matching = kr.checkIns.find(
+        (checkIn) => startOfWeek(new Date(checkIn.weekStart), { weekStartsOn: 1 }).getTime() === normalizedWeek
+      )
       const value = matching ? Math.round(matching.value) : 0
       return {
         value,
@@ -130,12 +133,14 @@ export function buildWeeklySummary(rows: ProgressHeatmapRow[], today: Date = new
     const latest = row.weeklyProgress.reduce((prev, curr) =>
       curr.date > prev.date ? curr : prev
     )
+    const latestUpdate = [...row.weeklyProgress].reverse().find((cell) => cell.value > 0)
+    const statusForCounts = latestUpdate?.status ?? latest.status
 
     if (latest.date < start || latest.value === 0) {
       dueThisWeek += 1
     }
 
-    switch (latest.status) {
+    switch (statusForCounts) {
       case 'green':
         onTrack += 1
         break

@@ -1,3 +1,4 @@
+import { localeConfig } from '@/config/locale'
 export { cn } from './ui'
 
 // OKR progress calculation utilities
@@ -58,34 +59,48 @@ export function calculateTrafficLightStatus(progress: number | null | undefined)
 
 // Get CSS classes for traffic light status
 export function getTrafficLightClasses(status: TrafficLightStatus) {
+  const highContrast = localeConfig.highContrastStatus
   switch (status) {
     case 'green':
       return {
-        bg: 'bg-green-100',
+        bg: highContrast ? 'bg-green-100 ring-2 ring-green-500/50' : 'bg-green-100',
         border: 'border-green-200',
         text: 'text-green-700',
         hover: 'hover:bg-green-200'
       }
     case 'yellow':
       return {
-        bg: 'bg-yellow-100',
+        bg: highContrast ? 'bg-yellow-100 ring-2 ring-yellow-500/50' : 'bg-yellow-100',
         border: 'border-yellow-200',
         text: 'text-yellow-700',
         hover: 'hover:bg-yellow-200'
       }
     case 'red':
       return {
-        bg: 'bg-red-100',
+        bg: highContrast ? 'bg-red-100 ring-2 ring-red-500/50' : 'bg-red-100',
         border: 'border-red-200',
         text: 'text-red-700',
         hover: 'hover:bg-red-200'
       }
     default:
       return {
-        bg: 'bg-gray-100',
+        bg: highContrast ? 'bg-gray-100 ring-2 ring-gray-400/50' : 'bg-gray-100',
         border: 'border-gray-200',
         text: 'text-gray-700',
         hover: 'hover:bg-gray-200'
       }
+  }
+}
+
+export function getTrafficLightLabel(status: TrafficLightStatus): string {
+  switch (status) {
+    case 'green':
+      return 'On track'
+    case 'yellow':
+      return 'At risk'
+    case 'red':
+      return 'Off track'
+    default:
+      return 'No data'
   }
 }

@@ -3,25 +3,36 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { isManagerOrHigher } from '@/lib/rbac';
-import { Role } from '@prisma/client';
+import { ObjectiveStatus, ProgressType, Role } from '@prisma/client';
+import { calculateTrafficLightStatus } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user || !isManagerOrHigher(session.user.role as Role)) {
+        const cronSecret = process.env.CRON_SECRET;
+        const providedSecret = req.headers.get('x-cron-secret');
+        const isCronCall = cronSecret && providedSecret === cronSecret;
+        const session = isCronCall ? null : await getServerSession(authOptions);
+        const hasRole = session?.user && isManagerOrHigher(session.user.role as Role);
+        if (!isCronCall && !hasRole) {
             return new NextResponse('Unauthorized', { status: 401 });
+        }
+        if (session && !session.user?.orgId) {
+            return new NextResponse('Organization not set for user', { status: 403 });
         }
 
         const { searchParams } = new URL(req.url);
         const cycle = searchParams.get('cycle');
-
-        if (!cycle) {
-            return new NextResponse('Cycle parameter is required', { status: 400 });
+        const orgId = searchParams.get('orgId') || session?.user?.orgId;
+        if (!orgId) {
+            return new NextResponse('Missing orgId for scoring run', { status: 400 });
         }
 
         // 1. Fetch all objectives for the cycle
         const objectives = await prisma.objective.findMany({
-            where: { cycle },
+            where: {
+                ...(cycle ? { cycle } : {}),
+                owner: { orgId },
+            },
             include: {
                 keyResults: true,
             },
@@ -31,35 +42,36 @@ export async function POST(req: NextRequest) {
 
         // 2. Calculate score for each
         for (const obj of objectives) {
-            if (!obj.keyResults.length) continue;
+            if (!obj.keyResults.length && obj.progressType === ProgressType.AUTOMATIC) continue;
 
-            // Calculate progress 0-100 based on KRs
-            const totalProgress = obj.keyResults.reduce((sum, kr) => {
-                const progressPercent = Math.min(Math.max((kr.current / kr.target) * 100, 0), 100);
-                return sum + (progressPercent * (kr.weight / 100));
-            }, 0);
+            // Calculate progress 0-100 based on KRs unless manual
+            let roundedProgress = obj.progress
+            if (obj.progressType === ProgressType.AUTOMATIC) {
+                const totalProgress = obj.keyResults.reduce((sum, kr) => {
+                    const progressPercent = Math.min(Math.max((kr.current / kr.target) * 100, 0), 100);
+                    return sum + (progressPercent * (kr.weight / 100));
+                }, 0);
+                roundedProgress = Math.round(totalProgress);
+            }
 
-            const roundedProgress = Math.round(totalProgress);
+            const score = Math.round((roundedProgress / 100) * 100) / 100;
+            let status: ObjectiveStatus | undefined = obj.status
+            const light = calculateTrafficLightStatus(roundedProgress)
+            if (light === 'green') status = ObjectiveStatus.IN_PROGRESS
+            if (light === 'yellow') status = ObjectiveStatus.AT_RISK
+            if (light === 'red') status = ObjectiveStatus.AT_RISK
+            if (roundedProgress >= 95) status = ObjectiveStatus.DONE
 
-            // Score 0.0 - 1.0
-            const score = Math.round((roundedProgress / 100) * 100) / 100; // Keep 2 decimal places if needed, or just /100
-
-            // Update
             await prisma.objective.update({
                 where: { id: obj.id },
-                data: { score, progress: roundedProgress } as any, // Using any if progress field is virtual/not in schema or handled differently
-                // Actually schema has NO progress field on Objective model, it is calculated?
-                // Wait, schema (Step 72) does NOT have `progress` field on Objective. It has `score`.
-                // `lib/utils` or `lib/okr` calculates progress on the fly usually.
-                // But `TimelineView` uses `objective.progress`.
-                // Let's check `useObjectives` hook.
+                data: { score, progress: roundedProgress, status },
             });
             updatedCount++;
         }
 
         return NextResponse.json({
             success: true,
-            message: `Updated scores for ${updatedCount} objectives in cycle ${cycle}`,
+            message: `Updated scores for ${updatedCount} objectives${cycle ? ` in cycle ${cycle}` : ''}`,
             updatedCount
         });
 

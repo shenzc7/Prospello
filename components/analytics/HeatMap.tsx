@@ -3,11 +3,12 @@
 import { useMemo, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, eachWeekOfInterval, subWeeks } from 'date-fns'
-import { CheckCircle2, AlertTriangle, XCircle, Clock, Users, ChevronRight } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, ChevronRight } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/ui'
 import { type TrafficLightStatus } from '@/lib/utils'
+import { localeConfig } from '@/config/locale'
 
 export type HeatMapCell = {
   value: number
@@ -41,73 +42,35 @@ export type HeatMapProps = {
   className?: string
 }
 
-// Mock data for demonstration
-const mockTeamData: TeamStatus[] = [
-  { teamId: '1', teamName: 'Sales', progress: 70, status: 'green', objectiveCount: 8, memberCount: 6 },
-  { teamId: '2', teamName: 'Marketing', progress: 45, status: 'yellow', objectiveCount: 6, memberCount: 4 },
-  { teamId: '3', teamName: 'Product', progress: 30, status: 'yellow', objectiveCount: 10, memberCount: 8 },
-  { teamId: '4', teamName: 'Engineering', progress: 82, status: 'green', objectiveCount: 12, memberCount: 10 },
-  { teamId: '5', teamName: 'Design', progress: 25, status: 'red', objectiveCount: 4, memberCount: 3 },
-  { teamId: '6', teamName: 'Support', progress: 68, status: 'yellow', objectiveCount: 5, memberCount: 4 },
-]
-
-const mockProgressData: KeyResultProgress[] = [
-  {
-    keyResultId: '1',
-    keyResultTitle: 'API Response Time < 200ms',
-    objectiveTitle: 'Improve API Performance',
-    ownerName: 'John Doe',
-    weeklyProgress: [
-      { value: 0, status: 'gray', date: subWeeks(new Date(), 4) },
-      { value: 25, status: 'red', date: subWeeks(new Date(), 3) },
-      { value: 45, status: 'yellow', date: subWeeks(new Date(), 2) },
-      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
-      { value: 85, status: 'green', date: new Date() }
-    ]
-  },
-  {
-    keyResultId: '2',
-    keyResultTitle: 'User Adoption Rate > 80%',
-    objectiveTitle: 'Increase Product Adoption',
-    ownerName: 'Jane Smith',
-    weeklyProgress: [
-      { value: 30, status: 'yellow', date: subWeeks(new Date(), 4) },
-      { value: 35, status: 'yellow', date: subWeeks(new Date(), 3) },
-      { value: 40, status: 'yellow', date: subWeeks(new Date(), 2) },
-      { value: 55, status: 'yellow', date: subWeeks(new Date(), 1) },
-      { value: 60, status: 'yellow', date: new Date() }
-    ]
-  },
-  {
-    keyResultId: '3',
-    keyResultTitle: 'NPS Score > 70',
-    objectiveTitle: 'Improve Customer Satisfaction',
-    ownerName: 'Mike Johnson',
-    weeklyProgress: [
-      { value: 65, status: 'yellow', date: subWeeks(new Date(), 4) },
-      { value: 68, status: 'yellow', date: subWeeks(new Date(), 3) },
-      { value: 72, status: 'green', date: subWeeks(new Date(), 2) },
-      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
-      { value: 78, status: 'green', date: new Date() }
-    ]
-  }
-]
+const highContrast = localeConfig.highContrastStatus
 
 function getStatusColor(status: TrafficLightStatus) {
   switch (status) {
-    case 'green': return 'bg-green-500'
-    case 'yellow': return 'bg-amber-500'
-    case 'red': return 'bg-red-500'
-    default: return 'bg-slate-300'
+    case 'green': return cn('bg-green-500', highContrast && 'ring-2 ring-green-700')
+    case 'yellow': return cn('bg-amber-500', highContrast && 'ring-2 ring-amber-700')
+    case 'red': return cn('bg-red-500', highContrast && 'ring-2 ring-red-700')
+    default: return cn('bg-slate-300', highContrast && 'ring-2 ring-slate-500')
   }
 }
 
 function getStatusBg(status: TrafficLightStatus) {
   switch (status) {
-    case 'green': return 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
-    case 'yellow': return 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
-    case 'red': return 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
-    default: return 'bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700'
+    case 'green': return cn(
+      'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800',
+      highContrast && 'ring-2 ring-green-500/60'
+    )
+    case 'yellow': return cn(
+      'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800',
+      highContrast && 'ring-2 ring-amber-500/60'
+    )
+    case 'red': return cn(
+      'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800',
+      highContrast && 'ring-2 ring-red-500/60'
+    )
+    default: return cn(
+      'bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700',
+      highContrast && 'ring-2 ring-slate-500/60'
+    )
   }
 }
 
@@ -307,8 +270,8 @@ function ProgressHeatMap({ data }: { data: KeyResultProgress[] }) {
 }
 
 export function HeatMap({ type, title, description, data, className }: HeatMapProps) {
-  const fallback = type === 'teams' ? mockTeamData : mockProgressData
-  const displayData = (data && data.length > 0 ? data : fallback)
+  const displayData = data ?? []
+  const isEmpty = displayData.length === 0
 
   return (
     <Card className={className}>
@@ -319,7 +282,11 @@ export function HeatMap({ type, title, description, data, className }: HeatMapPr
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        {type === 'teams' ? (
+        {isEmpty ? (
+          <div className="text-sm text-muted-foreground">
+            No data yet. Add objectives and weekly check-ins to see live charts.
+          </div>
+        ) : type === 'teams' ? (
           <TeamHeatMap data={displayData as TeamStatus[]} />
         ) : (
           <ProgressHeatMap data={displayData as KeyResultProgress[]} />

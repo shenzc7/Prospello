@@ -9,6 +9,8 @@ export const objectiveFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   cycle: z.string().min(1, 'Cycle is required'),
+  progressType: z.enum(['AUTOMATIC', 'MANUAL']).default('AUTOMATIC'),
+  progress: z.number().min(0).max(100).optional(),
   goalType: z.enum(goalTypeValues, {
     required_error: 'Goal type is required',
     invalid_type_error: 'Invalid goal type'
@@ -60,6 +62,8 @@ export const updateObjectiveRequestSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   description: z.string().optional(),
   cycle: z.string().min(1, 'Cycle is required').optional(),
+  progressType: z.enum(['AUTOMATIC', 'MANUAL']).optional(),
+  progress: z.number().min(0).max(100).optional(),
   goalType: z.enum(goalTypeValues).optional(),
   startAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date').optional(),
   endAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date').optional(),

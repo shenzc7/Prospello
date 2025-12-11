@@ -10,6 +10,7 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/toaster'
 import { ClientLayout } from '@/components/ClientLayout'
+import { DemoProvider } from '@/components/demo/DemoProvider'
 
 type ProvidersProps = {
   children: React.ReactNode
@@ -76,9 +77,11 @@ export function Providers({ children, session }: ProvidersProps) {
           <React.Suspense fallback={null}>
             <NavigationProgress />
           </React.Suspense>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          <DemoProvider>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </DemoProvider>
           <Toaster />
         </NextThemesProvider>
       </QueryClientProvider>

@@ -25,9 +25,10 @@ import { cn } from '@/lib/ui'
 import { UserRole } from '@/lib/rbac'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
-import type { HeroSummary, AlignmentNode } from '@/lib/checkin-summary'
+import type { HeroSummary, AlignmentNode, CheckInSummary } from '@/lib/checkin-summary'
 import { AlignmentTree } from '@/components/analytics/AlignmentTree'
 import { isFeatureEnabled } from '@/config/features'
+import { useDemoMode } from '@/components/demo/DemoProvider'
 
 type DashboardMetrics = {
   totalObjectives: number
@@ -98,42 +99,16 @@ function QuickAction({ title, description, href, icon }: QuickActionProps) {
   )
 }
 
-function RecentActivity({ userRole }: { userRole?: UserRole }) {
+type RecentActivityProps = {
+  userRole?: UserRole
+  recentCheckIns?: CheckInSummary['recentCheckIns']
+}
+
+function RecentActivity({ userRole, recentCheckIns }: RecentActivityProps) {
   // Only show for managers and admins
   if (userRole !== 'ADMIN' && userRole !== 'MANAGER') return null
 
-  const activities = [
-    {
-      id: '1',
-      type: 'checkin',
-      user: 'Jordan Kim',
-      objective: 'Improve API Performance by 50%',
-      keyResult: 'API response time <200ms',
-      value: 350,
-      target: 200,
-      time: '2 hours ago',
-      status: 'progress'
-    },
-    {
-      id: '2',
-      type: 'objective',
-      user: 'Sarah Chen',
-      objective: 'Achieve 99.9% Deployment Uptime',
-      time: '1 day ago',
-      status: 'completed'
-    },
-    {
-      id: '3',
-      type: 'checkin',
-      user: 'Alex Rodriguez',
-      objective: 'Increase User Adoption by 40%',
-      keyResult: 'Weekly active users',
-      value: 32000,
-      target: 50000,
-      time: '1 day ago',
-      status: 'progress'
-    }
-  ]
+  const activities = recentCheckIns ?? []
 
   return (
     <Card>
@@ -142,34 +117,37 @@ function RecentActivity({ userRole }: { userRole?: UserRole }) {
         <CardDescription>Latest updates from your team</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex items-start gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="text-xs">
-                {activity.user.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm">
-                <span className="font-medium">{activity.user}</span>{' '}
-                {activity.type === 'checkin' ? (
-                  <>
-                    updated progress on{' '}
-                    <span className="font-medium">{activity.keyResult}</span>{' '}
-                    to {activity.value}{activity.keyResult?.includes('₹') ? '' : activity.keyResult?.includes('%') ? '%' : ''} of {activity.target}
-                  </>
-                ) : (
-                  <>
-                    marked objective{' '}
-                    <span className="font-medium">{activity.objective}</span>{' '}
-                    as completed
-                  </>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-            </div>
-          </div>
-        ))}
+        {activities.length === 0 ? (
+          <div className="text-sm text-muted-foreground">No recent check-ins yet. Team updates will appear here after weekly progress is logged.</div>
+        ) : (
+          activities.map((activity) => {
+            const traffic = calculateTrafficLightStatus(activity.value)
+            const trafficClasses = getTrafficLightClasses(traffic)
+            const ownerInitials = activity.ownerName?.split(' ').map((n) => n[0]).join('') || '?'
+            const statusLabel = activity.status === 'GREEN' ? 'On track' : activity.status === 'YELLOW' ? 'At risk' : 'Off track'
+
+            return (
+              <div key={activity.id} className="flex items-start gap-3 rounded-lg border p-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">{ownerInitials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm">
+                    <span className="font-medium">{activity.ownerName}</span>{' '}
+                    updated <span className="font-medium">{activity.keyResultTitle}</span> on{' '}
+                    <span className="font-medium">{activity.objectiveTitle}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Status: {statusLabel} • Value: {activity.value}%
+                  </p>
+                </div>
+                <span className={cn('text-[11px] px-2 py-1 rounded-full border', trafficClasses.bg, trafficClasses.border, trafficClasses.text)}>
+                  {Math.round(activity.value)}%
+                </span>
+              </div>
+            )
+          })
+        )}
       </CardContent>
     </Card>
   )
@@ -552,55 +530,70 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
 export function Dashboard() {
   const { data: session } = useSession()
   const user = session?.user
-  const userRole = user?.role as UserRole
+  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
+  const userRole = (demoEnabled ? demoRole : user?.role) as UserRole
+  const demoViewerEmail = demoEnabled
+    ? demoRole === 'EMPLOYEE'
+      ? 'eden@okrflow.demo'
+      : demoRole === 'MANAGER'
+        ? 'morgan@okrflow.demo'
+        : undefined
+    : undefined
   const { data: checkInSummary } = useCheckInSummary()
   const showProductivityExtras = isFeatureEnabled('productivityWidgets')
   const showNotificationFeed = isFeatureEnabled('notificationFeed')
 
   // Build query params based on user role
   const queryParams = useMemo(() => {
+    if (demoEnabled) return {}
     if (!user) return {}
 
     switch (userRole) {
       case 'ADMIN':
-        // Admin sees all objectives
         return {}
       case 'MANAGER':
-        // Manager sees team objectives and their own
         return {}
       case 'EMPLOYEE':
-        // Employee sees only their own objectives
         return { ownerId: user.id }
       default:
         return { ownerId: user.id }
     }
-  }, [user, userRole])
+  }, [demoEnabled, user, userRole])
 
   const { data: objectivesData, isLoading } = useObjectives(queryParams)
 
   // Filter objectives based on user role for display
   const filteredObjectives = useMemo(() => {
-    if (!objectivesData?.objectives || !user) return objectivesData?.objectives ?? []
+    if (!objectivesData?.objectives) return objectivesData?.objectives ?? []
 
     const objectives = objectivesData.objectives
 
+    if (demoEnabled) {
+      if (userRole === 'EMPLOYEE' && demoViewerEmail) {
+        return objectives.filter((obj) => obj.owner.email === demoViewerEmail)
+      }
+      if (userRole === 'MANAGER' && demoViewerEmail) {
+        return objectives.filter((obj) => obj.team?.id === 'team-gtm' || obj.owner.email === demoViewerEmail)
+      }
+      return objectives
+    }
+
+    if (!user) return objectives
+
     switch (userRole) {
       case 'ADMIN':
-        // Admin sees all objectives
         return objectives
       case 'MANAGER':
-        // Manager sees objectives they own or are on their team
         return objectives.filter(obj =>
           obj.owner.id === user.id ||
-          obj.team?.name?.includes('Team') // Managers can see team objectives
+          obj.team?.name?.includes('Team')
         )
       case 'EMPLOYEE':
-        // Employee sees only their own objectives
         return objectives.filter(obj => obj.owner.id === user.id)
       default:
         return objectives.filter(obj => obj.owner.id === user.id)
     }
-  }, [objectivesData?.objectives, user, userRole])
+  }, [demoEnabled, demoViewerEmail, objectivesData?.objectives, user, userRole])
 
   const computedTeamHeatmap = useMemo(() => {
     const map = new Map<string, {
@@ -966,7 +959,7 @@ export function Dashboard() {
           )}
           <PersonalOKRsWidget
             objectives={filteredObjectives}
-            userEmail={user?.email}
+            userEmail={demoEnabled ? demoViewerEmail : user?.email}
             userRole={userRole}
           />
           {userRole !== 'ADMIN' && <ThisWeekCheckIns />}
@@ -987,7 +980,7 @@ export function Dashboard() {
       )}
 
       {showProductivityExtras && (userRole === 'ADMIN' || userRole === 'MANAGER') && (
-        <RecentActivity userRole={userRole} />
+        <RecentActivity userRole={userRole} recentCheckIns={checkInSummary?.recentCheckIns} />
       )}
     </div>
   )

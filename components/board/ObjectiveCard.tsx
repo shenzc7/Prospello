@@ -7,7 +7,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { ProgressChip } from '@/components/ui/ProgressChip'
 import { getFiscalQuarterLabel } from '@/lib/india'
 import { getTrafficLightStatus } from '@/lib/okr'
-import { cn, fmtPercent } from '@/lib/ui'
+import { getTrafficLightLabel } from '@/lib/utils'
+import { cn, fmtProgressDual } from '@/lib/ui'
 import type { Objective } from '@/hooks/useObjectives'
 
 type ObjectiveCardProps = {
@@ -30,6 +31,7 @@ export function ObjectiveCard({ objective, isUpdating }: ObjectiveCardProps) {
 
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
   const tone = toneMap[getTrafficLightStatus(objective.progress)]
+  const toneLabel = getTrafficLightLabel(tone)
 
   return (
     <article
@@ -52,7 +54,12 @@ export function ObjectiveCard({ objective, isUpdating }: ObjectiveCardProps) {
             {objective.team?.name ?? 'Unassigned team'} • {getFiscalQuarterLabel(objective.fiscalQuarter)}
           </p>
         </div>
-        <ProgressChip tone={tone}>{fmtPercent(objective.progress)}</ProgressChip>
+        <ProgressChip tone={tone} srLabel={toneLabel}>
+          <span className="flex items-center gap-1">
+            <span>{fmtProgressDual(objective.progress)}</span>
+            <span className="text-[11px] font-medium text-muted-foreground">({toneLabel})</span>
+          </span>
+        </ProgressChip>
       </header>
       <dl className="mt-3 grid grid-cols-2 gap-3 text-xs text-muted-foreground">
         <div>

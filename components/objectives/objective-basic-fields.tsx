@@ -1,17 +1,20 @@
 'use client'
 
-import { Control } from 'react-hook-form'
+import { Control, useWatch } from 'react-hook-form'
 
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ObjectiveFormData } from '@/lib/schemas'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type Props = {
   control: Control<ObjectiveFormData>
 }
 
 export function ObjectiveBasicFields({ control }: Props) {
+  const progressType = useWatch({ control, name: 'progressType' })
+
   return (
     <>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -85,6 +88,46 @@ export function ObjectiveBasicFields({ control }: Props) {
           </FormItem>
         )}
       />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <FormField
+          control={control}
+          name="progressType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Progress Tracking</FormLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Automatic" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="AUTOMATIC">Automatic from key results</SelectItem>
+                  <SelectItem value="MANUAL">Manual (enter %)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {progressType === 'MANUAL' && (
+          <FormField
+            control={control}
+            name="progress"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Manual progress (%)</FormLabel>
+                <FormControl>
+                  <Input type="number" min={0} max={100} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+      </div>
     </>
   )
 }

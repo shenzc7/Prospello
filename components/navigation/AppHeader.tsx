@@ -1,15 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Search, PlusCircle, BellDot, Sparkles } from 'lucide-react'
 
 import { UserMenu } from '@/components/navigation/UserMenu'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { AppNav, type AppNavItem } from '@/components/navigation/AppNavigation'
 import { Logo } from '@/components/brand/Logo'
 import { isFeatureEnabled } from '@/config/features'
+import { DemoToggle } from '@/components/demo/DemoToggle'
+import { useDemoMode } from '@/components/demo/DemoProvider'
 
 export type AppHeaderProps = {
   user?: {
@@ -27,6 +30,17 @@ function getQuarterLabel() {
 }
 
 export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+  const { enabled: demoEnabled, role } = useDemoMode()
+
+  const submitSearch = () => {
+    const term = query.trim()
+    if (term) {
+      router.push(`/okrs?search=${encodeURIComponent(term)}`)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/40 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6">
@@ -44,9 +58,15 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
                 {envLabel}
               </span>
             ) : null}
-            <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              {getQuarterLabel()}
-            </span>
+            {demoEnabled ? (
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                Demo • {role}
+              </span>
+            ) : (
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                {getQuarterLabel()}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -60,7 +80,7 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
                 New Objective
               </Link>
             </Button>
-            {isFeatureEnabled('themeToggle') && <ThemeToggle />}
+            {isFeatureEnabled('demoMode') ? <DemoToggle compact showRole={false} /> : null}
             <UserMenu name={user?.name} email={user?.email} />
           </div>
         </div>
@@ -73,6 +93,14 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
                 type="search"
                 placeholder="Search objectives, key results, or people"
                 className="w-full rounded-full border-border/60 bg-card pl-11 text-sm placeholder:text-muted-foreground/70 shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    submitSearch()
+                  }
+                }}
               />
               <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-full bg-muted/80 px-2 py-1 text-[11px] text-muted-foreground">
                 <kbd className="rounded border border-border/70 bg-background px-1">Ctrl</kbd>
@@ -84,7 +112,12 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
           {navItems.length ? (
             <div className="flex items-center gap-3">
               <AppNav items={navItems} orientation="horizontal" className="flex-wrap gap-1" />
-              <Button variant="secondary" size="sm" className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={() => router.push('/settings?tab=notifications')}
+              >
                 <BellDot className="h-4 w-4" />
                 Alerts
               </Button>

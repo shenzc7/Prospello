@@ -1,6 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 export type ObjectiveStatusValue = 'NOT_STARTED' | 'IN_PROGRESS' | 'AT_RISK' | 'DONE'
 
@@ -12,6 +13,7 @@ type KeyResult = {
   current: number
   unit?: string | null
   progress: number
+  initiativeCount?: number
   initiatives?: Array<{
     id: string
     title: string
@@ -27,6 +29,7 @@ export type Objective = {
   startAt: string
   endAt: string
   goalType?: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
+  progressType?: 'AUTOMATIC' | 'MANUAL'
   progress: number
   score?: number | null
   status: ObjectiveStatusValue
@@ -67,6 +70,11 @@ type ObjectiveResponse = {
 }
 
 export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const demoPayload = maybeHandleDemoRequest<T>(url, init)
+  if (demoPayload !== null) {
+    return demoPayload
+  }
+
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -80,7 +88,18 @@ export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> 
     let detail = 'Request failed'
     try {
       const body = await res.json()
-      detail = body.error || detail
+      const errorField = body?.error
+      if (typeof errorField === 'string') {
+        detail = errorField
+      } else if (errorField && typeof errorField === 'object') {
+        // Prefer structured API error message if present
+        detail =
+          typeof errorField.msg === 'string'
+            ? errorField.msg
+            : typeof errorField.message === 'string'
+              ? errorField.message
+              : JSON.stringify(errorField)
+      }
     } catch (_) {
       // ignore
     }
@@ -230,7 +249,7 @@ export function useTeams(search: string) {
   if (search) query.set('search', search)
   const suffix = query.toString() ? `?${query.toString()}` : ''
 
-  return useQuery<{ teams: Array<{ id: string; name: string }> }, Error>({
+  return useQuery<{ teams: Array<{ id: string; name: string; members?: Array<{ id: string; name?: string | null; email: string; role: string }> }> }, Error>({
     queryKey: ['teams', search],
     queryFn: () => fetchJSON(`/api/teams${suffix}`),
     enabled: true,

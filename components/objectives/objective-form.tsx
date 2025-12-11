@@ -64,6 +64,8 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       title: initialValues?.title ?? '',
       description: initialValues?.description ?? '',
       cycle: initialValues?.cycle ?? '',
+      progressType: initialValues?.progressType ?? 'AUTOMATIC',
+      progress: initialValues?.progress ?? 0,
       goalType: initialValues?.goalType ?? 'INDIVIDUAL',
       startAt: defaultStart,
       endAt: defaultEnd,
@@ -79,6 +81,8 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
   const { control, handleSubmit, formState } = form
   const { fields, append, remove } = useFieldArray({ control, name: 'keyResults' })
   const watchedKeyResults = useWatch({ control, name: 'keyResults' })
+  const progressType = useWatch({ control, name: 'progressType' })
+  const manualProgress = useWatch({ control, name: 'progress' })
   const goalType = useWatch({ control, name: 'goalType' })
   const startAt = useWatch({ control, name: 'startAt' })
   const endAt = useWatch({ control, name: 'endAt' })
@@ -100,6 +104,9 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       : (form.formState.errors.keyResults?.message as string | undefined)
 
   const computedProgress = useMemo(() => {
+    if (progressType === 'MANUAL') {
+      return Number(manualProgress) || 0
+    }
     if (!keyResults.length) return 0
     const withProgress = keyResults.map((kr) => {
       const target = Number(kr?.target) || 0
@@ -108,7 +115,7 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       return { weight: Number(kr?.weight) || 0, progress }
     })
     return calculateObjectiveProgress(withProgress)
-  }, [keyResults])
+  }, [keyResults, progressType, manualProgress])
 
   const datesError = useMemo(() => {
     if (!startAt || !endAt) return ''
@@ -160,6 +167,8 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       title: values.title,
       description: values.description,
       cycle: values.cycle,
+      progressType: values.progressType,
+      progress: values.progressType === 'MANUAL' ? Number(values.progress) || 0 : undefined,
       goalType: values.goalType,
       startAt: values.startAt,
       endAt: values.endAt,

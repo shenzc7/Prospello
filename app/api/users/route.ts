@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     if (!isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
@@ -33,12 +37,13 @@ export async function GET(request: NextRequest) {
     const { search, limit, offset } = validation.data
     const where = search
       ? {
+        orgId,
         OR: [
           { email: { contains: search, mode: 'insensitive' } },
           { name: { contains: search, mode: 'insensitive' } },
         ],
       }
-      : {}
+      : { orgId }
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({

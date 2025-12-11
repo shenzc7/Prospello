@@ -12,6 +12,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id: keyResultId } = await params
 
@@ -20,7 +24,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       where: { id: keyResultId },
       select: {
         objective: {
-          select: { ownerId: true },
+          select: { ownerId: true, owner: { select: { orgId: true } } },
         },
       },
     })
@@ -32,6 +36,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Check permissions - only objective owner can create initiatives unless manager/admin
     if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (keyResult.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Key result is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)

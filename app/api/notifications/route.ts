@@ -16,7 +16,7 @@ const isSchemaMismatch = (error: unknown) =>
   error instanceof Prisma.PrismaClientKnownRequestError &&
   (error.code === 'P2021' || error.code === 'P2022')
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     return new NextResponse('Unauthorized', { status: 401 })

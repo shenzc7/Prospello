@@ -15,7 +15,7 @@ A modern OKR (Objectives and Key Results) tracking platform built with Next.js 1
 
 - **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
 - **UI Components**: shadcn/ui, Radix UI
-- **Database**: Prisma ORM with SQLite (development) / PostgreSQL (production)
+- **Database**: Prisma ORM with PostgreSQL
 - **Authentication**: NextAuth.js
 - **Deployment**: Vercel-ready
 
@@ -38,8 +38,10 @@ A modern OKR (Objectives and Key Results) tracking platform built with Next.js 1
    # Edit .env.local with your configuration
    ```
 
-4. **Set up database**
+4. **Set up database (PostgreSQL)**
    ```bash
+   # Ensure Postgres is running locally, e.g.:
+   # docker run --name okrflow-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=okrflow -p 5432:5432 -d postgres:15
    npx prisma generate
    npx prisma migrate dev
    npm run db:seed
@@ -67,11 +69,20 @@ Create a `.env.local` file with the following variables:
 
 ```bash
 # Database
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/okrflow?schema=public"
 
 # NextAuth.js
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
+
+# SSO (optional but recommended for production)
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+SLACK_CLIENT_ID=""
+SLACK_CLIENT_SECRET=""
+AZURE_AD_CLIENT_ID=""
+AZURE_AD_CLIENT_SECRET=""
+AZURE_AD_TENANT_ID=""
 
 # Optional Branding
 NEXT_PUBLIC_BRAND_NAME="OKR Builder"
@@ -178,6 +189,13 @@ For other platforms, ensure you have:
 - PostgreSQL database
 - Environment variables configured
 - Run `npm run build && npm start` for production
+
+### Scheduled Jobs (Reminders & Scoring)
+
+- Add a CRON trigger (e.g., Vercel Cron) to call:
+  - `POST /api/cron/reminders?orgId=<ORG_ID>` with header `x-cron-secret: $CRON_SECRET`
+  - `POST /api/cron/scoring?orgId=<ORG_ID>` with header `x-cron-secret: $CRON_SECRET`
+- Set `CRON_SECRET` in your environment to authorize these runs.
 
 ## Project Structure
 

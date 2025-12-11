@@ -13,6 +13,7 @@ import { StatusChip } from '@/components/check-ins/StatusChip'
 import { strings } from '@/config/strings'
 import { toast } from 'sonner'
 import { calculateObjectiveProgress, calculateKRProgress } from '@/lib/utils'
+import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 const schema = z.object({
   value: z.coerce.number().min(0),
@@ -89,6 +90,15 @@ export function QuickCheckInRow({
 
   const mutate = useMutation<CheckInApiResponse, Error, Values>({
     mutationFn: async (values: Values) => {
+      const demoPayload = maybeHandleDemoRequest<CheckInApiResponse>('/api/check-ins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ keyResultId, ...values }),
+      })
+      if (demoPayload !== null) {
+        return demoPayload
+      }
       const res = await fetch('/api/check-ins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

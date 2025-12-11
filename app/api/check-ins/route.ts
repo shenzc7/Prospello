@@ -22,6 +22,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { searchParams } = new URL(request.url)
     const queryData = {
@@ -41,12 +45,15 @@ export async function GET(request: NextRequest) {
     // Authorize: only owner by default; managers/admins may view others
   const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { title: true, objective: { select: { id: true, ownerId: true } } },
+      select: { title: true, objective: { select: { id: true, ownerId: true, owner: { select: { orgId: true } } } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
     if (!isOwner && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (kr.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Key result is in a different organization'))
     }
 
     const where: {
@@ -92,6 +99,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const body = await request.json().catch(() => null)
     const parsed = createCheckInRequestSchema.safeParse(body)
@@ -104,12 +115,15 @@ export async function POST(request: NextRequest) {
     // Authorize: only KR owner (objective owner) or manager/admin
     const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { objective: { select: { id: true, ownerId: true } } },
+      select: { objective: { select: { id: true, ownerId: true, owner: { select: { orgId: true } } } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
     if (!isOwner && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (kr.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Key result is in a different organization'))
     }
 
     const result = await prisma.$transaction(async (tx) => {

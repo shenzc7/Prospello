@@ -1,63 +1,184 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Users, Clock } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Users, Plus, XCircle } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { fetchJSON, useUserOptions } from '@/hooks/useObjectives'
+import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
+import { toast } from 'sonner'
+
+type TeamDetail = {
+  id: string
+  name: string
+  members: Array<{ id: string; name?: string | null; email: string; role: string }>
+  objectives: Array<{ id: string; title: string; status: string; progress: number }>
+}
 
 export default function TeamDetailPage() {
   const router = useRouter()
+  const params = useParams<{ id: string }>()
+  const id = params?.id
+  const queryClient = useQueryClient()
+  const [selectedUser, setSelectedUser] = useState<string>('')
+  const [teamName, setTeamName] = useState('')
+  const { data: userOptions } = useUserOptions('')
+
+  const teamQuery = useQuery<{ team: TeamDetail }>({
+    queryKey: ['team', id],
+    queryFn: () => fetchJSON(`/api/teams/${id}`),
+    enabled: Boolean(id),
+    onSuccess: (data) => setTeamName(data.team.name),
+  })
+
+  const updateTeam = useMutation({
+    mutationFn: (payload: { name?: string; memberIds?: string[] }) =>
+      fetchJSON(`/api/teams/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team', id] })
+      queryClient.invalidateQueries({ queryKey: ['teams'] })
+      toast.success('Team updated')
+    },
+    onError: (err: Error) => toast.error(err?.message || 'Unable to update team'),
+  })
+
+  const handleAddMember = () => {
+    if (!selectedUser || !teamQuery.data?.team) return
+    const existingIds = teamQuery.data.team.members.map((m) => m.id)
+    if (existingIds.includes(selectedUser)) {
+      toast.info('User already on the team')
+      return
+    }
+    updateTeam.mutate({ memberIds: [...existingIds, selectedUser] })
+    setSelectedUser('')
+  }
+
+  const handleRemoveMember = (userId: string) => {
+    const remaining = teamQuery.data?.team.members.filter((m) => m.id !== userId).map((m) => m.id) || []
+    updateTeam.mutate({ memberIds: remaining })
+  }
+
+  const avgProgress = useMemo(() => {
+    const objectives = teamQuery.data?.team.objectives ?? []
+    if (!objectives.length) return 0
+    return Math.round(objectives.reduce((sum, obj) => sum + obj.progress, 0) / objectives.length)
+  }, [teamQuery.data?.team.objectives])
+
+  const status = calculateTrafficLightStatus(avgProgress)
+  const statusClasses = getTrafficLightClasses(status)
+
+  if (teamQuery.isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading team…</p>
+  }
+
+  if (teamQuery.isError || !teamQuery.data?.team) {
+    return <p className="text-sm text-destructive">Unable to load team.</p>
+  }
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-4">
         <Button variant="ghost" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Teams
         </Button>
+        <Badge className={`${statusClasses.bg} ${statusClasses.text}`}>Avg {avgProgress}%</Badge>
       </div>
 
-      {/* Coming Soon Content */}
       <Card>
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Users className="h-8 w-8 text-primary" />
+        <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              <Input
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                onBlur={() => updateTeam.mutate({ name: teamName })}
+                className="border-none text-xl font-semibold focus-visible:ring-0"
+              />
+            </CardTitle>
+            <CardDescription>Manage members and OKRs owned by this team.</CardDescription>
           </div>
-          <CardTitle className="text-2xl">Team Details Coming Soon</CardTitle>
-          <CardDescription className="text-lg">
-            Detailed team insights and management features are under development
-          </CardDescription>
         </CardHeader>
-        <CardContent className="text-center space-y-6">
-          <div className="grid gap-4 md:grid-cols-3 max-w-2xl mx-auto">
-            <div className="p-4 border rounded-lg">
-              <Users className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <h3 className="font-medium mb-1">Team Members</h3>
-              <p className="text-sm text-muted-foreground">View and manage team composition</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <Clock className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <h3 className="font-medium mb-1">Performance Metrics</h3>
-              <p className="text-sm text-muted-foreground">Track team progress and velocity</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <Users className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-              <h3 className="font-medium mb-1">Collaboration Tools</h3>
-              <p className="text-sm text-muted-foreground">Enhanced team communication features</p>
+        <CardContent className="space-y-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select value={selectedUser} onValueChange={setSelectedUser}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Add member" />
+              </SelectTrigger>
+              <SelectContent>
+                {(userOptions?.users ?? []).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name || user.email} ({user.role})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleAddMember} disabled={!selectedUser || updateTeam.isPending}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add to team
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Members</h3>
+            <div className="grid gap-2 md:grid-cols-2">
+              {teamQuery.data?.team.members.map((member) => (
+                <div key={member.id} className="flex items-center justify-between rounded-lg border border-border/70 p-3">
+                  <div>
+                    <p className="font-semibold">{member.name || member.email}</p>
+                    <p className="text-xs text-muted-foreground">{member.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{member.role}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive"
+                      onClick={() => handleRemoveMember(member.id)}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {!teamQuery.data?.team.members.length && (
+                <p className="text-sm text-muted-foreground">No members yet.</p>
+              )}
             </div>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
-            <p className="text-sm text-muted-foreground">
-              This feature is currently being built. We&apos;ll notify you when team details and management tools become available.
-            </p>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Objectives</h3>
+            <div className="grid gap-2 md:grid-cols-2">
+              {teamQuery.data?.team.objectives.map((obj) => {
+                const classes = getTrafficLightClasses(calculateTrafficLightStatus(obj.progress))
+                return (
+                  <div key={obj.id} className="rounded-lg border border-border/70 p-3">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold">{obj.title}</p>
+                      <Badge className={`${classes.bg} ${classes.text}`}>{obj.progress}%</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{obj.status}</p>
+                  </div>
+                )
+              })}
+              {!teamQuery.data?.team.objectives.length && (
+                <p className="text-sm text-muted-foreground">No objectives assigned to this team.</p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   )
 }
-
-

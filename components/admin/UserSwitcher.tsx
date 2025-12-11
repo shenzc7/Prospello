@@ -64,17 +64,18 @@ function getRoleBadgeColor(role: string) {
 }
 
 export function UserSwitcher() {
-  if (!isFeatureEnabled('userSwitcher')) {
-    return null
-  }
-
   const { data: session, status } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
   const router = useRouter()
+  const featureDisabled = !isFeatureEnabled('userSwitcher')
 
   const currentUser = session?.user
   const isAdmin = currentUser?.role === 'ADMIN'
+
+  if (featureDisabled) {
+    return null
+  }
 
   // Only show for admins or in development
   if (!isAdmin && process.env.NODE_ENV === 'production') {

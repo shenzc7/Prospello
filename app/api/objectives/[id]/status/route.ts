@@ -9,20 +9,25 @@ import { updateObjectiveStatusSchema } from '@/lib/schemas'
 import { calculateKRProgress } from '@/lib/utils'
 import { Role } from '@prisma/client'
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
-    const { id } = await params
+    const { id } = params
 
     const objective = await prisma.objective.findUnique({
       where: { id },
       select: {
         id: true,
         ownerId: true,
+        owner: { select: { orgId: true } },
       },
     })
 
@@ -32,6 +37,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)

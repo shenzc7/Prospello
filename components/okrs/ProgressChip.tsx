@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { fmtProgressDual } from '@/lib/ui'
 
 const thresholds = [
   { min: 75, variant: 'success', label: 'On Track' },
@@ -19,7 +20,7 @@ type ProgressChipProps = {
 export function ProgressChip({ value, className, withLabel = false, testId }: ProgressChipProps) {
   const clamped = Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0
   const match = thresholds.find((item) => clamped >= item.min) ?? thresholds.at(-1)!
-  const content = withLabel ? `${match.label} • ${clamped}%` : `${clamped}%`
+  const content = withLabel ? `${match.label} • ${fmtProgressDual(clamped, { fractionDigits: 2 })}` : fmtProgressDual(clamped, { dual: true })
 
   return (
     <Badge

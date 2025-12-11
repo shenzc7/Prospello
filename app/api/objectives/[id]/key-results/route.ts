@@ -12,13 +12,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id: objectiveId } = await params
 
     // Check if objective exists and user has access
     const objective = await prisma.objective.findUnique({
       where: { id: objectiveId },
-      select: { ownerId: true },
+      select: { ownerId: true, owner: { select: { orgId: true } } },
     })
 
     if (!objective) {
@@ -28,6 +32,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // Check permissions - only owner can modify key results unless manager/admin
     if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Objective is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)

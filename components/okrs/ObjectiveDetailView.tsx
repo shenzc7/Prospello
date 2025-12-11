@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { CheckInDrawer } from '@/components/okrs/CheckInDrawer'
 import { ProgressChip } from '@/components/okrs/ProgressChip'
 import { HistoryPanel } from '@/components/check-ins/HistoryPanel'
+import { CommentsPanel } from '@/components/collaboration/CommentsPanel'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
@@ -143,6 +144,11 @@ export function ObjectiveDetailView({ objectiveId }: { objectiveId: string }) {
           ))}
         </div>
       </section>
+
+      <CommentsPanel
+        objectiveId={objectiveId}
+        keyResults={objective.keyResults.map((kr) => ({ id: kr.id, title: kr.title }))}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

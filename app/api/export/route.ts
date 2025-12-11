@@ -1,14 +1,21 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { Role } from '@prisma/client'
 
 import { authOptions } from '@/lib/auth'
-import { createErrorResponse, createSuccessResponse, errors } from '@/lib/apiError'
+import { createErrorResponse, errors } from '@/lib/apiError'
+import { buildExcel, buildPdf, getObjectivesForExport } from '@/lib/exporters'
+import { prisma } from '@/lib/prisma'
+import { mergeOrgSettings } from '@/lib/orgSettings'
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const role = session.user.role as Role
     if (role === Role.EMPLOYEE) {
@@ -19,22 +26,37 @@ export async function POST(req: NextRequest) {
     const format = (body.format || 'pdf').toLowerCase()
     const scope = (body.scope || 'company').toLowerCase()
 
-    const exportId = crypto.randomUUID()
-    const etaSeconds = 15
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true, settings: true },
+    })
+    const meta = {
+      orgName: org?.name || 'Organization',
+      settings: mergeOrgSettings(org?.settings),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    }
 
-    return createSuccessResponse(
-      {
-        export: {
-          id: exportId,
-          format,
-          scope,
-          status: 'queued',
-          etaSeconds,
-          requestedBy: session.user.email,
+    const rows = await getObjectivesForExport(scope, session.user.id as string, role, orgId)
+
+    if (format === 'xlsx' || format === 'excel') {
+      const buffer = buildExcel(rows, meta)
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': 'attachment; filename="okr-report.xlsx"',
         },
+      })
+    }
+
+    const pdfBuffer = buildPdf(rows, meta)
+    return new NextResponse(pdfBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="okr-report.pdf"',
       },
-      202
-    )
+    })
   } catch (err) {
     console.error('POST /api/export failed', err)
     return createErrorResponse(err)

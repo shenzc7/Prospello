@@ -25,6 +25,17 @@ async function main() {
     prisma.team.create({ data: { name: 'Backend Team', orgId: org.id } }),
     prisma.team.create({ data: { name: 'DevOps Team', orgId: org.id } }),
   ])
+  // Add team members (delete existing first to avoid duplicates)
+  await prisma.teamMember.deleteMany({
+    where: { userId: { in: [admin.id, manager.id, meUser.id] } }
+  })
+  await prisma.teamMember.createMany({
+    data: [
+      { teamId: frontendTeam.id, userId: manager.id },
+      { teamId: backendTeam.id, userId: meUser.id },
+      { teamId: devopsTeam.id, userId: admin.id },
+    ],
+  })
   const now = new Date()
   const fyStartYear = now.getUTCMonth() >= 3 ? now.getUTCFullYear() : now.getUTCFullYear() - 1
   const fyLabel = `FY${String(fyStartYear + 1).slice(-2)}`

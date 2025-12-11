@@ -17,6 +17,10 @@ export async function GET(request: NextRequest) {
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { searchParams } = new URL(request.url)
     const validation = listObjectivesQuerySchema.safeParse({
@@ -52,8 +56,12 @@ export async function GET(request: NextRequest) {
       fiscalQuarter?: number
       cycle?: string
       status?: ObjectiveStatus
+      owner?: { orgId: string }
       OR?: Array<{ title?: { contains: string; mode: 'insensitive' } } | { description?: { contains: string; mode: 'insensitive' } }>
     } = {}
+
+    // Enforce tenant scoping
+    where.owner = { orgId }
 
     // If not admin/manager, only show own objectives
     if (session?.user && !isManagerOrHigher(session.user.role as Role)) {
@@ -87,6 +95,8 @@ export async function GET(request: NextRequest) {
           status: true,
           fiscalQuarter: true,
           score: true,
+          progress: true,
+          progressType: true,
           createdAt: true,
           updatedAt: true,
           ownerId: true,
@@ -94,10 +104,10 @@ export async function GET(request: NextRequest) {
           parentId: true,
           goalType: true,
           owner: {
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, orgId: true },
           },
           team: {
-            select: { id: true, name: true },
+            select: { id: true, name: true, orgId: true },
           },
           parent: {
             select: { id: true, title: true },
@@ -110,6 +120,9 @@ export async function GET(request: NextRequest) {
               target: true,
               current: true,
               unit: true,
+              _count: {
+                select: { initiatives: true },
+              },
             },
           },
           _count: {
@@ -160,13 +173,20 @@ export async function GET(request: NextRequest) {
       }>
       _count: { children: number }
     }>).map((objective) => {
-      const keyResultsWithProgress = objective.keyResults.map((kr) => ({
-        ...kr,
-        progress: calculateKRProgress(kr.current, kr.target),
-      }))
-      const progress = calcProgressFromProgress(
-        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
-      )
+      const keyResultsWithProgress = objective.keyResults.map((kr) => {
+        const { _count, ...rest } = kr as typeof kr & { _count?: { initiatives?: number } }
+        const initiativeCount = _count?.initiatives ?? 0
+        return {
+          ...rest,
+          progress: calculateKRProgress(kr.current, kr.target),
+          initiativeCount,
+        }
+      })
+      const progress = objective.progressType === 'MANUAL'
+        ? Math.round(objective.progress ?? 0)
+        : calcProgressFromProgress(
+          keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
+        )
       return {
         ...objective,
         keyResults: keyResultsWithProgress,
@@ -203,6 +223,10 @@ export async function POST(request: NextRequest) {
   if (!session?.user) {
     return createErrorResponse(errors.unauthorized())
   }
+  const orgId = session.user.orgId
+  if (!orgId) {
+    return createErrorResponse(errors.forbidden('Organization not set for user'))
+  }
 
   try {
 
@@ -213,7 +237,7 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(validation.error)
     }
 
-    const { title, description, cycle, goalType, startAt, endAt, parentObjectiveId, ownerId, teamId, keyResults } = validation.data
+    const { title, description, cycle, goalType, startAt, endAt, parentObjectiveId, ownerId, teamId, keyResults, progressType, progress } = validation.data
 
     // Role-based limits and validation
     const userRole = session.user.role as Role
@@ -243,7 +267,7 @@ export async function POST(request: NextRequest) {
     if (parentObjectiveId) {
       const parentObjective = await prisma.objective.findUnique({
         where: { id: parentObjectiveId },
-        select: { cycle: true, ownerId: true },
+        select: { cycle: true, ownerId: true, owner: { select: { orgId: true } } },
       })
 
       if (!parentObjective) {
@@ -258,6 +282,9 @@ export async function POST(request: NextRequest) {
       if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
       }
+      if (parentObjective.owner?.orgId !== orgId) {
+        return createErrorResponse(errors.forbidden('Parent objective is in a different organization'))
+      }
     }
 
     // Prevent self-reference
@@ -267,6 +294,24 @@ export async function POST(request: NextRequest) {
 
     // Resolve owner and optional team assignment
     const resolvedOwnerId = isManagerOrHigher(userRole as Role) && ownerId ? ownerId : session.user.id
+    const ownerRecord = await prisma.user.findUnique({
+      where: { id: resolvedOwnerId },
+      select: { orgId: true },
+    })
+    if (!ownerRecord || ownerRecord.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Owner must belong to your organization'))
+    }
+
+    const resolvedTeamId: string | null = teamId ?? null
+    if (resolvedTeamId) {
+      const team = await prisma.team.findUnique({
+        where: { id: resolvedTeamId },
+        select: { orgId: true },
+      })
+      if (!team || team.orgId !== orgId) {
+        return createErrorResponse(errors.forbidden('Team must belong to your organization'))
+      }
+    }
 
     // Create objective with key results in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -282,9 +327,11 @@ export async function POST(request: NextRequest) {
           startAt: startDate,
           endAt: endDate,
           ownerId: resolvedOwnerId,
-          teamId: teamId ?? null,
+          teamId: resolvedTeamId,
           parentId: parentObjectiveId || null,
           fiscalQuarter: getFiscalQuarter(startDate),
+          progressType: progressType || 'AUTOMATIC',
+          progress: progressType === 'MANUAL' ? progress ?? 0 : 0,
         },
         include: {
           owner: {
@@ -323,12 +370,21 @@ export async function POST(request: NextRequest) {
         progress: calculateKRProgress(kr.current, kr.target),
       }))
 
+      const computedProgress = progressType === 'MANUAL'
+        ? Math.round(progress ?? 0)
+        : calcProgressFromProgress(
+          keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
+        )
+
+      await tx.objective.update({
+        where: { id: objective.id },
+        data: { progress: computedProgress, score: calculateObjectiveScore(computedProgress) },
+      })
+
       return {
         ...objective,
         keyResults: keyResultsWithProgress,
-        progress: calcProgressFromProgress(
-          keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
-        ),
+        progress: computedProgress,
       }
     })
 

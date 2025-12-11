@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -39,6 +39,11 @@ enum GoalType {
   DEPARTMENT
   TEAM
   INDIVIDUAL
+}
+
+enum ProgressType {
+  AUTOMATIC
+  MANUAL
 }
 
 // NextAuth.js models
@@ -83,6 +88,7 @@ model Organization {
   name      String
   users     User[]
   teams     Team[]
+  settings  Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -93,14 +99,18 @@ model User {
   id           String        @id @default(cuid())
   email        String        @unique
   name         String?
+  image        String?
+  emailVerified DateTime?
   role         Role          @default(EMPLOYEE)
-  passwordHash String
+  passwordHash String        @default("")
   orgId        String?
+  notificationSettings Json?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   // Relations
   org          Organization? @relation(fields: [orgId], references: [id])
+  teamMemberships TeamMember[]
 
   // NextAuth relations
   accounts Account[]
@@ -129,6 +139,8 @@ model Objective {
   parentId    String?
   status      ObjectiveStatus @default(NOT_STARTED)
   goalType    GoalType  @default(INDIVIDUAL)
+  progressType ProgressType @default(AUTOMATIC)
+  progress    Float    @default(0)
   fiscalQuarter Int @default(1)
   score       Float?    // Automated score at end of cycle (0.0 - 1.0)
   createdAt   DateTime   @default(now())
@@ -136,7 +148,7 @@ model Objective {
 
   // Relations
   owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  team        Team?        @relation(fields: [teamId], references: [id])
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
   parent      Objective?   @relation("ObjectiveHierarchy", fields: [parentId], references: [id])
   children    Objective[]  @relation("ObjectiveHierarchy")
   keyResults  KeyResult[]
@@ -158,6 +170,7 @@ model Team {
 
   org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   objectives Objective[]
+  members    TeamMember[]
 
   @@unique([orgId, name])
   @@map("teams")
@@ -233,6 +246,21 @@ model CheckIn {
 
   @@unique([keyResultId, userId, weekStart])
   @@map("check_ins")
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  userId    String
+  role      String   @default("MEMBER")
+  createdAt DateTime @default(now())
+
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
 }
 
 model Notification {
