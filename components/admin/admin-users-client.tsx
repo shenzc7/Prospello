@@ -90,7 +90,7 @@ export function AdminUsersClient() {
       setAlert({ variant: 'success', message: 'Role updated' })
       queryClient.invalidateQueries({ queryKey: ['admin-users'] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       setAlert({ variant: 'destructive', message: error?.message ?? 'Role update failed' })
     }
   })

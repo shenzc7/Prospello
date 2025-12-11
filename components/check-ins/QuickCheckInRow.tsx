@@ -20,6 +20,51 @@ const schema = z.object({
   comment: z.string().max(500).optional().or(z.literal('')),
 })
 
+type KeyResultProgress = {
+  id: string
+  target: number
+  current: number
+  weight?: number
+  progress?: number
+}
+
+type ObjectiveCache = {
+  objective?: {
+    keyResults?: KeyResultProgress[]
+    progress?: number
+  }
+}
+
+type ObjectivesCache = {
+  objectives?: Array<{
+    keyResults?: KeyResultProgress[]
+    progress?: number
+  }>
+}
+
+type ProgressPayload = {
+  objectiveId: string
+  objectiveProgress: number
+  objectiveScore: number
+  keyResults: Array<Required<KeyResultProgress>>
+}
+
+type CheckInApiResponse = {
+  ok: boolean
+  data: {
+    checkIn: {
+      id: string
+      keyResultId: string
+      value: number
+      status: string
+      comment: string | null
+      weekStart: string
+      userId: string
+    }
+    progress?: ProgressPayload
+  }
+}
+
 type Values = z.infer<typeof schema>
 
 type QuickCheckInRowProps = {
@@ -42,7 +87,7 @@ export function QuickCheckInRow({
     defaultValues: { value: current ?? 0, status: 'GREEN', comment: '' },
   })
 
-  const mutate = useMutation({
+  const mutate = useMutation<CheckInApiResponse, Error, Values>({
     mutationFn: async (values: Values) => {
       const res = await fetch('/api/check-ins', {
         method: 'POST',
@@ -60,41 +105,41 @@ export function QuickCheckInRow({
       const toastId = `check-in-${keyResultId}`
       toast.loading(strings.toasts.checkIns.loading, { id: toastId })
 
-      const objectiveSnapshots = queryClient.getQueriesData<{ objective?: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> } }>({ queryKey: ['objective'] })
-      const objectivesSnapshots = queryClient.getQueriesData<{ objectives?: Array<{ keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }> }>({ queryKey: ['objectives'] })
+      const objectiveSnapshots = queryClient.getQueriesData<ObjectiveCache>({ queryKey: ['objective'] })
+      const objectivesSnapshots = queryClient.getQueriesData<ObjectivesCache>({ queryKey: ['objectives'] })
 
-      function updateObjectiveData(data: { objective?: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> } }) {
+      function updateObjectiveData(data: ObjectiveCache) {
         if (!data?.objective) return data
-        const containsKR = data.objective.keyResults?.some((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => kr.id === keyResultId)
+        const containsKR = data.objective.keyResults?.some((kr) => kr.id === keyResultId)
         if (!containsKR) return data
 
-        const keyResults = data.objective.keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => {
+        const keyResults = data.objective.keyResults.map((kr) => {
           if (kr.id !== keyResultId) return kr
           const nextProgress = calculateKRProgress(values.value, kr.target)
           return { ...kr, current: values.value, progress: nextProgress }
         })
 
         const progress = calculateObjectiveProgress(
-          keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
+          keyResults.map((kr) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
         )
 
         return { ...data, objective: { ...data.objective, keyResults, progress } }
       }
 
-      function updateObjectivesData(data: { objectives?: Array<{ keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }> }) {
+      function updateObjectivesData(data: ObjectivesCache) {
         if (!data?.objectives) return data
-        const objectives = data.objectives.map((objective: { keyResults?: Array<{ id: string; target: number; current: number; weight?: number; progress?: number }> }) => {
-          const hasKR = objective.keyResults?.some((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => kr.id === keyResultId)
+        const objectives = data.objectives.map((objective) => {
+          const hasKR = objective.keyResults?.some((kr) => kr.id === keyResultId)
           if (!hasKR) return objective
 
-          const keyResults = objective.keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => {
+          const keyResults = objective.keyResults.map((kr) => {
             if (kr.id !== keyResultId) return kr
             const nextProgress = calculateKRProgress(values.value, kr.target)
             return { ...kr, current: values.value, progress: nextProgress }
           })
 
           const progress = calculateObjectiveProgress(
-            keyResults.map((kr: { id: string; target: number; current: number; weight?: number; progress?: number }) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
+            keyResults.map((kr) => ({ weight: kr.weight ?? 0, progress: kr.progress ?? calculateKRProgress(kr.current, kr.target) }))
           )
 
           return { ...objective, keyResults, progress }
@@ -117,9 +162,53 @@ export function QuickCheckInRow({
         objectivesSnapshots,
       }
     },
-    onSuccess: (_result, values, context) => {
+    onSuccess: (result, values, context) => {
       if (context?.toastId) {
         toast.success(strings.toasts.checkIns.success, { id: context.toastId })
+      }
+      if (result?.ok && result.data?.progress) {
+        const payload = result.data.progress
+
+        const applyServerObjective = (data: ObjectiveCache) => {
+          if (!data?.objective?.keyResults) return data
+          if (!data.objective.keyResults.some((kr) => kr.id === keyResultId)) return data
+          return {
+            ...data,
+            objective: {
+              ...data.objective,
+              progress: payload.objectiveProgress,
+              keyResults: data.objective.keyResults.map((kr) => {
+                const updated = payload.keyResults.find((item) => item.id === kr.id)
+                return updated ? { ...kr, current: updated.current, progress: updated.progress } : kr
+              }),
+            },
+          }
+        }
+
+        const applyServerObjectives = (data: ObjectivesCache) => {
+          if (!data?.objectives) return data
+          return {
+            ...data,
+            objectives: data.objectives.map((objective) => {
+              if (!objective.keyResults?.some((kr) => kr.id === keyResultId)) return objective
+              return {
+                ...objective,
+                progress: payload.objectiveProgress,
+                keyResults: objective.keyResults.map((kr) => {
+                  const updated = payload.keyResults.find((item) => item.id === kr.id)
+                  return updated ? { ...kr, current: updated.current, progress: updated.progress } : kr
+                }),
+              }
+            }),
+          }
+        }
+
+        context?.objectiveSnapshots?.forEach(([queryKey]) => {
+          queryClient.setQueryData<ObjectiveCache>(queryKey, (previous) => applyServerObjective(previous ?? {}))
+        })
+        context?.objectivesSnapshots?.forEach(([queryKey]) => {
+          queryClient.setQueryData<ObjectivesCache>(queryKey, (previous) => applyServerObjectives(previous ?? {}))
+        })
       }
       form.reset({ value: values.value, status: values.status, comment: '' })
       onSuccess?.()
@@ -128,11 +217,11 @@ export function QuickCheckInRow({
       if (context?.toastId) {
         toast.error(error?.message || strings.toasts.checkIns.error, { id: context.toastId })
       }
-      context?.objectiveSnapshots?.forEach(([queryKey, data]: [string[], any]) => {
-        queryClient.setQueryData(queryKey, data)
+      context?.objectiveSnapshots?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData<ObjectiveCache>(queryKey, data)
       })
-      context?.objectivesSnapshots?.forEach(([queryKey, data]: [string[], any]) => {
-        queryClient.setQueryData(queryKey, data)
+      context?.objectivesSnapshots?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData<ObjectivesCache>(queryKey, data)
       })
     },
     onSettled: () => {

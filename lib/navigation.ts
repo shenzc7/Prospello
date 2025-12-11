@@ -1,4 +1,5 @@
 import { strings } from '@/config/strings'
+import { isFeatureEnabled } from '@/config/features'
 
 export type AppNavItem = {
   href: string
@@ -21,7 +22,7 @@ export function buildNavItems(role?: string): AppNavItem[] {
   // Settings page for all users (PRD requirement)
   base.push({ href: '/settings', label: strings.navigation.items.settings, icon: 'Settings' })
 
-  if (role === 'ADMIN') {
+  if (role === 'ADMIN' && isFeatureEnabled('adminExtras')) {
     base.push({ href: '/admin/users', label: 'Admin', icon: 'ShieldCheck' })
   }
 

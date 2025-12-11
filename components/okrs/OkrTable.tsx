@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronUp, ChevronDown, ArrowUpDown, MoreHorizontal, CheckSquare, Square, Filter } from 'lucide-react'
+import { format } from 'date-fns'
+import { ChevronUp, ChevronDown, ArrowUpDown, MoreHorizontal, CheckSquare, Filter } from 'lucide-react'
 
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { ProgressChip } from '@/components/okrs/ProgressChip'
@@ -17,9 +18,10 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { strings } from '@/config/strings'
-import { ObjectiveStatusValue, useObjectives } from '@/hooks/useObjectives'
-import { useKeyboardShortcuts, okrKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { ObjectiveStatusValue, useObjectives, type Objective } from '@/hooks/useObjectives'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/ui'
+import { isFeatureEnabled } from '@/config/features'
 
 
 const statusFilters: Array<{ value: ObjectiveStatusValue | ''; label: string }> = [
@@ -30,25 +32,12 @@ const statusFilters: Array<{ value: ObjectiveStatusValue | ''; label: string }> 
   { value: 'DONE', label: 'Completed' },
 ]
 
-const compactDateFormatter = new Intl.DateTimeFormat('en-IN', {
-  month: 'short',
-  day: 'numeric',
-})
-
-function formatTimeline(start: string, end: string) {
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return 'Timeline pending'
-  }
-  const sameYear = startDate.getFullYear() === endDate.getFullYear()
-  const startLabel = compactDateFormatter.format(startDate)
-  const endLabel = compactDateFormatter.format(endDate)
-  if (sameYear) {
-    return `${startLabel} – ${endLabel} ${startDate.getFullYear()}`
-  }
-  return `${startLabel} ${startDate.getFullYear()} – ${endLabel} ${endDate.getFullYear()}`
-}
+const goalTypeOptions: Array<{ value: GoalType; label: string }> = [
+  { value: 'company', label: 'Company' },
+  { value: 'department', label: 'Department' },
+  { value: 'team', label: 'Team' },
+  { value: 'individual', label: 'Individual' },
+]
 
 function getInitials(name?: string | null, email?: string | null) {
   if (name) {
@@ -68,6 +57,14 @@ function getInitials(name?: string | null, email?: string | null) {
 
 type SortField = 'title' | 'progress' | 'status' | 'owner' | 'cycle' | 'createdAt'
 type SortDirection = 'asc' | 'desc'
+type GoalType = 'company' | 'department' | 'team' | 'individual'
+
+function resolveGoalType(objective: Objective): GoalType {
+  if (!objective.parent && !objective.team) return 'company'
+  if (!objective.parent && objective.team) return 'department'
+  if (objective.team) return 'team'
+  return 'individual'
+}
 
 export function OkrTable() {
   const [search, setSearch] = useState('')
@@ -76,6 +73,9 @@ export function OkrTable() {
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [goalTypeFilter, setGoalTypeFilter] = useState<GoalType | ''>('')
+  const showBoardView = isFeatureEnabled('boardView')
+  const enableShortcuts = isFeatureEnabled('keyboardShortcuts')
 
   const query = useObjectives({
     search: search || undefined,
@@ -83,7 +83,12 @@ export function OkrTable() {
     status: status || undefined,
   })
 
-  const objectives = query.data?.objectives ?? []
+  const objectives = useMemo<Objective[]>(() => query.data?.objectives ?? [], [query.data?.objectives])
+
+  const displayObjectives = useMemo(() => {
+    if (!goalTypeFilter) return objectives
+    return objectives.filter((objective) => resolveGoalType(objective) === goalTypeFilter)
+  }, [goalTypeFilter, objectives])
 
   const cycles = useMemo(() => {
     const set = new Set<string>()
@@ -93,10 +98,27 @@ export function OkrTable() {
     return Array.from(set).sort()
   }, [objectives])
 
+  const summary = useMemo(() => {
+    if (!objectives.length) return null
+    const start = objectives.reduce((earliest, objective) => {
+      const ts = new Date(objective.startAt).getTime()
+      return Math.min(earliest, ts)
+    }, Number.POSITIVE_INFINITY)
+    const end = objectives.reduce((latest, objective) => {
+      const ts = new Date(objective.endAt).getTime()
+      return Math.max(latest, ts)
+    }, Number.NEGATIVE_INFINITY)
+    const owners = new Set(objectives.map((objective) => objective.owner.email)).size
+    const keyResults = objectives.reduce((sum, objective) => sum + objective.keyResults.length, 0)
+    return { start, end, owners, keyResults }
+  }, [objectives])
+
   const sortedObjectives = useMemo(() => {
-    return [...objectives].sort((a, b) => {
-      let aValue: any
-      let bValue: any
+    type SortableValue = string | number | Date
+
+    return [...displayObjectives].sort((a, b) => {
+      let aValue: SortableValue
+      let bValue: SortableValue
 
       switch (sortField) {
         case 'title':
@@ -131,7 +153,7 @@ export function OkrTable() {
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
       return 0
     })
-  }, [objectives, sortField, sortDirection])
+  }, [displayObjectives, sortField, sortDirection])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -176,10 +198,10 @@ export function OkrTable() {
       description: 'Clear selection',
       action: () => setSelectedIds(new Set())
     }
-  ])
+  ], enableShortcuts)
 
 
-  const showEmpty = !query.isLoading && !query.isError && objectives.length === 0
+  const showEmpty = !query.isLoading && !query.isError && displayObjectives.length === 0
 
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <Button
@@ -204,14 +226,15 @@ export function OkrTable() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{strings.titles.okrs}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {objectives.length} objectives • {hasSelection && `${selectedCount} selected`}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Objective & Alignment</p>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">{strings.titles.okrs}</h1>
+          <p className="text-sm text-muted-foreground">
+            Company → Department → Team → Individual • {displayObjectives.length} active
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasSelection && (
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{selectedCount} selected</Badge>
@@ -238,11 +261,52 @@ export function OkrTable() {
           <SegmentedControl
             items={[
               { label: 'Table', href: '/okrs', exact: true },
-              { label: 'Board', href: '/okrs/board' },
+              ...(showBoardView ? [{ label: 'Board', href: '/okrs/board' }] : []),
             ]}
           />
         </div>
       </div>
+
+      {summary ? (
+        <div className="grid gap-3 rounded-2xl border border-border/70 bg-card/70 p-4 shadow-soft md:grid-cols-3">
+          <div className="space-y-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Goal cycle</p>
+            <p className="text-sm font-semibold text-foreground">
+              {format(summary.start, 'MMM d')} - {format(summary.end, 'MMM d')}
+            </p>
+            <p className="text-xs text-muted-foreground">Start & end dates for this view</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Goal type</p>
+            <div className="flex flex-wrap gap-2">
+              {goalTypeOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  size="sm"
+                  variant={goalTypeFilter === option.value ? 'default' : 'outline'}
+                  className="h-8 rounded-full px-3 text-xs"
+                  onClick={() => setGoalTypeFilter(goalTypeFilter === option.value ? '' : option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Filter alignment: company → department → team → individual
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Owners & key results</p>
+            <p className="text-sm font-semibold text-foreground">
+              {summary.owners} owners • {summary.keyResults} key results
+            </p>
+            <p className="text-xs text-muted-foreground">Min 1 / Max 5 KR per objective</p>
+            <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Link href="/checkins">Open check-ins</Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
 
       <FiltersBar className="border border-border/40 bg-background/60">
@@ -393,7 +457,11 @@ export function OkrTable() {
       {showEmpty ? (
         <EmptyState
           title={strings.emptyStates.noObjectives.title}
-          description={strings.emptyStates.noObjectives.description}
+          description={
+            goalTypeFilter || search || status || cycle
+              ? 'No objectives match your filters. Try adjusting goal type, status, or cycle.'
+              : strings.emptyStates.noObjectives.description
+          }
           action={
             <Button asChild className="rounded-full">
               <Link href="/okrs/new">{strings.emptyStates.noObjectives.actionLabel}</Link>
@@ -402,7 +470,7 @@ export function OkrTable() {
         />
       ) : null}
 
-      {objectives.length ? (
+      {displayObjectives.length ? (
         <>
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-hidden rounded-lg border border-border/60 bg-card shadow-sm">
@@ -619,7 +687,7 @@ function OwnerCell({ name, email, team, progress }: OwnerCellProps) {
 }
 
 type MobileObjectiveCardProps = {
-  objective: any
+  objective: Objective
   isSelected: boolean
   onSelect: (selected: boolean) => void
 }
@@ -670,7 +738,7 @@ function MobileObjectiveCard({ objective, isSelected, onSelect }: MobileObjectiv
                 Key Results ({objective.keyResults.length})
               </p>
               <div className="space-y-1">
-                {objective.keyResults.slice(0, 2).map((kr: any) => (
+                {objective.keyResults.slice(0, 2).map((kr) => (
                   <div key={kr.id} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2">
                     <span className="text-xs text-foreground truncate flex-1 mr-2">{kr.title}</span>
                     <span className="text-xs font-medium text-muted-foreground">

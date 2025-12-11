@@ -58,7 +58,6 @@ cookies.txt
 
 # Development files
 .bmad-core/
-docs/
 stories/
 *.dev.md
 development-*.md

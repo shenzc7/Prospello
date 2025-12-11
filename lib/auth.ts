@@ -1,14 +1,30 @@
 import { compare } from 'bcryptjs'
 import { NextAuthOptions, Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
+import GoogleProvider from "next-auth/providers/google";
+import SlackProvider from "next-auth/providers/slack";
+import AzureADProvider from "next-auth/providers/azure-ad";
 import { prisma } from '@/lib/prisma'
 import { Role } from '@prisma/client'
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
+  // Note: Don't use adapter with JWT strategy for credentials provider
+  // adapter: PrismaAdapter(prisma),
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    SlackProvider({
+      clientId: process.env.SLACK_CLIENT_ID!,
+      clientSecret: process.env.SLACK_CLIENT_SECRET!,
+    }),
+    AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID!,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+    }),
     CredentialsProvider({
       name: 'credentials',
       credentials: {
@@ -46,13 +62,14 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   session: {
-    strategy: 'database',
+    strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id
         token.role = user.role
         token.orgId = user.orgId
       }
@@ -60,9 +77,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.sub!
-        session.user.role = token.role
-        session.user.orgId = token.orgId
+        session.user.id = token.id as string
+        session.user.role = token.role as Role
+        session.user.orgId = token.orgId as string | undefined
       }
       return session
     }

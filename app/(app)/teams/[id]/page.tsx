@@ -1,15 +1,13 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { ArrowLeft, Users, Clock } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function TeamDetailPage() {
-  const params = useParams()
   const router = useRouter()
-  const teamId = params.id as string
 
   return (
     <div className="space-y-8">
@@ -53,7 +51,7 @@ export default function TeamDetailPage() {
 
           <div className="bg-muted/50 rounded-lg p-6 max-w-md mx-auto">
             <p className="text-sm text-muted-foreground">
-              This feature is currently being built. We'll notify you when team details and management tools become available.
+              This feature is currently being built. We&apos;ll notify you when team details and management tools become available.
             </p>
           </div>
         </CardContent>
@@ -61,7 +59,5 @@ export default function TeamDetailPage() {
     </div>
   )
 }
-
-
 
 

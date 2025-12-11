@@ -2,69 +2,73 @@
 
 import { useSession } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, memo } from 'react'
 
-import { AppHeader } from '@/components/navigation/AppHeader'
-import { AppSidebar } from '@/components/navigation/AppSidebar'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { buildNavItems } from '@/lib/navigation'
+import { AppHeader } from '@/components/navigation/AppHeader'
 
 type ClientLayoutProps = {
   children: ReactNode
   envLabel?: string
 }
 
+// Memoized header to prevent re-renders
+const MemoizedHeader = memo(function MemoizedHeader({ 
+  user, 
+  navItems, 
+  envLabel 
+}: { 
+  user: any
+  navItems: any[]
+  envLabel?: string 
+}) {
+  return <AppHeader user={user} navItems={navItems} envLabel={envLabel} />
+})
+
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // Auth pages should manage their own layout completely
+  // Auth pages render without any layout chrome
   const isAuthPage = pathname?.startsWith('/login')
-
-  // If we're on an auth page, just render children without any layout wrapper
   if (isAuthPage) {
-    return (
-      <ErrorBoundary>
-        {children}
-      </ErrorBoundary>
-    )
+    return <ErrorBoundary>{children}</ErrorBoundary>
   }
 
-  // If we have a session, show full layout regardless of loading state
-  // This prevents the flash of unauthenticated layout
-  if (session?.user) {
-    const navItems = buildNavItems(session.user.role)
-
+  // Show minimal loading state - don't block rendering
+  if (status === 'loading') {
     return (
-      <div className="relative h-screen flex">
-        <AppSidebar items={navItems} envLabel={envLabel} />
-        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-          <AppHeader user={session.user} />
-          <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
-            </div>
-          </main>
-        </div>
+      <div className="min-h-screen bg-background">
+        <div className="h-14 border-b border-border/40 bg-background/80 backdrop-blur-xl" />
+        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="h-4 w-96 bg-muted rounded" />
+          </div>
+        </main>
       </div>
     )
   }
 
-  // If we're still loading and don't have a session, show simple layout
-  if (status === 'loading') {
+  // Authenticated user - show full app layout
+  if (session?.user) {
+    const navItems = buildNavItems(session.user.role)
+
     return (
-      <ErrorBoundary>
-        <div className="flex flex-1 flex-col">{children}</div>
-      </ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <MemoizedHeader user={session.user} navItems={navItems} envLabel={envLabel} />
+        <main className="mx-auto w-full max-w-7xl px-4 pb-10 pt-6 sm:px-6 lg:px-10">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
+      </div>
     )
   }
 
-  // User is not authenticated - show simple layout for non-auth pages
+  // Not authenticated - middleware will redirect
   return (
-    <ErrorBoundary>
-      <div className="flex flex-1 flex-col">{children}</div>
-    </ErrorBoundary>
+    <div className="min-h-screen bg-background">
+      <ErrorBoundary>{children}</ErrorBoundary>
+    </div>
   )
 }

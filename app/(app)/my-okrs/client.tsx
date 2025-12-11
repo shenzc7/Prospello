@@ -1,7 +1,9 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import { CheckCircle2, Clock, Target, TrendingUp, Calendar, Plus } from 'lucide-react'
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { Bell, Flag, Plus, Target, TrendingUp } from 'lucide-react'
 
 import { QuickCheckInRow } from '@/components/check-ins/QuickCheckInRow'
 import { HistoryPanel } from '@/components/check-ins/HistoryPanel'
@@ -9,23 +11,55 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { strings } from '@/config/strings'
 import { useObjectives } from '@/hooks/useObjectives'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
-import { cn } from '@/lib/ui'
+import { calculateKRProgress } from '@/lib/utils'
 
-function MyOkrsContent() {
-  const { data, isLoading, isError, error } = useObjectives({})
-  const [activeTab, setActiveTab] = useState('checkins')
+function fmtPercent(value?: number) {
+  if (value == null || Number.isNaN(value)) return '0%'
+  return `${Math.round(value)}%`
+}
 
-  if (isLoading)
+export function MyOkrsClient() {
+  const { data: session, status } = useSession()
+  const [cycle, setCycle] = useState('')
+  const ownerId = session?.user?.id
+
+  const query = useObjectives(
+    { ownerId: ownerId ?? undefined, cycle: cycle || undefined, limit: 100 },
+    { enabled: status !== 'loading' && Boolean(ownerId) }
+  )
+
+  const isLoading = status === 'loading' || query.isLoading
+  const isError = query.isError
+  const objectives = useMemo(() => query.data?.objectives ?? [], [query.data?.objectives])
+  const myObjectives = useMemo(
+    () => objectives.filter((objective) => !ownerId || objective.owner?.id === ownerId),
+    [objectives, ownerId]
+  )
+  const cycles = useMemo(() => Array.from(new Set(myObjectives.map((objective) => objective.cycle))).sort(), [myObjectives])
+  const filteredObjectives = useMemo(
+    () => (cycle ? myObjectives.filter((objective) => objective.cycle === cycle) : myObjectives),
+    [myObjectives, cycle]
+  )
+
+  const averageProgress = filteredObjectives.length
+    ? filteredObjectives.reduce((sum, objective) => sum + objective.progress, 0) / filteredObjectives.length
+    : 0
+
+  const pendingKeyResults = filteredObjectives.flatMap((objective) =>
+    objective.keyResults.filter((kr) => (kr.progress ?? calculateKRProgress(kr.current, kr.target)) < 100)
+  )
+  const atRiskObjectives = filteredObjectives.filter((objective) => objective.status === 'AT_RISK')
+
+  if (isLoading) {
     return (
-      <div className="space-y-6" aria-live="polite">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <div className="h-8 w-48 rounded-full bg-muted/50 mb-2" />
+            <div className="mb-2 h-8 w-48 rounded-full bg-muted/50" />
             <div className="h-4 w-64 rounded-full bg-muted/50" />
           </div>
         </div>
@@ -33,261 +67,176 @@ function MyOkrsContent() {
         <SkeletonRow lines={4} />
       </div>
     )
+  }
 
-  if (isError) return <div className="text-destructive">{error?.message || strings.errors.objectivesLoad}</div>
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+        {query.error?.message ?? strings.errors.myOkrsLoad}
+      </div>
+    )
+  }
 
-  const objectives = data?.objectives ?? []
-  const totalObjectives = objectives.length
-  const completedObjectives = objectives.filter(obj => obj.status === 'DONE').length
-  const avgProgress = objectives.length > 0
-    ? objectives.reduce((sum, obj) => sum + obj.progress, 0) / objectives.length
-    : 0
-
-  const pendingCheckIns = objectives.flatMap(obj =>
-    obj.keyResults.filter(kr => {
-      // Mock logic - in real app, check if check-in is needed this week
-      return kr.progress < 100
-    })
-  )
+  const showEmptyState = filteredObjectives.length === 0
 
   return (
     <div className="space-y-8" data-testid="my-okrs-page">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/80 bg-card/80 px-5 py-4 shadow-soft">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My OKRs</h1>
-          <p className="text-muted-foreground">
-            Track your progress and update weekly check-ins
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">My OKRs</h1>
+          <p className="text-sm text-muted-foreground">
+            Track your objectives, update weekly check-ins, and keep your commitments on track.
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          New Objective
-        </Button>
-      </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild size="sm" variant="outline" className="rounded-full">
+            <Link href="/objectives/new?goalType=TEAM">
+              <Flag className="mr-2 h-4 w-4" />
+              New Team Objective
+            </Link>
+          </Button>
+          <Button asChild size="sm" className="rounded-full">
+            <Link href="/objectives/new?goalType=INDIVIDUAL">
+              <Plus className="mr-2 h-4 w-4" />
+              New Objective
+            </Link>
+          </Button>
+        </div>
+      </header>
 
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Objectives</CardTitle>
+            <CardTitle className="text-sm font-medium">Overall progress</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalObjectives}</div>
-            <p className="text-xs text-muted-foreground">
-              {completedObjectives} completed
-            </p>
+            <div className="text-2xl font-bold">{fmtPercent(averageProgress)}</div>
+            <Progress value={averageProgress} className="mt-2" />
+            <p className="mt-2 text-xs text-muted-foreground">Weighted average across your objectives</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Progress</CardTitle>
+            <CardTitle className="text-sm font-medium">Check-ins due</CardTitle>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingKeyResults.length}</div>
+            <p className="text-xs text-muted-foreground">Key results that still need updates</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">At risk</CardTitle>
+            <Flag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{atRiskObjectives.length}</div>
+            <p className="text-xs text-muted-foreground">Objectives marked at risk</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cycle</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(avgProgress)}%</div>
-            <Progress value={avgProgress} className="mt-2" />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Check-ins</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingCheckIns.length}</div>
+          <CardContent className="space-y-2">
+            <select
+              aria-label="Filter by cycle"
+              value={cycle}
+              onChange={(event) => setCycle(event.target.value)}
+              className="w-full rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+            >
+              <option value="">{strings.selects.currentCycle}</option>
+              {cycles.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
             <p className="text-xs text-muted-foreground">
-              This week&apos;s updates
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedObjectives}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalObjectives > 0 ? Math.round((completedObjectives / totalObjectives) * 100) : 0}% of total
+              Filter your personal objectives by goal cycle.
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="checkins" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Weekly Check-ins
-            {pendingCheckIns.length > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                {pendingCheckIns.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="objectives" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            My Objectives
-          </TabsTrigger>
-          <TabsTrigger value="progress" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Progress History
-          </TabsTrigger>
-        </TabsList>
+      {showEmptyState ? (
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle>No OKRs yet</CardTitle>
+            <CardDescription>
+              Create an objective to start tracking your progress. Align it to your team or company goal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <Button asChild className="rounded-full">
+              <Link href="/objectives/new?goalType=INDIVIDUAL">Create personal objective</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/objectives/new?goalType=TEAM">Create team objective</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
-        <TabsContent value="checkins" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Weekly Check-ins</h2>
-            {pendingCheckIns.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">All caught up!</h3>
-                  <p className="text-muted-foreground text-center">
-                    You&apos;ve completed all your check-ins for this week.
-                    Great job staying on top of your goals!
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                {objectives.map((obj) => (
-                  <Card key={obj.id}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{obj.title}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <Calendar className="h-4 w-4" />
-                            {obj.cycle}
-                            <ObjectiveStatusBadge status={obj.status} />
-                          </CardDescription>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">{obj.progress}%</div>
-                          <Progress value={obj.progress} className="w-24 mt-1" />
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {obj.keyResults.map((kr) => (
-                        <div key={kr.id} className="border rounded-lg p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium">{kr.title}</h4>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span>{Math.round(kr.progress)}% of {kr.target}{kr.unit && ` ${kr.unit}`}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {Math.round((kr.current / kr.target) * 100)}%
-                              </Badge>
-                            </div>
-                          </div>
-                          <QuickCheckInRow
-                            keyResultId={kr.id}
-                            current={kr.current}
-                            unit={kr.unit}
-                          />
-                          <HistoryPanel keyResultId={kr.id} />
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="objectives" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">My Objectives</h2>
-            <div className="grid gap-4">
-              {objectives.map((obj) => (
-                <Card key={obj.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{obj.title}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          <Calendar className="h-4 w-4" />
-                          {obj.cycle}
-                          {obj.team && <Badge variant="secondary">{obj.team.name}</Badge>}
-                        </CardDescription>
-                      </div>
-                      <ObjectiveStatusBadge status={obj.status} />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-medium">Overall Progress</span>
-                          <span className="text-muted-foreground">{obj.progress}%</span>
-                        </div>
-                        <Progress value={obj.progress} />
-                      </div>
-                      <div className="grid gap-3">
-                        <h5 className="font-medium text-sm">Key Results</h5>
-                        {obj.keyResults.map((kr) => (
-                          <div key={kr.id} className="flex items-center justify-between text-sm">
-                            <span className="truncate flex-1 mr-4">{kr.title}</span>
-                            <div className="flex items-center gap-2">
-                              <Progress value={kr.progress} className="w-16 h-1" />
-                              <span className="text-muted-foreground min-w-[3rem] text-right">
-                                {Math.round(kr.progress)}%
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="progress" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Progress History</h2>
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center text-muted-foreground">
-                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium mb-2">Progress tracking coming soon</h3>
-                  <p>Historical progress charts and trends will be available here.</p>
+      <div className="space-y-4">
+        {filteredObjectives.map((objective) => {
+          const progress = Math.round(objective.progress ?? 0)
+          return (
+            <Card key={objective.id} className="border border-border/70 shadow-soft">
+              <CardHeader className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{objective.title}</CardTitle>
+                    <CardDescription className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{objective.cycle}</Badge>
+                      {objective.team ? <Badge variant="secondary">{objective.team.name}</Badge> : null}
+                      {objective.parent ? (
+                        <span className="text-xs text-muted-foreground">Aligned to {objective.parent.title}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Top-level objective</span>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <ObjectiveStatusBadge status={objective.status} />
                 </div>
+                <div className="flex items-center gap-3">
+                  <Progress value={progress} className="h-2 flex-1" />
+                  <span className="text-sm font-semibold text-foreground">{progress}%</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {objective.keyResults.map((kr) => {
+                  const krProgress = Math.round(kr.progress ?? calculateKRProgress(kr.current, kr.target))
+                  return (
+                    <div key={kr.id} className="space-y-3 rounded-xl border border-border/60 bg-background/70 p-4 shadow-inner">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium text-foreground">{kr.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Target {kr.target} {kr.unit ?? ''} • Weight {kr.weight}%
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Progress value={krProgress} className="w-24" />
+                          <span className="text-sm text-muted-foreground">{krProgress}%</span>
+                        </div>
+                      </div>
+                      <QuickCheckInRow keyResultId={kr.id} current={kr.current} unit={kr.unit} />
+                      <HistoryPanel keyResultId={kr.id} />
+                    </div>
+                  )
+                })}
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          )
+        })}
+      </div>
     </div>
-  )
-}
-
-export function MyOkrsClient() {
-  return (
-    <Suspense
-      fallback={
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="h-8 w-48 rounded-full bg-muted/50 mb-2" />
-              <div className="h-4 w-64 rounded-full bg-muted/50" />
-            </div>
-          </div>
-          <SkeletonRow lines={4} />
-        </div>
-      }
-    >
-      <MyOkrsContent />
-    </Suspense>
   )
 }

@@ -9,8 +9,12 @@ export interface KeyboardShortcut {
   action: () => void
 }
 
-export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
+export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = true) {
   useEffect(() => {
+    if (!enabled) {
+      return
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const matchingShortcut = shortcuts.find(shortcut => {
         const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase()
@@ -29,7 +33,7 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [shortcuts])
+  }, [shortcuts, enabled])
 }
 
 // Predefined shortcuts for the OKR application

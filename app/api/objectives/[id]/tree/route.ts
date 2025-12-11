@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { calculateKRProgress, calculateObjectiveProgress } from '@/lib/utils'
+import { Role } from '@prisma/client'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Check permissions - users can only view tree for their own objectives unless they're managers/admins
-    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 

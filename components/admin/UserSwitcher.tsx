@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRouter } from 'next/navigation'
+import { isFeatureEnabled } from '@/config/features'
 
 // Demo users for testing (matches seed data)
 const demoUsers = [
@@ -63,6 +64,10 @@ function getRoleBadgeColor(role: string) {
 }
 
 export function UserSwitcher() {
+  if (!isFeatureEnabled('userSwitcher')) {
+    return null
+  }
+
   const { data: session, status } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)

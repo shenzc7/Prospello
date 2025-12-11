@@ -11,10 +11,8 @@ import { Input } from '@/components/ui/input'
 import { FiltersBar } from '@/components/layout/FiltersBar'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { strings } from '@/config/strings'
-import { useObjectives } from '@/hooks/useObjectives'
-import { fmtPercent, fmtMetric } from '@/lib/ui'
-
-const INR_REGEX = /₹|inr|rupee/i
+import { useObjectives, type Objective } from '@/hooks/useObjectives'
+import { fmtMetric } from '@/lib/ui'
 
 export function OkrBoard() {
   const [search, setSearch] = useState('')
@@ -26,7 +24,7 @@ export function OkrBoard() {
     limit: 100,
   })
 
-  const objectives = query.data?.objectives ?? []
+  const objectives = useMemo(() => query.data?.objectives ?? [], [query.data?.objectives])
 
   const cycles = useMemo(() => {
     const set = new Set<string>()
@@ -146,7 +144,7 @@ export function OkrBoard() {
 
 
 
-function Card({ objective }: { objective: any }) {
+function Card({ objective }: { objective: Objective }) {
   return (
     <div className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:border-border/80 transition-all duration-200 cursor-pointer group hover:scale-[1.02]"
     >
@@ -171,7 +169,7 @@ function Card({ objective }: { objective: any }) {
 
       {objective.keyResults.length > 0 && (
         <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
-          {objective.keyResults.slice(0, 2).map((kr: any) => (
+          {objective.keyResults.slice(0, 2).map((kr) => (
             <div key={kr.id} className="bg-muted/30 rounded-lg p-2 sm:p-3 border border-border/30">
               <p className="text-xs font-medium text-foreground truncate mb-2" title={kr.title}>
                 {kr.title}
@@ -230,4 +228,3 @@ function getStatusColor(status: string) {
     default: return 'okr-status-not-started'
   }
 }
-

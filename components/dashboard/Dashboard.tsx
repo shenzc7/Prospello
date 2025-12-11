@@ -2,9 +2,9 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { format, addDays, isWithinInterval, startOfWeek, endOfWeek, startOfQuarter, endOfQuarter } from 'date-fns'
+import { format, startOfWeek, endOfWeek, startOfQuarter, endOfQuarter } from 'date-fns'
 import { useSession } from 'next-auth/react'
-import { Circle, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Clock, Target } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,17 +13,29 @@ import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
-import { ProgressChip } from '@/components/objectives/progress-chip'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { useObjectives } from '@/hooks/useObjectives'
-import { ObjectiveStatusValue } from '@/hooks/useObjectives'
+import { useObjectives, type Objective } from '@/hooks/useObjectives'
 import { UpcomingDeadlinesWidget } from '@/components/productivity/UpcomingDeadlinesWidget'
 import { AtRiskObjectivesWidget } from '@/components/productivity/AtRiskObjectivesWidget'
 import { TeamProgressWidget } from '@/components/productivity/TeamProgressWidget'
+import { NotificationsFeed } from '@/components/productivity/NotificationsFeed'
 import { HeatMap } from '@/components/analytics/HeatMap'
+import { TimelineView } from '@/components/analytics/TimelineView'
 import { cn } from '@/lib/ui'
 import { UserRole } from '@/lib/rbac'
-import { calculateTrafficLightStatus } from '@/lib/utils'
+import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
+import { useCheckInSummary } from '@/hooks/useCheckInSummary'
+import type { HeroSummary, AlignmentNode } from '@/lib/checkin-summary'
+import { AlignmentTree } from '@/components/analytics/AlignmentTree'
+import { isFeatureEnabled } from '@/config/features'
+
+type DashboardMetrics = {
+  totalObjectives: number
+  completedObjectives: number
+  atRiskObjectives: number
+  avgProgress: number
+  completionRate: number
+}
 
 interface MetricCardProps {
   title: string
@@ -66,10 +78,9 @@ interface QuickActionProps {
   description: string
   href: string
   icon?: React.ReactNode
-  variant?: 'default' | 'outline' | 'secondary'
 }
 
-function QuickAction({ title, description, href, icon, variant = 'outline' }: QuickActionProps) {
+function QuickAction({ title, description, href, icon }: QuickActionProps) {
   return (
     <Card className="shadow-card hover:shadow-card-hover transition-all duration-200 hover:scale-[1.02] hover:bg-muted/30">
       <CardContent className="p-4">
@@ -164,57 +175,7 @@ function RecentActivity({ userRole }: { userRole?: UserRole }) {
   )
 }
 
-function UpcomingDeadlines() {
-  const today = new Date()
-  const nextWeek = addDays(today, 7)
-
-  const deadlines = [
-    {
-      id: '1',
-      objective: 'Improve API Performance by 50%',
-      dueDate: addDays(today, 3),
-      status: 'AT_RISK' as ObjectiveStatusValue,
-      progress: 42
-    },
-    {
-      id: '2',
-      objective: 'Increase User Adoption by 40%',
-      dueDate: addDays(today, 14),
-      status: 'IN_PROGRESS' as ObjectiveStatusValue,
-      progress: 48
-    }
-  ]
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upcoming Deadlines</CardTitle>
-        <CardDescription>Objectives due in the next 2 weeks</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {deadlines.map((deadline) => (
-          <div key={deadline.id} className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{deadline.objective}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <ObjectiveStatusBadge status={deadline.status} />
-                <span className="text-xs text-muted-foreground">
-                  Due {format(deadline.dueDate, 'MMM d')}
-                </span>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm font-medium">{deadline.progress}%</div>
-              <Progress value={deadline.progress} className="w-16 h-1 mt-1" />
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  )
-}
-
-function TopObjectivesWidget({ objectives }: { objectives: any[] }) {
+function TopObjectivesWidget({ objectives }: { objectives: Objective[] }) {
   const topObjectives = objectives.slice(0, 5) // Show top 5 objectives
 
   const getStatusBadge = (status: string) => {
@@ -261,12 +222,80 @@ function TopObjectivesWidget({ objectives }: { objectives: any[] }) {
   )
 }
 
+function ObjectiveProgressList({ objectives }: { objectives: Objective[] }) {
+  if (!objectives.length) return null
 
-function HeroSection({ metrics }: { metrics: any }) {
+  const prioritizedObjectives = [...objectives]
+    .sort((a, b) => b.progress - a.progress)
+    .slice(0, 6)
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Live Progress</CardTitle>
+        <CardDescription>Real-time OKR progress from latest check-ins</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {prioritizedObjectives.map((objective) => {
+          const traffic = calculateTrafficLightStatus(objective.progress)
+          const trafficClasses = getTrafficLightClasses(traffic)
+          const score = typeof objective.score === 'number'
+            ? objective.score
+            : (objective.progress ?? 0) / 100
+
+          return (
+            <div key={objective.id} className="space-y-2 rounded-lg border border-border/60 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <p className="text-sm font-semibold leading-tight truncate">{objective.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <ObjectiveStatusBadge status={objective.status} />
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium border",
+                        trafficClasses.bg,
+                        trafficClasses.border,
+                        trafficClasses.text
+                      )}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-current" />
+                      {traffic.toUpperCase()}
+                    </span>
+                    <span>Score {score.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-semibold">{objective.progress}%</div>
+                  <Progress value={objective.progress} className="w-20 h-1.5 mt-1" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {objective.keyResults.slice(0, 2).map((kr) => (
+                  <div key={kr.id} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="truncate">{kr.title}</span>
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <Progress value={kr.progress} className="w-24 h-1" />
+                      <span className="text-[11px] font-medium">{Math.round(kr.progress)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </CardContent>
+    </Card>
+  )
+}
+
+
+function HeroSection({ metrics, hero }: { metrics: DashboardMetrics | null; hero?: HeroSummary }) {
   const quarterStart = startOfQuarter(new Date())
   const quarterEnd = endOfQuarter(new Date())
   const now = new Date()
   const quarterProgress = ((now.getTime() - quarterStart.getTime()) / (quarterEnd.getTime() - quarterStart.getTime())) * 100
+  const progressValue = hero?.avgProgress ?? metrics?.avgProgress ?? 0
 
   const getTrafficLightStatus = (progress: number) => {
     const status = calculateTrafficLightStatus(progress)
@@ -282,7 +311,7 @@ function HeroSection({ metrics }: { metrics: any }) {
     }
   }
 
-  const status = getTrafficLightStatus(metrics?.avgProgress || 0)
+  const status = getTrafficLightStatus(progressValue || 0)
   const StatusIcon = status.icon
 
   return (
@@ -310,12 +339,12 @@ function HeroSection({ metrics }: { metrics: any }) {
                   strokeWidth="8"
                   fill="none"
                   strokeDasharray={`${2 * Math.PI * 40}`}
-                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - (metrics?.avgProgress || 0) / 100)}`}
+                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - (progressValue || 0) / 100)}`}
                   className="text-primary transition-all duration-1000"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl font-bold">{Math.round(metrics?.avgProgress || 0)}%</span>
+                <span className="text-2xl font-bold">{Math.round(progressValue || 0)}%</span>
               </div>
             </div>
 
@@ -327,7 +356,7 @@ function HeroSection({ metrics }: { metrics: any }) {
                 <span className={`font-medium ${status.color}`}>{status.label}</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {metrics?.totalObjectives || 0} active objectives
+                {(hero?.objectiveCount ?? metrics?.totalObjectives) || 0} active objectives
               </p>
             </div>
           </div>
@@ -356,40 +385,60 @@ function HeroSection({ metrics }: { metrics: any }) {
   )
 }
 
-function PersonalOKRsWidget({ userId, userRole }: { userId?: string; userRole?: UserRole }) {
-  // Only show for employees
-  if (userRole !== 'EMPLOYEE') return null
+function PersonalOKRsWidget({
+  objectives,
+  userEmail,
+  userRole,
+}: {
+  objectives: Objective[]
+  userEmail?: string | null
+  userRole?: UserRole
+}) {
+  const personalObjectives = objectives.filter((objective) =>
+    userEmail ? (objective.owner.email === userEmail || objective.owner.name === userEmail) : false
+  ).slice(0, 3)
 
-  const personalObjectives = [
-    { id: '1', title: 'Improve Code Quality', progress: 75, status: 'IN_PROGRESS' },
-    { id: '2', title: 'Learn TypeScript Advanced Features', progress: 60, status: 'IN_PROGRESS' },
-  ]
+  const showWidget = personalObjectives.length > 0 || userRole === 'EMPLOYEE'
+  const dueCount = personalObjectives.filter((objective) => objective.progress < 100).length
+
+  if (!showWidget) return null
 
   return (
-    <Card>
+    <Card className="card-spotlight border-primary/20 shadow-card">
       <CardHeader>
-        <CardTitle>My OKRs</CardTitle>
-        <CardDescription>Your personal objectives and progress</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">Me</span>
+          My OKRs
+        </CardTitle>
+        <CardDescription>Quick access to your objectives and weekly updates</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {personalObjectives.map((objective) => (
-          <div key={objective.id} className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{objective.title}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-muted-foreground">{objective.progress}%</span>
-                <Progress value={objective.progress} className="flex-1 h-1" />
-              </div>
-            </div>
-            <Button size="sm" variant="outline" className="ml-2">
-              Update
+        {personalObjectives.length === 0 ? (
+          <div className="flex items-center justify-between rounded-xl border border-dashed border-border/70 bg-muted/40 px-3 py-3 text-sm">
+            <p className="text-muted-foreground">No personal objectives yet.</p>
+            <Button asChild size="sm">
+              <Link href="/okrs/new">Create One</Link>
             </Button>
           </div>
-        ))}
-        <div className="pt-2 border-t">
-          <p className="text-xs text-muted-foreground">
-            💡 Weekly check-in due tomorrow
-          </p>
+        ) : (
+          personalObjectives.map((objective) => (
+            <div key={objective.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/70 p-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{objective.title}</p>
+                <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Progress value={objective.progress} className="h-1.5 flex-1" />
+                  <span className="min-w-[3rem] text-right font-medium text-foreground">{Math.round(objective.progress)}%</span>
+                </div>
+              </div>
+              <Button asChild variant="secondary" size="sm">
+                <Link href={`/okrs/${objective.id}`}>Open</Link>
+              </Button>
+            </div>
+          ))
+        )}
+        <div className="flex items-center justify-between rounded-lg border border-border/60 bg-primary/5 px-3 py-2 text-xs text-primary">
+          <span>Weekly check-in reminder</span>
+          <span className="font-semibold">{dueCount} due</span>
         </div>
       </CardContent>
     </Card>
@@ -403,17 +452,98 @@ function ThisWeekCheckIns() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>This Week&apos;s Check-ins</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-4 w-4" />
+          Weekly Check-ins
+        </CardTitle>
         <CardDescription>
           {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="text-center py-6">
-          <p className="text-sm text-muted-foreground">
-            Update your weekly progress
-          </p>
+      <CardContent className="space-y-3">
+        <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
+          Ensure each key result has an update before Friday.
         </div>
+        <Button asChild size="sm" variant="secondary" className="w-full">
+          <Link href="/checkins">Open Check-in Console</Link>
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alignment?: AlignmentNode[] }) {
+  const topObjectives = objectives.slice(0, 3)
+
+  const goalType = (objective: Objective) => {
+    if (!objective.parent && !objective.team) return 'Company'
+    if (objective.team && !objective.parent) return 'Department'
+    if (objective.team && objective.parent) return 'Team'
+    return 'Individual'
+  }
+
+  if (alignment && alignment.length > 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Alignment Map
+          </CardTitle>
+          <CardDescription>Company → team → individual goal cascade</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlignmentTree nodes={alignment} />
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!topObjectives.length) return null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-5 w-5" />
+          Alignment Map
+        </CardTitle>
+        <CardDescription>Company → team → individual goal cascade</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {topObjectives.map((objective) => {
+          const traffic = calculateTrafficLightStatus(objective.progress)
+          const trafficClasses = getTrafficLightClasses(traffic)
+          return (
+            <div key={objective.id} className="space-y-2 rounded-xl border border-border/70 bg-muted/40 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <p className="text-sm font-semibold leading-tight">{objective.title}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-[11px] uppercase tracking-wide">{goalType(objective)}</Badge>
+                    {objective.team ? <Badge variant="secondary">{objective.team.name}</Badge> : null}
+                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border', trafficClasses.bg, trafficClasses.border, trafficClasses.text)}>
+                      <span className="h-2 w-2 rounded-full bg-current" />
+                      {traffic.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-sm font-semibold">{Math.round(objective.progress)}%</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Owner:</span> {objective.owner.name ?? objective.owner.email}
+                {objective.children?.length ? (
+                  <>
+                    <span className="h-px w-5 bg-border" />
+                    <span>{objective.children.length} aligned</span>
+                  </>
+                ) : null}
+              </div>
+            </div>
+          )
+        })}
       </CardContent>
     </Card>
   )
@@ -423,6 +553,9 @@ export function Dashboard() {
   const { data: session } = useSession()
   const user = session?.user
   const userRole = user?.role as UserRole
+  const { data: checkInSummary } = useCheckInSummary()
+  const showProductivityExtras = isFeatureEnabled('productivityWidgets')
+  const showNotificationFeed = isFeatureEnabled('notificationFeed')
 
   // Build query params based on user role
   const queryParams = useMemo(() => {
@@ -468,6 +601,47 @@ export function Dashboard() {
         return objectives.filter(obj => obj.owner.id === user.id)
     }
   }, [objectivesData?.objectives, user, userRole])
+
+  const computedTeamHeatmap = useMemo(() => {
+    const map = new Map<string, {
+      teamId: string
+      teamName: string
+      objectiveCount: number
+      memberEmails: Set<string>
+      totalProgress: number
+    }>()
+
+    filteredObjectives.forEach((objective) => {
+      const teamId = objective.team?.id || `unassigned-${objective.owner.id}`
+      const teamName = objective.team?.name || 'Unassigned'
+      if (!map.has(teamId)) {
+        map.set(teamId, {
+          teamId,
+          teamName,
+          objectiveCount: 0,
+          memberEmails: new Set(),
+          totalProgress: 0,
+        })
+      }
+      const node = map.get(teamId)!
+      node.objectiveCount += 1
+      node.totalProgress += objective.progress
+      node.memberEmails.add(objective.owner.email)
+    })
+
+    return Array.from(map.values()).map((team) => {
+      const progress = team.objectiveCount > 0 ? Math.round(team.totalProgress / team.objectiveCount) : 0
+      return {
+        teamId: team.teamId,
+        teamName: team.teamName,
+        progress,
+        status: calculateTrafficLightStatus(progress),
+        objectiveCount: team.objectiveCount,
+        memberCount: team.memberEmails.size || 1,
+      }
+    })
+  }, [filteredObjectives])
+  const teamHeatmapData = checkInSummary?.teamHeatmap ?? computedTeamHeatmap
 
   const metrics = useMemo(() => {
     if (!filteredObjectives.length) return null
@@ -518,7 +692,7 @@ export function Dashboard() {
     switch (userRole) {
       case 'ADMIN':
         return {
-          title: "Welcome to Prospello Admin Dashboard",
+          title: "Welcome to OKR Builder Admin Dashboard",
           description: "Monitor company-wide OKRs, manage teams, and track overall progress.",
           action: (
             <Button asChild>
@@ -548,7 +722,7 @@ export function Dashboard() {
         }
       default:
         return {
-          title: "Welcome to Prospello",
+          title: "Welcome to OKR Builder",
           description: "Get started by creating your first objective.",
           action: (
             <Button asChild>
@@ -604,7 +778,7 @@ export function Dashboard() {
 
     // Add create objective button for all roles (with limits for employees)
     const canCreateObjective = userRole === 'ADMIN' || userRole === 'MANAGER' ||
-                              (userRole === 'EMPLOYEE' && metrics.totalObjectives < 5) // Employee limit
+      (userRole === 'EMPLOYEE' && metrics.totalObjectives < 5) // Employee limit
 
     if (canCreateObjective) {
       baseActions.push(
@@ -640,12 +814,83 @@ export function Dashboard() {
   }
 
   const headerContent = getHeaderContent()
+  const quickActions = (() => {
+    const actions = []
+
+    const canCreateObjective = userRole === 'ADMIN' || userRole === 'MANAGER' ||
+      (userRole === 'EMPLOYEE' && metrics.totalObjectives < 5)
+
+    if (canCreateObjective) {
+      actions.push(
+        <QuickAction
+          key="create-objective"
+          title="Create Objective"
+          description="Start a new OKR cycle and align owners"
+          href="/okrs/new"
+        />
+      )
+    }
+
+    switch (userRole) {
+      case 'ADMIN':
+        actions.push(
+          <QuickAction
+            key="manage-users"
+            title="User Access"
+            description="Assign roles and manage teams"
+            href="/admin/users"
+          />,
+          <QuickAction
+            key="view-reports"
+            title="Reports & Exports"
+            description="PDF / Excel / alignment views"
+            href="/reports"
+          />
+        )
+        break
+      case 'MANAGER':
+        actions.push(
+          <QuickAction
+            key="team-okrs"
+            title="Team Dashboard"
+            description="Focus on team-level OKRs"
+            href="/my-okrs"
+          />,
+          <QuickAction
+            key="team-overview"
+            title="Alignment Overview"
+            description="See team performance & risks"
+            href="/teams"
+          />
+        )
+        break
+      case 'EMPLOYEE':
+        actions.push(
+          <QuickAction
+            key="my-okrs"
+            title="Update My OKRs"
+            description="Quickly log weekly check-ins"
+            href="/my-okrs"
+          />,
+          <QuickAction
+            key="check-ins"
+            title="Weekly Check-in"
+            description="Traffic light + comments"
+            href="/checkins"
+          />
+        )
+        break
+    }
+
+    return actions
+  })()
+
+  const showHeatMap = userRole === 'ADMIN' || userRole === 'MANAGER'
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
+    <div className="space-y-7 sm:space-y-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             {headerContent.title}
           </h1>
@@ -658,167 +903,92 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Hero Section - Only for Admin and Manager */}
-      {(userRole === 'ADMIN' || userRole === 'MANAGER') && metrics && (
-        <div className="mb-8">
-          <HeroSection metrics={metrics} />
-        </div>
-      )}
+      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <HeroSection metrics={metrics} hero={checkInSummary?.hero} />
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Action Feed</CardTitle>
+            <CardDescription>Notifications, reminders, and quick steps</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-sm text-primary">
+              Within 30 seconds know where to act: green = on track, yellow = at risk, red = off track.
+            </div>
+            {quickActions.length ? (
+              <div className="space-y-3">
+                {quickActions.map((action, index) => (
+                  <div key={`quick-${index}`}>{action}</div>
+                ))}
+              </div>
+            ) : null}
+            <Button asChild size="sm" variant="secondary" className="w-full">
+              <Link href="/reports">Open reports & exports</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Metrics Grid */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Total Objectives"
           value={metrics.totalObjectives}
-          description="Active OKRs in your organization"
+          description="Active OKRs across the company"
         />
         <MetricCard
           title="Completion Rate"
           value={`${metrics.completionRate}%`}
-          description="Objectives marked as done"
+          description="Objectives scored as done"
           trend={{ value: 12, label: "from last month" }}
         />
         <MetricCard
           title="At Risk"
           value={metrics.atRiskObjectives}
-          description="Objectives needing attention"
+          description="Needs attention this week"
         />
         <MetricCard
           title="Average Progress"
           value={`${metrics.avgProgress}%`}
-          description="Across all objectives"
+          description="Weighted across all objectives"
           trend={{ value: 8, label: "from last week" }}
         />
       </div>
 
-      {/* Heat Map - PRD Requirement: Team Status Overview */}
-      {(userRole === 'ADMIN' || userRole === 'MANAGER') && (
-        <div className="mb-8">
-          <HeatMap type="teams" />
+      <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-6">
+          <ObjectiveProgressList objectives={filteredObjectives} />
+          <TimelineView objectives={filteredObjectives} isLoading={isLoading} />
+          {showHeatMap && <HeatMap type="teams" data={teamHeatmapData} />}
+        </div>
+
+        <div className="space-y-6">
+          {filteredObjectives.length > 0 && (
+            <TopObjectivesWidget objectives={filteredObjectives} />
+          )}
+          <PersonalOKRsWidget
+            objectives={filteredObjectives}
+            userEmail={user?.email}
+            userRole={userRole}
+          />
+          {userRole !== 'ADMIN' && <ThisWeekCheckIns />}
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        {showProductivityExtras && <TeamProgressWidget userRole={userRole} userId={user?.id} />}
+        {showNotificationFeed && <NotificationsFeed userRole={userRole} userId={user?.id} />}
+        <AlignmentMap objectives={filteredObjectives} alignment={checkInSummary?.alignment} />
+      </div>
+
+      {showProductivityExtras && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <UpcomingDeadlinesWidget userRole={userRole} userId={user?.id} />
+          <AtRiskObjectivesWidget userRole={userRole} userId={user?.id} />
         </div>
       )}
 
-      {/* Main Content Grid - Role-based */}
-      {(() => {
-        const getQuickActions = () => {
-          const actions = []
-
-          // Create objective action (with limits)
-          const canCreateObjective = userRole === 'ADMIN' || userRole === 'MANAGER' ||
-                                    (userRole === 'EMPLOYEE' && metrics.totalObjectives < 5)
-
-          if (canCreateObjective) {
-            actions.push(
-              <QuickAction
-                key="create-objective"
-                title="Create New Objective"
-                description="Start a new OKR cycle"
-                href="/okrs/new"
-              />
-            )
-          }
-
-          // Role-specific actions
-          switch (userRole) {
-            case 'ADMIN':
-              actions.push(
-                <QuickAction
-                  key="manage-users"
-                  title="Manage Users"
-                  description="Add/remove users and teams"
-                  href="/admin/users"
-                />,
-                <QuickAction
-                  key="view-reports"
-                  title="View Reports"
-                  description="Company analytics and insights"
-                  href="/reports"
-                />
-              )
-              break
-            case 'MANAGER':
-              actions.push(
-                <QuickAction
-                  key="team-okrs"
-                  title="Team OKRs"
-                  description="Manage team objectives"
-                  href="/my-okrs"
-                />,
-                <QuickAction
-                  key="team-overview"
-                  title="Team Overview"
-                  description="See team performance"
-                  href="/objectives"
-                />
-              )
-              break
-            case 'EMPLOYEE':
-              actions.push(
-                <QuickAction
-                  key="my-okrs"
-                  title="My OKRs"
-                  description="View and update my objectives"
-                  href="/my-okrs"
-                />,
-                <QuickAction
-                  key="check-ins"
-                  title="My Check-ins"
-                  description="Update weekly progress"
-                  href="/checkins"
-                />
-              )
-              break
-          }
-
-          return actions
-        }
-
-        const quickActions = getQuickActions()
-
-        return (
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-4">
-            {/* Left Column - Quick Actions & Check-ins */}
-            <div className="space-y-6 xl:col-span-1">
-              {quickActions.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-                  <div className="space-y-3">
-                    {quickActions}
-                  </div>
-                </div>
-              )}
-
-              {/* Show personal OKRs for employees */}
-              <PersonalOKRsWidget userId={user?.id} userRole={userRole} />
-
-              {/* Only show check-ins for non-admin users */}
-              {userRole !== 'ADMIN' && <ThisWeekCheckIns />}
-            </div>
-
-            {/* Center Column - Productivity Widgets - Role-based */}
-            <div className="space-y-6 xl:col-span-2">
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
-                <UpcomingDeadlinesWidget userRole={userRole} userId={user?.id} />
-                <AtRiskObjectivesWidget userRole={userRole} userId={user?.id} />
-              </div>
-
-              {/* Top Objectives - Show for all roles */}
-              {filteredObjectives.length > 0 && (
-                <TopObjectivesWidget objectives={filteredObjectives} />
-              )}
-
-              {/* Only show recent activity for managers and admins */}
-              <RecentActivity userRole={userRole} />
-            </div>
-
-            {/* Right Column - Team Progress - Only for managers and admins */}
-            <div className="space-y-6 xl:col-span-1">
-              <TeamProgressWidget userRole={userRole} userId={user?.id} />
-            </div>
-          </div>
-        )
-      })()}
+      {showProductivityExtras && (userRole === 'ADMIN' || userRole === 'MANAGER') && (
+        <RecentActivity userRole={userRole} />
+      )}
     </div>
   )
 }
-

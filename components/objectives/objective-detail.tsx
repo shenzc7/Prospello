@@ -28,6 +28,10 @@ export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
           <p className="text-sm text-muted-foreground">
             Owner: {objective.owner.name ?? objective.owner.email}
           </p>
+          {objective.team ? (
+            <p className="text-xs text-muted-foreground">Team: {objective.team.name}</p>
+          ) : null}
+          <p className="text-xs text-muted-foreground">Goal type: {objective.goalType ?? 'INDIVIDUAL'}</p>
         </div>
         <div className="flex items-center gap-3">
           <ProgressChip value={objective.progress} />

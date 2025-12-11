@@ -6,7 +6,9 @@ import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { createCheckInRequestSchema, listCheckInsQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
-import { Role, CheckInStatus } from '@prisma/client'
+import { Role } from '@prisma/client'
+import { calculateKRProgress, calculateObjectiveProgress, calculateObjectiveScore } from '@/lib/utils'
+import { createNotification } from '@/lib/notifications'
 
 function startOfISOWeek(d: Date) {
   const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()))
@@ -37,9 +39,9 @@ export async function GET(request: NextRequest) {
     const { keyResultId, from, to, userId, limit, offset } = parsed.data
 
     // Authorize: only owner by default; managers/admins may view others
-    const kr = await prisma.keyResult.findUnique({
+  const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { objective: { select: { ownerId: true } } },
+      select: { title: true, objective: { select: { id: true, ownerId: true } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest) {
     // Authorize: only KR owner (objective owner) or manager/admin
     const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { objective: { select: { ownerId: true } } },
+      select: { objective: { select: { id: true, ownerId: true } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
@@ -110,7 +112,7 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(errors.forbidden())
     }
 
-    const checkIn = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const upserted = await tx.checkIn.upsert({
         where: {
           keyResultId_userId_weekStart: {
@@ -126,10 +128,62 @@ export async function POST(request: NextRequest) {
 
       // Update KR current to reflect latest value
       await tx.keyResult.update({ where: { id: keyResultId }, data: { current: value } })
-      return upserted
+
+      // Recalculate KR and Objective progress to keep dashboards in sync
+      const objective = await tx.objective.findUnique({
+        where: { id: kr.objective.id },
+        select: {
+          id: true,
+          ownerId: true,
+          keyResults: {
+            select: { id: true, weight: true, target: true, current: true },
+          },
+        },
+      })
+
+      if (!objective) {
+        return { checkIn: upserted, progress: null }
+      }
+
+      const keyResultsWithProgress = objective.keyResults.map((keyResult) => ({
+        ...keyResult,
+        progress: calculateKRProgress(keyResult.current, keyResult.target),
+      }))
+
+      // Persist the automated score on the objective (0.0 - 1.0 scale)
+      const objectiveProgress = calculateObjectiveProgress(
+        keyResultsWithProgress.map((kr) => ({ weight: kr.weight, progress: kr.progress })),
+      )
+      const score = calculateObjectiveScore(objectiveProgress)
+      await tx.objective.update({
+        where: { id: objective.id },
+        data: { score },
+      })
+
+      return {
+        checkIn: upserted,
+        progress: {
+          objectiveId: objective.id,
+          objectiveProgress,
+          objectiveScore: score,
+          keyResults: keyResultsWithProgress,
+        },
+        objectiveOwnerId: objective.ownerId,
+        krTitle: kr.title // kr is from outer scope, valid
+      }
     })
 
-    return createSuccessResponse({ checkIn }, 201)
+    // Trigger Notification
+    if (result.objectiveOwnerId && result.objectiveOwnerId !== session.user.id) {
+      await createNotification({
+        userId: result.objectiveOwnerId,
+        type: 'CHECKIN_DUE', // Or 'UPDATE'
+        message: `${session.user.name || 'Someone'} updated key result: ${result.krTitle}`,
+        metadata: { keyResultId, checkInId: result.checkIn.id }
+      })
+    }
+
+    return createSuccessResponse({ checkIn: result.checkIn, progress: result.progress }, 201)
   } catch (err) {
     console.error('POST /api/check-ins failed', err)
     return createErrorResponse(err)

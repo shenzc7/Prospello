@@ -9,7 +9,7 @@ export class PerformanceMonitor {
     this.startTime = performance.now()
   }
 
-  end(context?: Record<string, any>) {
+  end(context?: Record<string, unknown>) {
     const duration = performance.now() - this.startTime
     logger.info(`Performance: ${this.operation} completed`, {
       ...context,
@@ -27,7 +27,7 @@ export class PerformanceMonitor {
   }
 }
 
-export function withPerformanceMonitoring<T extends any[], R>(
+export function withPerformanceMonitoring<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
   operationName: string
 ) {

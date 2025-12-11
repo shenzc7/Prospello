@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { updateKeyResultRequestSchema } from '@/lib/schemas'
+import { Role } from '@prisma/client'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -30,7 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     // Check permissions - only objective owner can modify key results unless manager/admin
-    if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 
@@ -116,7 +116,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // Check permissions - only objective owner can delete key results unless manager/admin
-    if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 

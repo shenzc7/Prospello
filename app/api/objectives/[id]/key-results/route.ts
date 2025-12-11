@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
 import { createKeyResultRequestSchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
+import { Role } from '@prisma/client'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,7 +26,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Check permissions - only owner can modify key results unless manager/admin
-    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 

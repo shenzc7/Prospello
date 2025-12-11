@@ -3,9 +3,10 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, Settings, type LucideIcon } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useCallback, useTransition } from 'react'
 
 import { cn } from '@/lib/ui'
+import { isFeatureEnabled } from '@/config/features'
 
 export type AppNavItem = {
   href: string
@@ -32,11 +33,27 @@ type AppNavProps = {
 export function AppNav({ items, orientation = 'horizontal', className }: AppNavProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const enableShortcuts = isFeatureEnabled('keyboardShortcuts')
+
+  // Prefetch all nav routes on mount for instant navigation
+  useEffect(() => {
+    items.forEach(item => {
+      router.prefetch(item.href)
+    })
+  }, [items, router])
+
+  const handleNavigation = useCallback((href: string) => {
+    startTransition(() => {
+      router.push(href)
+    })
+  }, [router])
 
   // Keyboard shortcuts for navigation
   useEffect(() => {
+    if (!enableShortcuts) return
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle shortcuts when not typing in an input
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
         return
       }
@@ -44,43 +61,40 @@ export function AppNav({ items, orientation = 'horizontal', className }: AppNavP
       const key = event.key.toLowerCase()
       const isCtrl = event.ctrlKey || event.metaKey
 
-      // Number keys for navigation (1-9)
       if (!isCtrl && key >= '1' && key <= '9') {
         const index = parseInt(key) - 1
         if (items[index]) {
           event.preventDefault()
-          router.push(items[index].href)
+          handleNavigation(items[index].href)
         }
       }
 
-      // Ctrl+G for dashboard/home
       if (isCtrl && key === 'g') {
         event.preventDefault()
-        router.push('/')
+        handleNavigation('/')
       }
 
-      // Ctrl+N for new objective
       if (isCtrl && key === 'n') {
         event.preventDefault()
-        router.push('/okrs/new')
+        handleNavigation('/okrs/new')
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [items, router])
+  }, [enableShortcuts, items, handleNavigation])
 
-  if (!items.length) {
-    return null
-  }
-
-  const containerClasses =
-    orientation === 'vertical'
-      ? 'flex flex-col gap-1'
-      : 'flex items-center gap-1'
+  if (!items.length) return null
 
   return (
-    <nav aria-label="Primary navigation" className={cn(containerClasses, className)}>
+    <nav 
+      aria-label="Primary navigation" 
+      className={cn(
+        orientation === 'vertical' ? 'flex flex-col gap-1' : 'flex items-center gap-1',
+        isPending && 'opacity-70',
+        className
+      )}
+    >
       {items.map(({ href, label, icon: iconName, exact }, index) => {
         const Icon = iconMap[iconName]
         const isActive = exact ? pathname === href : pathname?.startsWith(href)
@@ -90,30 +104,31 @@ export function AppNav({ items, orientation = 'horizontal', className }: AppNavP
           <Link
             key={href}
             href={href}
+            prefetch={true}
+            onClick={(e) => {
+              e.preventDefault()
+              handleNavigation(href)
+            }}
             aria-current={isActive ? 'page' : undefined}
-            aria-label={`${label}${shortcut ? ` (keyboard shortcut: ${shortcut})` : ''}`}
             className={cn(
-              'group flex items-center gap-3 rounded-md text-sm font-normal text-muted-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:text-foreground hover:bg-muted/30',
-              orientation === 'vertical' ? 'px-3 py-2 min-h-[40px]' : 'px-2.5 py-2 min-h-[36px]',
-              isActive && 'bg-muted/50 text-foreground font-medium'
+              'group relative flex items-center gap-2 rounded-full border border-transparent text-sm font-medium transition-all duration-100',
+              'px-3 py-2 min-h-[40px]',
+              isActive
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
             )}
-            title={`${label}${shortcut ? ` (${shortcut})` : ''}`}
           >
             <span
               className={cn(
-                'flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground/70 transition-colors',
-                isActive && 'text-foreground'
+                'flex h-7 w-7 items-center justify-center rounded-full transition-colors',
+                isActive ? 'bg-primary/15 text-primary' : 'bg-muted/80 text-muted-foreground/80'
               )}
-              aria-hidden="true"
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-4 w-4" />
             </span>
             <span className="flex-1">{label}</span>
             {shortcut && (
-              <span
-                className="ml-auto text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label={`Keyboard shortcut: ${shortcut}`}
-              >
+              <span className="ml-auto text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity">
                 {shortcut}
               </span>
             )}

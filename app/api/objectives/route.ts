@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
-import { calcProgress, calcProgressFromProgress, getTrafficLightStatus } from '@/lib/okr'
+import { calcProgressFromProgress } from '@/lib/okr'
 import { getFiscalQuarter } from '@/lib/india'
-import { calculateKRProgress } from '@/lib/utils'
+import { calculateKRProgress, calculateObjectiveScore } from '@/lib/utils'
 import { createObjectiveRequestSchema, listObjectivesQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { monitorDatabaseQuery } from '@/lib/performance'
@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
       search: searchParams.get('search') || undefined,
       cycle: searchParams.get('cycle') || undefined,
       ownerId: searchParams.get('ownerId') || undefined,
+      teamId: searchParams.get('teamId') || undefined,
+      fiscalQuarter: searchParams.get('fiscalQuarter') || undefined,
+      status: searchParams.get('status') || undefined,
       limit: searchParams.get('limit') ?? undefined,
       offset: searchParams.get('offset') ?? undefined,
     })
@@ -83,11 +86,13 @@ export async function GET(request: NextRequest) {
           endAt: true,
           status: true,
           fiscalQuarter: true,
+          score: true,
           createdAt: true,
           updatedAt: true,
           ownerId: true,
           teamId: true,
           parentId: true,
+          goalType: true,
           owner: {
             select: { id: true, name: true, email: true },
           },
@@ -136,6 +141,7 @@ export async function GET(request: NextRequest) {
       endAt: Date
       status: ObjectiveStatus
       fiscalQuarter: number
+      score: number | null
       createdAt: Date
       updatedAt: Date
       ownerId: string
@@ -158,12 +164,14 @@ export async function GET(request: NextRequest) {
         ...kr,
         progress: calculateKRProgress(kr.current, kr.target),
       }))
+      const progress = calcProgressFromProgress(
+        keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
+      )
       return {
         ...objective,
         keyResults: keyResultsWithProgress,
-        progress: calcProgressFromProgress(
-          keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
-        ),
+        progress,
+        score: typeof objective.score === 'number' ? objective.score : calculateObjectiveScore(progress),
       }
     })
 
@@ -205,7 +213,7 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(validation.error)
     }
 
-    const { title, description, cycle, startAt, endAt, parentObjectiveId, keyResults } = validation.data
+    const { title, description, cycle, goalType, startAt, endAt, parentObjectiveId, ownerId, teamId, keyResults } = validation.data
 
     // Role-based limits and validation
     const userRole = session.user.role as Role
@@ -227,9 +235,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Additional validation for non-admin users
-    if (userRole === 'EMPLOYEE') {
-      // Employees can only create individual objectives (no team assignment)
-      // Additional restrictions can be added here
+    if (userRole === 'EMPLOYEE' && ownerId && ownerId !== session.user.id) {
+      return createErrorResponse(errors.forbidden('Employees cannot assign objectives to other users'))
     }
 
     // Validate parent objective exists and belongs to same cycle
@@ -258,6 +265,9 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(errors.validation('Cannot set objective as its own parent'))
     }
 
+    // Resolve owner and optional team assignment
+    const resolvedOwnerId = isManagerOrHigher(userRole as Role) && ownerId ? ownerId : session.user.id
+
     // Create objective with key results in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const startDate = new Date(startAt)
@@ -268,15 +278,20 @@ export async function POST(request: NextRequest) {
           title,
           description,
           cycle,
+          goalType: goalType as 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL',
           startAt: startDate,
           endAt: endDate,
-          ownerId: session.user.id,
+          ownerId: resolvedOwnerId,
+          teamId: teamId ?? null,
           parentId: parentObjectiveId || null,
           fiscalQuarter: getFiscalQuarter(startDate),
         },
         include: {
           owner: {
             select: { id: true, name: true, email: true },
+          },
+          team: {
+            select: { id: true, name: true },
           },
           parent: {
             select: { id: true, title: true },

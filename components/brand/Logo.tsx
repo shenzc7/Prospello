@@ -20,7 +20,7 @@ export function Logo({ size = 36, showName = false, className, variant = 'defaul
     return (
       <div className={cn('flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-primary via-primary to-primary/90 shadow-card-hover relative overflow-hidden', className)}>
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
-        <span className="relative text-4xl font-black text-primary-foreground tracking-tight">P</span>
+        <span className="relative text-4xl font-black text-primary-foreground tracking-tight">OKR</span>
       </div>
     )
   }
@@ -28,6 +28,7 @@ export function Logo({ size = 36, showName = false, className, variant = 'defaul
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl}
           alt={`${name} logo`}
@@ -49,4 +50,3 @@ export function Logo({ size = 36, showName = false, className, variant = 'defaul
     </span>
   )
 }
-

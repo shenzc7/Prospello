@@ -14,7 +14,7 @@ type Props = {
 export function ObjectiveBasicFields({ control }: Props) {
   return (
     <>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         <FormField
           control={control}
           name="title"
@@ -22,7 +22,7 @@ export function ObjectiveBasicFields({ control }: Props) {
             <FormItem>
               <FormLabel>Objective Title</FormLabel>
               <FormControl>
-                <Input placeholder="Launch OKRFlow MVP" {...field} />
+                <Input placeholder="e.g., Increase customer satisfaction" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -1,74 +1,49 @@
 import { NextResponse } from 'next/server'
-import { isRoleAllowedForRoute } from '@/lib/rbac'
-import { createErrorResponse, APIError } from '@/lib/apiError'
 import { getToken } from 'next-auth/jwt'
+import type { NextRequest } from 'next/server'
 
-// In-memory rate limiting store
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+// Public routes that don't require authentication
+const publicRoutes = ['/login']
 
-const RATE_LIMIT_REQUESTS = 60 // requests
-const RATE_LIMIT_WINDOW = 5 * 60 * 1000 // 5 minutes in milliseconds
+// Auth API routes that should always be accessible
+const authApiRoutes = ['/api/auth']
 
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const record = rateLimitStore.get(ip)
-
-  if (!record || now > record.resetTime) {
-    // First request or window expired, reset
-    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW })
-    return true
-  }
-
-  if (record.count >= RATE_LIMIT_REQUESTS) {
-    return false
-  }
-
-  record.count++
-  return true
-}
-
-function getClientIP(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for')
-  const realIP = req.headers.get('x-real-ip')
-
-  if (forwarded) {
-    return forwarded.split(',')[0].trim()
-  }
-
-  if (realIP) {
-    return realIP
-  }
-
-  // Fallback to a default for localhost/dev
-  return '127.0.0.1'
-}
-
-export default async function middleware(req: any) {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Handle API routes with rate limiting only (no auth check)
-  if (pathname.startsWith('/api/')) {
-    const clientIP = getClientIP(req)
-
-    if (!checkRateLimit(clientIP)) {
-      const resetIn = Math.ceil((rateLimitStore.get(clientIP)!.resetTime - Date.now()) / 1000)
-      return createErrorResponse(new APIError('RATE_LIMIT_EXCEEDED', 'Too many requests', { resetIn }))
-    }
-
-    // API routes don't need auth middleware here - auth is handled in each route
+  // Allow auth API routes
+  if (authApiRoutes.some(route => pathname.startsWith(route))) {
     return NextResponse.next()
   }
 
-  // Handle app routes with auth
-  const token = await getToken({ req })
-
-  // If no token and not on login/auth pages, redirect to login
-  if (!token && !pathname.startsWith('/login') && !pathname.startsWith('/api/auth') && !pathname.startsWith('/my-okrs') && !pathname.startsWith('/okrs')) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  // Allow static files and other Next.js internals
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
   }
 
-  // Check RBAC for admin routes
-  if (pathname.startsWith('/admin') && token && !isRoleAllowedForRoute(token.role as any, pathname)) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+
+  // Check if current route is public
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+
+  // Redirect authenticated users away from login page
+  if (token && isPublicRoute) {
+    return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  // Redirect unauthenticated users to login
+  if (!token && !isPublicRoute) {
+    const loginUrl = new URL('/login', req.url)
+    loginUrl.searchParams.set('callbackUrl', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Check admin routes
+  if (pathname.startsWith('/admin') && token?.role !== 'ADMIN') {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
@@ -78,12 +53,12 @@ export default async function middleware(req: any) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all paths except:
      * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - api (API routes)
+     * - _next/image (image optimization)
+     * - favicon.ico
+     * - public files (images, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|api).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*$).*)',
   ],
 }

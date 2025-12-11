@@ -1,17 +1,20 @@
 'use client'
 
 import { ObjectiveForm } from '@/components/objectives/objective-form'
-import { useObjective } from '@/hooks/useObjectives'
+import { useObjective, type Objective } from '@/hooks/useObjectives'
 
-function mapToFormData(objective: any) {
+function mapToFormData(objective: Objective) {
   return {
     title: objective.title,
     description: objective.description ?? '',
     cycle: objective.cycle,
+    goalType: objective.goalType ?? 'INDIVIDUAL',
     startAt: objective.startAt.slice(0, 10),
     endAt: objective.endAt.slice(0, 10),
+  ownerId: objective.owner?.id ?? undefined,
+  teamId: objective.team?.id ?? undefined,
     parentObjectiveId: objective.parent?.id ?? undefined,
-    keyResults: objective.keyResults.map((kr: any) => ({
+    keyResults: objective.keyResults.map((kr) => ({
       title: kr.title,
       weight: kr.weight,
       target: kr.target,

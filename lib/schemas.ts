@@ -1,13 +1,22 @@
 import { z } from 'zod'
 import { InitiativeStatus, ObjectiveStatus } from '@prisma/client'
 
+// Goal type values for form validation
+const goalTypeValues = ['COMPANY', 'DEPARTMENT', 'TEAM', 'INDIVIDUAL'] as const
+
 // Base schemas for form validation
 export const objectiveFormSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   cycle: z.string().min(1, 'Cycle is required'),
+  goalType: z.enum(goalTypeValues, {
+    required_error: 'Goal type is required',
+    invalid_type_error: 'Invalid goal type'
+  }).default('INDIVIDUAL'),
   startAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date'),
   endAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date'),
+  ownerId: z.string().optional(),
+  teamId: z.string().optional(),
   parentObjectiveId: z.string().optional(),
   keyResults: z.array(z.object({
     title: z.string().min(1, 'KR title is required'),
@@ -51,8 +60,11 @@ export const updateObjectiveRequestSchema = z.object({
   title: z.string().min(1, 'Title is required').optional(),
   description: z.string().optional(),
   cycle: z.string().min(1, 'Cycle is required').optional(),
+  goalType: z.enum(goalTypeValues).optional(),
   startAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date').optional(),
   endAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date').optional(),
+  ownerId: z.string().optional(),
+  teamId: z.string().optional(),
   parentObjectiveId: z.string().optional(),
   keyResults: z.array(z.object({
     title: z.string().min(1, 'KR title is required'),
@@ -147,7 +159,7 @@ export const listObjectivesQuerySchema = z.object({
 export interface ApiError {
   error: string
   code?: string
-  details?: any
+  details?: unknown
 }
 
 export interface ValidationError extends ApiError {

@@ -1,22 +1,22 @@
 'use client'
 
-import { useMemo } from 'react'
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, subWeeks, isWithinInterval } from 'date-fns'
-import { CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
+import { useMemo, useEffect, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { format, eachWeekOfInterval, subWeeks } from 'date-fns'
+import { CheckCircle2, AlertTriangle, XCircle, Clock, Users, ChevronRight } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/ui'
-import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
+import { type TrafficLightStatus } from '@/lib/utils'
 
-type HeatMapCell = {
+export type HeatMapCell = {
   value: number
   status: 'green' | 'yellow' | 'red' | 'gray'
   date?: Date
   checkInId?: string
 }
 
-type TeamStatus = {
+export type TeamStatus = {
   teamId: string
   teamName: string
   progress: number
@@ -25,7 +25,7 @@ type TeamStatus = {
   memberCount: number
 }
 
-type KeyResultProgress = {
+export type KeyResultProgress = {
   keyResultId: string
   keyResultTitle: string
   objectiveTitle: string
@@ -33,7 +33,7 @@ type KeyResultProgress = {
   weeklyProgress: HeatMapCell[]
 }
 
-type HeatMapProps = {
+export type HeatMapProps = {
   type: 'teams' | 'progress'
   title?: string
   description?: string
@@ -41,50 +41,14 @@ type HeatMapProps = {
   className?: string
 }
 
-// Use shared traffic light calculation from utils
-
 // Mock data for demonstration
 const mockTeamData: TeamStatus[] = [
-  {
-    teamId: '1',
-    teamName: 'Engineering',
-    progress: 85,
-    status: calculateTrafficLightStatus(85), // Will be 'green' (≥70%)
-    objectiveCount: 12,
-    memberCount: 8
-  },
-  {
-    teamId: '2',
-    teamName: 'Product',
-    progress: 65,
-    status: calculateTrafficLightStatus(65), // Will be 'yellow' (30-69%)
-    objectiveCount: 8,
-    memberCount: 5
-  },
-  {
-    teamId: '3',
-    teamName: 'Marketing',
-    progress: 45,
-    status: calculateTrafficLightStatus(45), // Will be 'yellow' (30-69%)
-    objectiveCount: 6,
-    memberCount: 4
-  },
-  {
-    teamId: '4',
-    teamName: 'Sales',
-    progress: 78,
-    status: calculateTrafficLightStatus(78), // Will be 'green' (≥70%)
-    objectiveCount: 10,
-    memberCount: 6
-  },
-  {
-    teamId: '5',
-    teamName: 'Design',
-    progress: 92,
-    status: calculateTrafficLightStatus(92), // Will be 'green' (≥70%)
-    objectiveCount: 7,
-    memberCount: 3
-  }
+  { teamId: '1', teamName: 'Sales', progress: 70, status: 'green', objectiveCount: 8, memberCount: 6 },
+  { teamId: '2', teamName: 'Marketing', progress: 45, status: 'yellow', objectiveCount: 6, memberCount: 4 },
+  { teamId: '3', teamName: 'Product', progress: 30, status: 'yellow', objectiveCount: 10, memberCount: 8 },
+  { teamId: '4', teamName: 'Engineering', progress: 82, status: 'green', objectiveCount: 12, memberCount: 10 },
+  { teamId: '5', teamName: 'Design', progress: 25, status: 'red', objectiveCount: 4, memberCount: 3 },
+  { teamId: '6', teamName: 'Support', progress: 68, status: 'yellow', objectiveCount: 5, memberCount: 4 },
 ]
 
 const mockProgressData: KeyResultProgress[] = [
@@ -94,11 +58,11 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Improve API Performance',
     ownerName: 'John Doe',
     weeklyProgress: [
-      { value: 0, status: calculateTrafficLightStatus(0), date: subWeeks(new Date(), 4) },    // gray
-      { value: 25, status: calculateTrafficLightStatus(25), date: subWeeks(new Date(), 3) },  // red (<30%)
-      { value: 45, status: calculateTrafficLightStatus(45), date: subWeeks(new Date(), 2) },  // yellow (30-69%)
-      { value: 75, status: calculateTrafficLightStatus(75), date: subWeeks(new Date(), 1) },  // green (≥70%)
-      { value: 85, status: calculateTrafficLightStatus(85), date: new Date() }                // green (≥70%)
+      { value: 0, status: 'gray', date: subWeeks(new Date(), 4) },
+      { value: 25, status: 'red', date: subWeeks(new Date(), 3) },
+      { value: 45, status: 'yellow', date: subWeeks(new Date(), 2) },
+      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
+      { value: 85, status: 'green', date: new Date() }
     ]
   },
   {
@@ -107,11 +71,11 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Increase Product Adoption',
     ownerName: 'Jane Smith',
     weeklyProgress: [
-      { value: 30, status: calculateTrafficLightStatus(30), date: subWeeks(new Date(), 4) },  // yellow (30-69%)
-      { value: 35, status: calculateTrafficLightStatus(35), date: subWeeks(new Date(), 3) },  // yellow (30-69%)
-      { value: 40, status: calculateTrafficLightStatus(40), date: subWeeks(new Date(), 2) },  // yellow (30-69%)
-      { value: 55, status: calculateTrafficLightStatus(55), date: subWeeks(new Date(), 1) },  // yellow (30-69%)
-      { value: 60, status: calculateTrafficLightStatus(60), date: new Date() }                // yellow (30-69%)
+      { value: 30, status: 'yellow', date: subWeeks(new Date(), 4) },
+      { value: 35, status: 'yellow', date: subWeeks(new Date(), 3) },
+      { value: 40, status: 'yellow', date: subWeeks(new Date(), 2) },
+      { value: 55, status: 'yellow', date: subWeeks(new Date(), 1) },
+      { value: 60, status: 'yellow', date: new Date() }
     ]
   },
   {
@@ -120,80 +84,155 @@ const mockProgressData: KeyResultProgress[] = [
     objectiveTitle: 'Improve Customer Satisfaction',
     ownerName: 'Mike Johnson',
     weeklyProgress: [
-      { value: 65, status: calculateTrafficLightStatus(65), date: subWeeks(new Date(), 4) },  // yellow (30-69%)
-      { value: 68, status: calculateTrafficLightStatus(68), date: subWeeks(new Date(), 3) },  // yellow (30-69%)
-      { value: 72, status: calculateTrafficLightStatus(72), date: subWeeks(new Date(), 2) },  // green (≥70%)
-      { value: 75, status: calculateTrafficLightStatus(75), date: subWeeks(new Date(), 1) },  // green (≥70%)
-      { value: 78, status: calculateTrafficLightStatus(78), date: new Date() }                // green (≥70%)
+      { value: 65, status: 'yellow', date: subWeeks(new Date(), 4) },
+      { value: 68, status: 'yellow', date: subWeeks(new Date(), 3) },
+      { value: 72, status: 'green', date: subWeeks(new Date(), 2) },
+      { value: 75, status: 'green', date: subWeeks(new Date(), 1) },
+      { value: 78, status: 'green', date: new Date() }
     ]
   }
 ]
 
-function getStatusIcon(status: string, size = 'h-3 w-3') {
+function getStatusColor(status: TrafficLightStatus) {
   switch (status) {
-    case 'green':
-      return <CheckCircle2 className={cn(size, 'text-green-600')} />
-    case 'yellow':
-      return <AlertTriangle className={cn(size, 'text-yellow-600')} />
-    case 'red':
-      return <XCircle className={cn(size, 'text-red-600')} />
-    default:
-      return <Clock className={cn(size, 'text-gray-400')} />
+    case 'green': return 'bg-green-500'
+    case 'yellow': return 'bg-amber-500'
+    case 'red': return 'bg-red-500'
+    default: return 'bg-slate-300'
   }
 }
 
-function getStatusColor(status: string) {
-  const classes = getTrafficLightClasses(status as any)
-  return `${classes.bg} ${classes.border} ${classes.hover}`
+function getStatusBg(status: TrafficLightStatus) {
+  switch (status) {
+    case 'green': return 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
+    case 'yellow': return 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800'
+    case 'red': return 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
+    default: return 'bg-slate-50 border-slate-200 dark:bg-slate-900 dark:border-slate-700'
+  }
+}
+
+function getStatusLabel(status: TrafficLightStatus) {
+  switch (status) {
+    case 'green': return 'On Track'
+    case 'yellow': return 'At Risk'
+    case 'red': return 'Off Track'
+    default: return 'No Data'
+  }
 }
 
 function TeamHeatMap({ data }: { data: TeamStatus[] }) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  
+  // Prefetch team pages on mount
+  useEffect(() => {
+    data.forEach(team => {
+      router.prefetch(`/teams/${team.teamId}`)
+    })
+  }, [data, router])
+  
+  const stats = useMemo(() => {
+    const total = data.length || 1
+    const byStatus = data.reduce<Record<TrafficLightStatus, number>>(
+      (acc, item) => {
+        acc[item.status] = (acc[item.status] || 0) + 1
+        return acc
+      },
+      { green: 0, yellow: 0, red: 0, gray: 0 }
+    )
+    const avg = Math.round(data.reduce((sum, t) => sum + (t.progress || 0), 0) / total)
+    return { byStatus, avg }
+  }, [data])
+
+  const handleTeamClick = (teamId: string) => {
+    startTransition(() => {
+      router.push(`/teams/${teamId}`)
+    })
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3">
+    <div className="space-y-6">
+      {/* Summary row */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="text-muted-foreground">On Track</span>
+          <span className="font-semibold">{stats.byStatus.green}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-3 h-3 rounded-full bg-amber-500" />
+          <span className="text-muted-foreground">At Risk</span>
+          <span className="font-semibold">{stats.byStatus.yellow}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <span className="text-muted-foreground">Off Track</span>
+          <span className="font-semibold">{stats.byStatus.red}</span>
+        </div>
+      </div>
+
+      {/* Team grid - PRD: Grid or list view with traffic light colors */}
+      <div className={cn("grid gap-3 sm:grid-cols-2 lg:grid-cols-3", isPending && "opacity-70 pointer-events-none")}>
         {data.map((team) => (
-          <div
+          <button
             key={team.teamId}
+            onClick={() => handleTeamClick(team.teamId)}
             className={cn(
-              'flex items-center justify-between p-4 rounded-lg border-2 transition-colors cursor-pointer',
-              getStatusColor(team.status)
+              'group text-left rounded-lg border-2 p-4 transition-all duration-150',
+              'hover:shadow-md hover:-translate-y-0.5 cursor-pointer active:scale-[0.98]',
+              getStatusBg(team.status)
             )}
           >
-            <div className="flex items-center gap-3">
-              {getStatusIcon(team.status, 'h-5 w-5')}
-              <div>
-                <h4 className="font-semibold text-sm">{team.teamName}</h4>
-                <p className="text-xs text-muted-foreground">
-                  {team.objectiveCount} objectives • {team.memberCount} members
-                </p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className={cn('w-2.5 h-2.5 rounded-full', getStatusColor(team.status))} />
+                <span className="font-semibold">{team.teamName}</span>
               </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <div className="text-right">
-              <div className="text-lg font-bold">{team.progress}%</div>
-              <Badge variant="outline" className="text-xs">
-                {team.status.toUpperCase()}
-              </Badge>
+            
+            {/* PRD format: Team – Progress% (Status) */}
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-bold">{team.progress}%</span>
+              <span className={cn(
+                'text-xs font-medium px-2 py-0.5 rounded-full',
+                team.status === 'green' && 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+                team.status === 'yellow' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
+                team.status === 'red' && 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+                team.status === 'gray' && 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+              )}>
+                {getStatusLabel(team.status)}
+              </span>
             </div>
-          </div>
+
+            {/* Progress bar */}
+            <div className="mt-3 h-1.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+              <div
+                className={cn('h-full rounded-full transition-all', getStatusColor(team.status))}
+                style={{ width: `${team.progress}%` }}
+              />
+            </div>
+
+            <div className="mt-2 text-xs text-muted-foreground">
+              {team.objectiveCount} objectives · {team.memberCount} members
+            </div>
+          </button>
         ))}
       </div>
 
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-3 w-3 text-green-600" />
-          <span>On Track (&ge;70%)</span>
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-6 text-xs text-muted-foreground pt-2 border-t">
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+          <span>On Track ≥70%</span>
         </div>
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="h-3 w-3 text-yellow-600" />
-          <span>At Risk (30-69%)</span>
+        <div className="flex items-center gap-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+          <span>At Risk 30–69%</span>
         </div>
-        <div className="flex items-center gap-2">
-          <XCircle className="h-3 w-3 text-red-600" />
-          <span>Off Track (&lt;30%)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Clock className="h-3 w-3 text-gray-400" />
-          <span>No Progress</span>
+        <div className="flex items-center gap-1.5">
+          <XCircle className="w-3.5 h-3.5 text-red-600" />
+          <span>Off Track &lt;30%</span>
         </div>
       </div>
     </div>
@@ -201,12 +240,11 @@ function TeamHeatMap({ data }: { data: TeamStatus[] }) {
 }
 
 function ProgressHeatMap({ data }: { data: KeyResultProgress[] }) {
-  // Generate week labels for the last 5 weeks
   const weekLabels = useMemo(() => {
     const endDate = new Date()
     const startDate = subWeeks(endDate, 4)
     return eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 })
-      .map(week => format(week, 'MMM d'))
+      .map((week) => format(week, 'MMM d'))
   }, [])
 
   return (
@@ -214,34 +252,34 @@ function ProgressHeatMap({ data }: { data: KeyResultProgress[] }) {
       <div className="overflow-x-auto">
         <div className="min-w-[600px]">
           {/* Header */}
-          <div className="grid grid-cols-[250px_repeat(5,_1fr)] gap-2 mb-4">
-            <div className="text-xs font-medium text-muted-foreground">Key Results</div>
-            {weekLabels.map((week, index) => (
-              <div key={index} className="text-xs font-medium text-muted-foreground text-center">
-                {week}
-              </div>
+          <div className="grid grid-cols-[1fr_repeat(5,_60px)] gap-2 mb-3 text-xs font-medium text-muted-foreground">
+            <div>Key Result</div>
+            {weekLabels.map((week, i) => (
+              <div key={i} className="text-center">{week}</div>
             ))}
           </div>
 
           {/* Rows */}
           {data.map((kr) => (
-            <div key={kr.keyResultId} className="grid grid-cols-[250px_repeat(5,_1fr)] gap-2 mb-3 p-3 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors">
-              <div className="space-y-1">
-                <h4 className="text-sm font-medium leading-tight">{kr.keyResultTitle}</h4>
-                <p className="text-xs text-muted-foreground">{kr.objectiveTitle}</p>
-                <p className="text-xs text-muted-foreground">by {kr.ownerName}</p>
+            <div
+              key={kr.keyResultId}
+              className="grid grid-cols-[1fr_repeat(5,_60px)] gap-2 mb-2 py-3 border-b last:border-0"
+            >
+              <div>
+                <p className="text-sm font-medium truncate">{kr.keyResultTitle}</p>
+                <p className="text-xs text-muted-foreground truncate">{kr.ownerName}</p>
               </div>
 
-              {kr.weeklyProgress.map((cell, index) => (
+              {kr.weeklyProgress.map((cell, i) => (
                 <div
-                  key={index}
+                  key={i}
                   className={cn(
-                    'aspect-square rounded border-2 flex items-center justify-center cursor-pointer transition-all hover:scale-110',
-                    getStatusColor(cell.status)
+                    'h-10 rounded flex items-center justify-center text-xs font-semibold border',
+                    getStatusBg(cell.status)
                   )}
-                  title={`${cell.value}% - ${cell.status.toUpperCase()}`}
+                  title={`${cell.value}% - ${getStatusLabel(cell.status)}`}
                 >
-                  <span className="text-xs font-bold">{cell.value}</span>
+                  {cell.value > 0 ? `${cell.value}%` : '-'}
                 </div>
               ))}
             </div>
@@ -249,50 +287,36 @@ function ProgressHeatMap({ data }: { data: KeyResultProgress[] }) {
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded border-2 bg-green-100 border-green-200"></div>
-          <span>On Track (&ge;70%)</span>
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-6 text-xs text-muted-foreground pt-2 border-t">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-green-100 border border-green-200" />
+          <span>On Track ≥70%</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded border-2 bg-yellow-100 border-yellow-200"></div>
-          <span>At Risk (30-69%)</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-amber-100 border border-amber-200" />
+          <span>At Risk 30–69%</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded border-2 bg-red-100 border-red-200"></div>
-          <span>Off Track (&lt;30%)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded border-2 bg-gray-100 border-gray-200"></div>
-          <span>No Progress</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded bg-red-100 border border-red-200" />
+          <span>Off Track &lt;30%</span>
         </div>
       </div>
     </div>
   )
 }
 
-export function HeatMap({
-  type,
-  title,
-  description,
-  data,
-  className
-}: HeatMapProps) {
-  const displayData = data || (type === 'teams' ? mockTeamData : mockProgressData)
+export function HeatMap({ type, title, description, data, className }: HeatMapProps) {
+  const fallback = type === 'teams' ? mockTeamData : mockProgressData
+  const displayData = (data && data.length > 0 ? data : fallback)
 
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"></div>
-          {title || (type === 'teams' ? 'Team Status Heat Map' : 'Progress Heat Map')}
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base">
+          {title || (type === 'teams' ? 'Team Heatmap' : 'Weekly Progress')}
         </CardTitle>
-        <CardDescription>
-          {description || (type === 'teams'
-            ? 'Real-time overview of team performance and objective status'
-            : 'Weekly progress tracking for key results over time'
-          )}
-        </CardDescription>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         {type === 'teams' ? (

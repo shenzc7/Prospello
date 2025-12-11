@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { isManagerOrHigher } from '@/lib/rbac'
-import { calcProgress, calcProgressFromProgress, getTrafficLightStatus } from '@/lib/okr'
+import { calcProgressFromProgress } from '@/lib/okr'
 import { getFiscalQuarter } from '@/lib/india'
 import { calculateKRProgress } from '@/lib/utils'
-import { updateObjectiveRequestSchema } from '@/lib/schemas'
+import { updateObjectiveRequestSchema, type UpdateObjectiveRequest } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
+import { Role } from '@prisma/client'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Check permissions - users can only view their own objectives unless they're managers/admins
-    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 
@@ -98,7 +98,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     // Check permissions - only owner can edit unless manager/admin
-    if (existingObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (existingObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 
@@ -129,7 +129,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
 
       // Check permission to align to parent
-      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+      if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
       }
     }
@@ -140,10 +140,29 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     // Prepare update data
-    const data: any = {}
+    const data: Partial<{
+      title: string
+      description?: string | null
+      cycle: string
+      startAt: Date
+      endAt: Date
+      ownerId: string
+      teamId: string | null
+      parentId: string | null
+      fiscalQuarter: number
+    }> = {}
     if (updateData.title) data.title = updateData.title
     if (updateData.description !== undefined) data.description = updateData.description
     if (updateData.cycle) data.cycle = updateData.cycle
+    if (updateData.ownerId) {
+      if (!isManagerOrHigher(session.user.role as Role)) {
+        return createErrorResponse(errors.forbidden('Only managers or admins can reassign owners'))
+      }
+      data.ownerId = updateData.ownerId
+    }
+    if (updateData.teamId !== undefined) {
+      data.teamId = updateData.teamId || null
+    }
     if (updateData.startAt) {
       const startDate = new Date(updateData.startAt)
       data.startAt = startDate
@@ -162,7 +181,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
         // Create new key results
         await tx.keyResult.createMany({
-          data: updateData.keyResults!.map((kr: any) => ({
+          data: updateData.keyResults!.map((kr: UpdateObjectiveRequest['keyResults'][number]) => ({
             objectiveId: id,
             title: kr.title,
             weight: kr.weight,
@@ -255,7 +274,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     // Check permissions - only owner can delete unless manager/admin
-    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Prospello Deployment Script for Vercel"
+echo "🚀 OKR Builder Deployment Script for Vercel"
 echo "=========================================="
 
 # Check if Vercel CLI is installed

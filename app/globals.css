@@ -2,347 +2,159 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile touch improvements */
 @layer base {
-  /* Improve touch targets on mobile */
-  @media (max-width: 768px) {
-    button, a, input, textarea, select {
-      min-height: 44px;
+    :root {
+        --background: 214 33% 98%;
+        --foreground: 222 47% 11%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+
+        --primary: 164 72% 32%;
+        --primary-foreground: 210 40% 98%;
+
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+
+        --muted: 210 32% 94%;
+        --muted-foreground: 217 15% 45%;
+
+        --accent: 35 95% 90%;
+        --accent-foreground: 24 85% 32%;
+
+        --destructive: 0 70% 55%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 212 28% 86%;
+        --input: 212 28% 86%;
+        --ring: 164 72% 32%;
+
+        --radius: 0.65rem;
+
+        --okr-green: 156 72% 34%;
+        --okr-amber: 40 97% 52%;
+        --okr-red: 0 80% 52%;
     }
 
-    /* Better scrolling on iOS */
+    .dark {
+        --background: 222 47% 6%;
+        --foreground: 210 40% 96%;
+
+        --card: 222 47% 9%;
+        --card-foreground: 210 40% 96%;
+
+        --popover: 222 47% 9%;
+        --popover-foreground: 210 40% 96%;
+
+        --primary: 162 78% 46%;
+        --primary-foreground: 222 47% 8%;
+
+        --secondary: 220 20% 16%;
+        --secondary-foreground: 210 40% 96%;
+
+        --muted: 220 20% 16%;
+        --muted-foreground: 214 12% 70%;
+
+        --accent: 42 95% 62%;
+        --accent-foreground: 222 47% 8%;
+
+        --destructive: 0 72% 52%;
+        --destructive-foreground: 222 47% 8%;
+
+        --border: 220 20% 22%;
+        --input: 220 20% 22%;
+        --ring: 162 78% 46%;
+    }
+}
+
+@layer base {
     * {
-      -webkit-overflow-scrolling: touch;
+        @apply border-border;
     }
 
-    /* Prevent horizontal scroll on mobile */
     body {
-      overflow-x: hidden;
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+        background-image:
+            radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.06), transparent 25%),
+            radial-gradient(circle at 90% 10%, rgba(248, 180, 0, 0.05), transparent 20%),
+            radial-gradient(circle at 30% 80%, rgba(14, 165, 233, 0.06), transparent 25%);
+    }
+}
+
+/* Premium Gradients & Utilities */
+.bg-grid-white {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32' fill='none' stroke='rgb(255 255 255 / 0.04)'%3e%3cpath d='M0 .5H31.5V32'/%3e%3c/svg%3e");
+}
+
+.bg-dot-white {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
 
-    /* Improve text selection on mobile */
-    * {
-      -webkit-tap-highlight-color: transparent;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
-  }
-
-  /* Tablet optimizations */
-  @media (min-width: 768px) and (max-width: 1024px) {
-    /* Adjust spacing for tablets */
-    .glass-panel {
-      padding: 1rem;
-    }
-  }
-
-  /* Focus visible for keyboard navigation */
-  .focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-  }
 }
 
-:root {
-  /* Apple-inspired color palette */
-  --background: 0 0% 100%;
-  --foreground: 222 84% 4.9%;
-
-  --card: 0 0% 100%;
-  --card-foreground: 222 84% 4.9%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 84% 4.9%;
-
-  --primary: 222 84% 4.9%; /* Sophisticated dark for primary actions */
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 210 40% 98%;
-  --secondary-foreground: 222 84% 4.9%;
-
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-
-  --accent: 210 40% 96%;
-  --accent-foreground: 222 84% 4.9%;
-
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 210 40% 98%;
-
-  --success: 142 76% 36%;
-  --success-foreground: 355.7 100% 97.3%;
-
-  --warning: 32 95% 44%;
-  --warning-foreground: 355.7 100% 97.3%;
-
-  --info: 199 89% 48%;
-  --info-foreground: 210 40% 98%;
-
-  --border: 214.7 31.8% 91.4%;
-  --input: 214.7 31.8% 91.4%;
-  --ring: 222 84% 4.9%;
-
-  --radius-lg: 0.75rem;
-
-  /* Custom OKR status colors */
-  --okr-not-started: 215 20% 65%;
-  --okr-in-progress: 221 83% 53%;
-  --okr-at-risk: 32 95% 44%;
-  --okr-done: 142 76% 36%;
-
-  /* Progress colors */
-  --progress-low: 0 84% 60%;
-  --progress-medium: 32 95% 44%;
-  --progress-high: 142 76% 36%;
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Ensure CSS custom properties are available for all pages */
-html {
-  color-scheme: light dark;
+.surface-panel {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(245, 250, 255, 0.85));
+    box-shadow:
+        0 20px 70px rgba(15, 118, 110, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.6) inset;
 }
 
-.dark {
-  --background: 222 84% 4.9%;
-  --foreground: 210 40% 98%;
+.progress-high { color: hsl(var(--okr-green)); }
+.progress-medium { color: hsl(var(--okr-amber)); }
+.progress-low { color: hsl(var(--okr-red)); }
 
-  --card: 222 84% 4.9%;
-  --card-foreground: 210 40% 98%;
+.traffic-green { background-color: rgba(16, 185, 129, 0.12); color: #047857; border-color: rgba(16, 185, 129, 0.25); }
+.traffic-yellow { background-color: rgba(234, 179, 8, 0.12); color: #92400e; border-color: rgba(234, 179, 8, 0.25); }
+.traffic-red { background-color: rgba(239, 68, 68, 0.12); color: #b91c1c; border-color: rgba(239, 68, 68, 0.25); }
 
-  --popover: 222 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-
-  --primary: 210 40% 98%; /* Clean white for dark mode primary */
-  --primary-foreground: 222 84% 4.9%;
-
-  --secondary: 217 32% 17%;
-  --secondary-foreground: 210 40% 98%;
-
-  --muted: 217 32% 17%;
-  --muted-foreground: 215 20% 65%;
-
-  --accent: 217 32% 17%;
-  --accent-foreground: 210 40% 98%;
-
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 210 40% 98%;
-
-  --success: 142 76% 36%;
-  --success-foreground: 355.7 100% 97.3%;
-
-  --warning: 32 95% 44%;
-  --warning-foreground: 355.7 100% 97.3%;
-
-  --info: 199 89% 48%;
-  --info-foreground: 210 40% 98%;
-
-  --border: 217 32% 17%;
-  --input: 217 32% 17%;
-  --ring: 210 40% 98%;
-
-  /* Custom OKR status colors for dark mode */
-  --okr-not-started: 215 20% 65%;
-  --okr-in-progress: 217 91% 60%;
-  --okr-at-risk: 32 95% 44%;
-  --okr-done: 142 76% 36%;
-
-  /* Progress colors for dark mode */
-  --progress-low: 0 63% 31%;
-  --progress-medium: 32 95% 44%;
-  --progress-high: 142 76% 36%;
+.card-spotlight {
+    position: relative;
+    overflow: hidden;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground antialiased;
-    height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-    /* Apple-inspired background */
-    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
-    /* Enhanced font rendering */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-    /* Prevent horizontal scroll */
-    overflow-x: hidden;
-  }
-
-  /* Improved focus states */
-  *:focus-visible {
-    @apply outline-2 outline-ring outline-offset-2;
-  }
-
-  ::selection {
-    @apply bg-primary/20 text-foreground;
-  }
-
-  /* Enhanced text rendering */
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
+.card-spotlight::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.12), transparent 45%),
+                radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.12), transparent 35%);
+    pointer-events: none;
 }
 
 @layer utilities {
-  .glass-panel {
-    @apply rounded-xl border border-border/40 bg-background/80 p-6 shadow-lg backdrop-blur-sm;
-    box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -2px hsl(var(--foreground) / 0.1);
-  }
-
-  .dark .glass-panel {
-    @apply border-border/20 bg-background/40;
-  }
-
-  /* Apple-like animations */
-  .animate-fade-in {
-    animation: fade-in 0.5s ease-out;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.6s ease-out;
-  }
-
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-
-  @keyframes fade-in {
-    from {
-      opacity: 0;
+    .shadow-soft {
+        box-shadow:
+            0 12px 40px rgba(15, 118, 110, 0.08),
+            0 1px 0 rgba(255, 255, 255, 0.4) inset;
     }
-    to {
-      opacity: 1;
+
+    .backdrop-blur-xs {
+        backdrop-filter: blur(6px);
     }
-  }
-
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  .shadow-soft {
-    box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.1), 0 1px 2px -1px hsl(var(--foreground) / 0.1);
-  }
-
-  .shadow-card {
-    box-shadow: 0 4px 6px -1px hsl(var(--foreground) / 0.1), 0 2px 4px -2px hsl(var(--foreground) / 0.1);
-  }
-
-  .shadow-card-hover {
-    box-shadow: 0 10px 15px -3px hsl(var(--foreground) / 0.1), 0 4px 6px -4px hsl(var(--foreground) / 0.1);
-  }
-
-  .shadow-3xl {
-    box-shadow: 0 35px 60px -12px hsl(var(--foreground) / 0.25);
-  }
-
-  /* OKR Status Colors */
-  .okr-status-not-started {
-    @apply text-slate-600 dark:text-slate-400;
-  }
-
-  .okr-status-in-progress {
-    @apply text-blue-600 dark:text-blue-400;
-  }
-
-  .okr-status-at-risk {
-    @apply text-amber-600 dark:text-amber-400;
-  }
-
-  .okr-status-done {
-    @apply text-green-600 dark:text-green-400;
-  }
-
-  /* Progress Colors */
-  .progress-low {
-    @apply text-red-600 dark:text-red-400;
-  }
-
-  .progress-medium {
-    @apply text-amber-600 dark:text-amber-400;
-  }
-
-  .progress-high {
-    @apply text-green-600 dark:text-green-400;
-  }
-
-  /* Custom scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  /* Responsive utilities */
-  .text-responsive-sm {
-    font-size: clamp(0.875rem, 2.5vw, 1rem);
-  }
-
-  .text-responsive-base {
-    font-size: clamp(1rem, 3vw, 1.125rem);
-  }
-
-  .text-responsive-lg {
-    font-size: clamp(1.125rem, 4vw, 1.25rem);
-  }
-
-  .text-responsive-xl {
-    font-size: clamp(1.25rem, 5vw, 1.5rem);
-  }
-
-  .text-responsive-2xl {
-    font-size: clamp(1.5rem, 6vw, 2rem);
-  }
-
-  .text-responsive-3xl {
-    font-size: clamp(2rem, 8vw, 3rem);
-  }
-
-  /* Mobile-first spacing utilities */
-  .space-y-responsive {
-    --tw-space-y-reverse: 0;
-    margin-top: calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
-    margin-bottom: calc(0.5rem * var(--tw-space-y-reverse));
-  }
-
-  .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
-    --tw-space-y-reverse: 0;
-    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
-    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
-  }
-
-  @media (min-width: 640px) {
-    .space-y-responsive > :not([hidden]) ~ :not([hidden]) {
-      margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
-      margin-bottom: calc(1.5rem * var(--tw-space-y-reverse));
-    }
-  }
 }

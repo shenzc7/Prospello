@@ -1,6 +1,6 @@
 'use client'
 
-import { Users, Target, TrendingUp } from 'lucide-react'
+import { Users, TrendingUp } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { useMemo } from 'react'
 
@@ -21,36 +21,35 @@ export function TeamProgressWidget({ userRole, userId }: TeamProgressWidgetProps
   const user = session?.user
   const currentUserRole = userRole || user?.role as UserRole
   const currentUserId = userId || user?.id
-
-  // Only show for managers and admins
-  if (currentUserRole !== 'ADMIN' && currentUserRole !== 'MANAGER') return null
+  const isManagerOrAdmin = currentUserRole === 'ADMIN' || currentUserRole === 'MANAGER'
 
   // Build query params based on user role - managers and admins see team data
   const queryParams = useMemo(() => {
     if (!currentUserId) return {}
-
-    switch (currentUserRole as 'ADMIN' | 'MANAGER') {
-      case 'ADMIN':
-        return {} // Admin sees all
-      case 'MANAGER':
-        return {} // Manager sees all team data
+    if (currentUserRole === 'ADMIN') {
+      return {}
     }
+    if (currentUserRole === 'MANAGER') {
+      return {}
+    }
+    return {}
   }, [currentUserId, currentUserRole])
 
   const { data: objectivesData } = useObjectives(queryParams)
-  const allObjectives = objectivesData?.objectives ?? []
+  const allObjectives = useMemo(() => objectivesData?.objectives ?? [], [objectivesData?.objectives])
 
   // Filter objectives based on user role
   const objectives = useMemo(() => {
-    if (!currentUserId) return allObjectives
-
-    switch (currentUserRole as 'ADMIN' | 'MANAGER') {
-      case 'ADMIN':
-        return allObjectives // Admin sees all objectives
-      case 'MANAGER':
-        return allObjectives.filter(obj => obj.team?.name?.includes('Team')) // Manager sees team objectives
+    if (!currentUserId || currentUserRole === 'ADMIN') {
+      return allObjectives
     }
+    if (currentUserRole === 'MANAGER') {
+      return allObjectives.filter(obj => obj.team?.name?.includes('Team'))
+    }
+    return []
   }, [allObjectives, currentUserId, currentUserRole])
+
+  if (!isManagerOrAdmin) return null
 
   // Group objectives by team
   const teamStats = objectives.reduce((acc, obj) => {

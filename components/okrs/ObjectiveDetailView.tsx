@@ -32,7 +32,7 @@ async function deleteResource(path: string) {
     try {
       const body = await response.json()
       message = body.error ?? message
-    } catch (error) {
+    } catch {
       // ignore JSON parse errors
     }
     throw new Error(message)

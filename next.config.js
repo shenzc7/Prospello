@@ -1,34 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable experimental features that might cause webpack issues
-  experimental: {
-    // Disable appDir since it's stable in Next.js 15 and might be causing confusion
-    // appDir: true,
-  },
-  // Dev indicators configuration (keeping minimal)
   typescript: {
     ignoreBuildErrors: true,
   },
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Add webpack configuration to fix chunk resolution
-  webpack: (config, { dev }) => {
-    if (dev) {
-      // Ensure proper chunk naming in development
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          ...config.optimization.splitChunks,
-          cacheGroups: {
-            ...config.optimization.splitChunks?.cacheGroups,
-            default: false,
-            vendors: false,
-          },
-        },
-      };
-    }
-    return config;
+  // Turbopack configuration (used when running with --turbopack)
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
+  // Optimize for faster dev
+  reactStrictMode: false,
+  // Skip type checking during dev for speed
+  experimental: {
+    // Faster page loading
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],
   },
 }
 

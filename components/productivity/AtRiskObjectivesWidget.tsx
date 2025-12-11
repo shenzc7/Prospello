@@ -41,7 +41,7 @@ export function AtRiskObjectivesWidget({ userRole, userId }: AtRiskObjectivesWid
   }, [currentUserId, currentUserRole])
 
   const { data: objectivesData } = useObjectives(queryParams)
-  const allObjectives = objectivesData?.objectives ?? []
+  const allObjectives = useMemo(() => objectivesData?.objectives ?? [], [objectivesData?.objectives])
 
   // Filter objectives based on user role
   const objectives = useMemo(() => {

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { UserSwitcher } from '@/components/admin/UserSwitcher'
+import { featureFlags, isFeatureEnabled } from '@/config/features'
 
 function ProfileSettings() {
   const { data: session } = useSession()
@@ -266,7 +267,7 @@ function AppearanceSettings() {
             Appearance
           </CardTitle>
           <CardDescription>
-            Customize how Prospello looks and feels
+            Customize how OKR Builder looks and feels
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -314,7 +315,7 @@ function IntegrationSettings() {
             Integrations
           </CardTitle>
           <CardDescription>
-            Connect Prospello with your favorite tools
+            Connect OKR Builder with your favorite tools
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -438,6 +439,10 @@ function AdminSettings() {
 export default function SettingsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
+  const showNotificationsTab = !featureFlags.prdMode || isFeatureEnabled('notificationFeed')
+  const showAppearanceTab = isFeatureEnabled('appearanceSettings')
+  const showIntegrationsTab = isFeatureEnabled('integrations')
+  const showAdminTab = isAdmin && isFeatureEnabled('adminExtras')
 
   return (
     <div className="space-y-8">
@@ -447,8 +452,26 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-muted-foreground">
-          Manage your account, preferences, and integrations
+          Manage your account details and role access
         </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl border border-border/70 bg-card/70 p-4 shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">SSO</p>
+          <p className="text-sm font-semibold">Google, Slack, Microsoft Teams</p>
+          <p className="text-xs text-muted-foreground">Enable secure sign-in and reminders.</p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-card/70 p-4 shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notifications</p>
+          <p className="text-sm font-semibold">Weekly check-in reminders</p>
+          <p className="text-xs text-muted-foreground">Traffic-light updates for owners.</p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-card/70 p-4 shadow-soft">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Roles</p>
+          <p className="text-sm font-semibold">Admin • Manager • Employee</p>
+          <p className="text-xs text-muted-foreground">Role-based access and dashboards.</p>
+        </div>
       </div>
 
       {/* Settings Tabs */}
@@ -458,19 +481,25 @@ export default function SettingsPage() {
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Appearance
-          </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            Integrations
-          </TabsTrigger>
-          {isAdmin && (
+          {showNotificationsTab && (
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </TabsTrigger>
+          )}
+          {showAppearanceTab && (
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Appearance
+            </TabsTrigger>
+          )}
+          {showIntegrationsTab && (
+            <TabsTrigger value="integrations" className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Integrations
+            </TabsTrigger>
+          )}
+          {showAdminTab && (
             <TabsTrigger value="admin" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Admin
@@ -482,19 +511,25 @@ export default function SettingsPage() {
           <ProfileSettings />
         </TabsContent>
 
-        <TabsContent value="notifications">
-          <NotificationSettings />
-        </TabsContent>
+        {showNotificationsTab && (
+          <TabsContent value="notifications">
+            <NotificationSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="appearance">
-          <AppearanceSettings />
-        </TabsContent>
+        {showAppearanceTab && (
+          <TabsContent value="appearance">
+            <AppearanceSettings />
+          </TabsContent>
+        )}
 
-        <TabsContent value="integrations">
-          <IntegrationSettings />
-        </TabsContent>
+        {showIntegrationsTab && (
+          <TabsContent value="integrations">
+            <IntegrationSettings />
+          </TabsContent>
+        )}
 
-        {isAdmin && (
+        {showAdminTab && (
           <TabsContent value="admin">
             <AdminSettings />
           </TabsContent>

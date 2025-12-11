@@ -7,6 +7,7 @@ import { isManagerOrHigher } from '@/lib/rbac'
 import { calcProgressFromProgress } from '@/lib/okr'
 import { updateObjectiveStatusSchema } from '@/lib/schemas'
 import { calculateKRProgress } from '@/lib/utils'
+import { Role } from '@prisma/client'
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,7 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return createErrorResponse(errors.notFound('Objective'))
     }
 
-    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as any)) {
+    if (objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
     }
 

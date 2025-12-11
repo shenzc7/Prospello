@@ -2,21 +2,22 @@
 
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { Users, Target, TrendingUp, AlertTriangle } from 'lucide-react'
+import { Users, Target } from 'lucide-react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useObjectives } from '@/hooks/useObjectives'
 import { useSession } from 'next-auth/react'
 import { UserRole } from '@/lib/rbac'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
+import { HeatMap } from '@/components/analytics/HeatMap'
 
 type ObjectiveData = {
   progress: number
   team?: { id: string; name: string }
+  owner?: { email?: string }
 }
 
 function TeamCard({ team, objectives }: { team: { id: string; name: string }; objectives: ObjectiveData[] }) {
@@ -24,12 +25,6 @@ function TeamCard({ team, objectives }: { team: { id: string; name: string }; ob
   const avgProgress = teamObjectives.length > 0
     ? teamObjectives.reduce((sum, obj) => sum + obj.progress, 0) / teamObjectives.length
     : 0
-
-  const getStatusColor = (progress: number) => {
-    const status = calculateTrafficLightStatus(progress)
-    const classes = getTrafficLightClasses(status)
-    return `${classes.text} ${classes.bg}`
-  }
 
   const getStatusBadge = (progress: number) => {
     const status = calculateTrafficLightStatus(progress)
@@ -80,28 +75,9 @@ function TeamCard({ team, objectives }: { team: { id: string; name: string }; ob
   )
 }
 
-function TeamHeatmap() {
-  const mockTeams = [
-    { id: '1', name: 'Engineering', progress: 75 },
-    { id: '2', name: 'Product', progress: 62 },
-    { id: '3', name: 'Marketing', progress: 45 },
-    { id: '4', name: 'Sales', progress: 88 },
-    { id: '5', name: 'HR', progress: 55 },
-    { id: '6', name: 'Finance', progress: 70 },
-  ]
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {mockTeams.map((team) => (
-        <TeamCard key={team.id} team={team} objectives={[]} />
-      ))}
-    </div>
-  )
-}
-
 function TeamOverview({ userRole }: { userRole: UserRole }) {
   const { data: objectivesData } = useObjectives({})
-  const objectives = objectivesData?.objectives ?? []
+  const objectives = useMemo(() => objectivesData?.objectives ?? [], [objectivesData?.objectives])
 
   const teams = useMemo(() => {
     const teamMap = new Map()
@@ -115,6 +91,19 @@ function TeamOverview({ userRole }: { userRole: UserRole }) {
     })
     return Array.from(teamMap.values())
   }, [objectives])
+  const heatmapData = useMemo(() => teams.map((team: any) => {
+    const progress = team.objectives?.length
+      ? Math.round(team.objectives.reduce((sum: number, obj: ObjectiveData) => sum + obj.progress, 0) / team.objectives.length)
+      : 0
+    return {
+      teamId: team.id,
+      teamName: team.name,
+      progress,
+      status: calculateTrafficLightStatus(progress),
+      objectiveCount: team.objectives?.length || 0,
+      memberCount: new Set(team.objectives?.map((obj: ObjectiveData) => obj.owner?.email)).size || 0,
+    }
+  }), [teams])
 
   const stats = useMemo(() => {
     const totalTeams = teams.length
@@ -183,15 +172,20 @@ function TeamOverview({ userRole }: { userRole: UserRole }) {
       </div>
 
       {/* Team Heatmap */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Performance Heatmap</CardTitle>
-          <CardDescription>Click on any team to drill down into their objectives</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TeamHeatmap />
-        </CardContent>
-      </Card>
+      <HeatMap
+        type="teams"
+        title="Team Performance Heatmap"
+        description="Click on any team to drill down into their objectives"
+        data={heatmapData}
+      />
+
+      {teams.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {teams.map((team) => (
+            <TeamCard key={team.id} team={team} objectives={team.objectives} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

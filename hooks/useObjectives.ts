@@ -26,7 +26,9 @@ export type Objective = {
   cycle: string
   startAt: string
   endAt: string
+  goalType?: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
   progress: number
+  score?: number | null
   status: ObjectiveStatusValue
   fiscalQuarter: number
   createdAt: string
@@ -72,7 +74,6 @@ export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> 
       ...(init?.headers || {}),
     },
     credentials: 'include',
-    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -109,7 +110,11 @@ export type ObjectivesQueryParams = {
   offset?: number
 }
 
-export function useObjectives(params: ObjectivesQueryParams) {
+type ObjectivesQueryOptions = {
+  enabled?: boolean
+}
+
+export function useObjectives(params: ObjectivesQueryParams, options?: ObjectivesQueryOptions) {
   const query = new URLSearchParams()
   if (params.search) query.set('search', params.search)
   if (params.cycle) query.set('cycle', params.cycle)
@@ -124,6 +129,9 @@ export function useObjectives(params: ObjectivesQueryParams) {
   return useQuery<ObjectivesResponse, Error>({
     queryKey: ['objectives', params],
     queryFn: () => fetchJSON(`/api/objectives${suffix}`),
+    enabled: options?.enabled ?? true,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
   })
 }
 
@@ -139,8 +147,11 @@ type ObjectivePayload = {
   title: string
   description?: string | null
   cycle: string
+  goalType: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
   startAt: string
   endAt: string
+  ownerId?: string
+  teamId?: string | null
   parentObjectiveId?: string | null
   keyResults: Array<{
     title: string
@@ -199,5 +210,29 @@ export function useUpdateObjectiveStatus() {
       queryClient.invalidateQueries({ queryKey: ['objective', variables.id] })
       queryClient.invalidateQueries({ queryKey: ['objectives'] })
     },
+  })
+}
+
+export function useUserOptions(search: string) {
+  const query = new URLSearchParams()
+  if (search) query.set('search', search)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+
+  return useQuery<{ users: Array<{ id: string; email: string; name?: string | null; role: string }> }, Error>({
+    queryKey: ['user-options', search],
+    queryFn: () => fetchJSON(`/api/users${suffix}`),
+    enabled: true,
+  })
+}
+
+export function useTeams(search: string) {
+  const query = new URLSearchParams()
+  if (search) query.set('search', search)
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+
+  return useQuery<{ teams: Array<{ id: string; name: string }> }, Error>({
+    queryKey: ['teams', search],
+    queryFn: () => fetchJSON(`/api/teams${suffix}`),
+    enabled: true,
   })
 }

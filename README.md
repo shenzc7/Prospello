@@ -1,4 +1,4 @@
-# Prospello
+# OKR Builder
 
 A modern OKR (Objectives and Key Results) tracking platform built with Next.js 15, designed to help teams set, track, and align organizational goals with real-time progress monitoring.
 
@@ -23,8 +23,8 @@ A modern OKR (Objectives and Key Results) tracking platform built with Next.js 1
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/prospello.git
-   cd prospello
+   git clone https://github.com/yourusername/okr-builder.git
+   cd okr-builder
    ```
 
 2. **Install dependencies**
@@ -74,7 +74,7 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 
 # Optional Branding
-NEXT_PUBLIC_BRAND_NAME="Prospello"
+NEXT_PUBLIC_BRAND_NAME="OKR Builder"
 NEXT_PUBLIC_BRAND_TAGLINE="Modern OKR & Check-in Platform"
 NEXT_PUBLIC_BRAND_LOGO_URL=""
 ```
@@ -116,7 +116,7 @@ npx prisma migrate dev  # Create and apply migrations
 1. **Connect Repository:**
    - Go to [vercel.com](https://vercel.com) and sign up/login
    - Click "New Project" → "Import Git Repository"
-   - Connect your GitHub account and select the Prospello repository
+   - Connect your GitHub account and select the OKR Builder repository
 
 2. **Configure Project:**
    - Framework Preset: **Next.js** (auto-detected)
@@ -130,7 +130,7 @@ npx prisma migrate dev  # Create and apply migrations
    DATABASE_URL=postgresql://username:password@host:5432/database
    NEXTAUTH_URL=https://your-app.vercel.app
    NEXTAUTH_SECRET=your-production-secret-key
-   NEXT_PUBLIC_BRAND_NAME=Prospello
+   NEXT_PUBLIC_BRAND_NAME=OKR Builder
    NEXT_PUBLIC_BRAND_TAGLINE=Modern OKR & Check-in Platform
    ```
 

@@ -1,0 +1,57 @@
+#!/bin/bash
+
+CRYSTAL_DIR=".crystal"
+TASKS_FILE="$CRYSTAL_DIR/TASKS.md"
+STATE_FILE="$CRYSTAL_DIR/STATE.md"
+
+function show_help {
+    echo "💎 Crystal Core v2.0"
+    echo "Usage: ./crystal [command]"
+    echo ""
+    echo "Commands:"
+    echo "  start   - Initiate the agent workflow."
+    echo "  status  - Show the current system state."
+    echo "  task    - View the current active task."
+}
+
+function init_check {
+    if [ ! -d "$CRYSTAL_DIR" ]; then
+        echo "❌ Critical Error: .crystal directory not found."
+        echo "Please ensure the Crystal Core protocol is installed."
+        exit 1
+    fi
+}
+
+function start_workflow {
+    init_check
+    echo "💎 CRYSTAL CORE: ONLINE"
+    echo "--------------------------------"
+    echo "State Map: Loaded from $STATE_FILE"
+    echo "Directives: Loaded from $TASKS_FILE"
+    echo "--------------------------------"
+    echo ""
+    echo "🚀 READY."
+    echo ""
+    echo "To activate the agent, simply say:"
+    echo "  > \"Execute active task.\""
+    echo ""
+    echo "Current Directive:"
+    grep -A 5 "\[ACTIVE\]" "$TASKS_FILE"
+}
+
+case "$1" in
+    start)
+        start_workflow
+        ;;
+    status)
+        init_check
+        cat "$STATE_FILE"
+        ;;
+    task)
+        init_check
+        cat "$TASKS_FILE"
+        ;;
+    *)
+        show_help
+        ;;
+esac

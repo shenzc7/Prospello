@@ -1,20 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import {
-  ClipboardList,
-  Menu,
-  ShieldCheck,
-  Target,
-  UserRound,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 
 import { AppNav, AppNavItem } from '@/components/navigation/AppNavigation'
-import { UserMenu } from '@/components/navigation/UserMenu'
 import { Button } from '@/components/ui/button'
 
 type AppSidebarProps = {
@@ -26,13 +16,6 @@ const fallbackLinks: AppNavItem[] = [
   { href: '/okrs', label: 'Objectives', icon: 'Target', exact: true },
   { href: '/my', label: 'My updates', icon: 'ClipboardList' },
 ]
-
-const navIcons: Record<string, LucideIcon> = {
-  Target,
-  ClipboardList,
-  UserRound,
-  ShieldCheck,
-}
 
 export function AppSidebar({ items, envLabel }: AppSidebarProps) {
   const workingItems = items.length ? items : fallbackLinks
@@ -62,9 +45,9 @@ export function AppSidebar({ items, envLabel }: AppSidebarProps) {
           <Link
             href="/okrs"
             className="text-sm font-medium text-foreground hover:text-muted-foreground/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-            aria-label="Prospello home"
+            aria-label="OKR Builder home"
           >
-            Prospello
+            OKR Builder
           </Link>
           {envLabel && (
             <span className="text-xs text-muted-foreground/60" aria-label={`Environment: ${envLabel}`}>
