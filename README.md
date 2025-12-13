@@ -28,6 +28,10 @@ OKRFlow is a production-grade Objectives and Key Results (OKR) management platfo
 | **Testing** | Jest + Playwright | Latest | Unit, integration, and E2E testing |
 | **Deployment** | Vercel | Enterprise | Global edge network deployment |
 
+> **Handoff quick links:**  
+> • [docs/ONBOARDING.md](docs/ONBOARDING.md) – step-by-step guide for new engineers/admins  
+> • [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md) – production/Vercel launch checklist
+
 ## Enterprise Feature Set
 
 ### Core OKR Management (`/app/(app)/okrs/`, `/lib/okr.ts`)
@@ -62,6 +66,8 @@ OKRFlow is a production-grade Objectives and Key Results (OKR) management platfo
 
 ## Development Environment Setup
 
+> Need the abridged handoff? See [docs/ONBOARDING.md](docs/ONBOARDING.md) for a checklist-style version of this section.
+
 ### Prerequisites
 
 **System Requirements:**
@@ -92,7 +98,7 @@ npm ci
 ```
 
 #### 2. Environment Configuration (`/.env.example` → `/.env.local`)
-```bash
+   ```bash
 # Copy environment template
 cp .env.example .env.local
 
@@ -101,7 +107,7 @@ cp .env.example .env.local
 ```
 
 **Required Environment Variables:**
-```bash
+   ```bash
 # Database Configuration - Critical for all operations
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/okrflow?schema=public"
 
@@ -188,6 +194,9 @@ npm run lint
 
 # Unit test execution
 npm test
+
+# Full CI regression gate (lint → tests → build)
+npm run verify
 
 # E2E test suite (requires running server)
 npx playwright test
@@ -849,6 +858,8 @@ OKRFlow supports multiple deployment topologies optimized for enterprise require
 - **Containerized**: Docker-based deployment for Kubernetes/VM environments
 - **Hybrid**: Serverless functions with dedicated database and caching layers
 
+For a short operational checklist, reference [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md).
+
 ### Vercel Enterprise Deployment (`/vercel.json`)
 
 #### Production Environment Setup
@@ -880,7 +891,7 @@ OKRFlow supports multiple deployment topologies optimized for enterprise require
 ```
 
 **2. Environment Variable Management:**
-```bash
+   ```bash
 # Production Secrets (Vercel CLI)
 vercel env add DATABASE_URL production
 vercel env add NEXTAUTH_SECRET production
@@ -928,7 +939,7 @@ curl -f https://your-app.vercel.app/api/health
 
 # Database migration application
 echo "🗃️ Applying database migrations..."
-npx prisma migrate deploy
+   npx prisma migrate deploy
 
 echo "🎉 Deployment completed successfully!"
 ```

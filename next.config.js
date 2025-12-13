@@ -1,10 +1,13 @@
+const isStrictBuild = process.env.CI === 'true' || process.env.VERCEL === '1'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    // Make Vercel/CI builds fail fast, keep dev flexible
+    ignoreBuildErrors: !isStrictBuild,
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: !isStrictBuild,
   },
   // Turbopack configuration (used when running with --turbopack)
   turbopack: {
@@ -17,7 +20,7 @@ const nextConfig = {
   },
   // Optimize for faster dev
   reactStrictMode: false,
-  // Skip type checking during dev for speed
+  // Skip certain optimizations in dev for speed
   experimental: {
     // Faster page loading
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],

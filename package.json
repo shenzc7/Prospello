@@ -16,6 +16,7 @@
     "start:public": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "next lint",
     "test": "jest",
+    "verify": "npm run lint && npm run test && npm run build",
     "warmup": "node scripts/warmup.mjs",
     "db:seed": "tsx prisma/seed.ts"
   },

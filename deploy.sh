@@ -1,29 +1,35 @@
 #!/bin/bash
+set -euo pipefail
 
-echo "🚀 OKR Builder Deployment Script for Vercel"
-echo "=========================================="
+echo "🚀 OKRFlow Vercel Deployment"
+echo "============================"
 
-# Check if Vercel CLI is installed
-if ! command -v vercel &> /dev/null; then
-    echo "❌ Vercel CLI not found. Installing..."
-    npm install -g vercel
+if ! command -v vercel >/dev/null 2>&1; then
+  echo "❌ Vercel CLI not found. Install it first: npm install -g vercel"
+  exit 1
 fi
 
-# Check if logged in
-if ! vercel whoami &> /dev/null; then
-    echo "🔐 Please login to Vercel:"
-    vercel login
+if ! vercel whoami >/dev/null 2>&1; then
+  echo "🔐 Login required..."
+  vercel login
 fi
 
-echo "📦 Deploying to Vercel..."
-vercel --prod
+echo "🔎 Running local verification (lint → tests → build)..."
+npm run verify
 
-echo "✅ Deployment initiated!"
-echo ""
-echo "📋 Next Steps:"
-echo "1. Go to your Vercel dashboard"
-echo "2. Set environment variables in Project Settings"
-echo "3. Set up PostgreSQL database (recommended: Vercel Postgres)"
-echo "4. Run 'npm run db:seed' to populate demo data"
-echo ""
-echo "🔗 Your app will be available at the URL shown above"
+echo "🗄️ Checking Prisma migrations..."
+npx prisma migrate status
+
+echo "🌐 Ensuring Vercel project link..."
+vercel pull --yes --environment=production
+
+echo "📦 Building production artifacts locally..."
+vercel build --prod
+
+echo "🚀 Deploying prebuilt artifacts..."
+vercel deploy --prebuilt --prod --yes
+
+echo "✅ Deployment triggered! Post-deploy checklist:"
+echo "  1. Apply database migrations to production (npx prisma migrate deploy)."
+echo "  2. Hit https://<your-app>.vercel.app/api/health to confirm dependencies."
+echo "  3. Monitor cron endpoints configured in vercel.json."
