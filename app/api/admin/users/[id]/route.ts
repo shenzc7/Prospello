@@ -38,6 +38,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const { id } = await params
+
+    if (parsed.data.role && id === session.user.id) {
+      return createErrorResponse(errors.badRequest('Cannot change your own role'))
+    }
+
     const targetUser = await prisma.user.findUnique({
       where: { id },
       select: { orgId: true },

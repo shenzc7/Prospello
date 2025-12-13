@@ -7,79 +7,125 @@ import SlackProvider from "next-auth/providers/slack";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import { prisma } from '@/lib/prisma'
 import { Role } from '@prisma/client'
+import { generateUniqueOrgSlug } from '@/lib/org'
+import { loadTenantProviders } from '@/lib/idp'
 
-const providers: NextAuthOptions['providers'] = []
+// =============================================================================
+// AUTH PROVIDER CONFIGURATION
+// =============================================================================
+// SSO providers are configured via environment variables. See .env for setup
+// instructions for each provider (Google, Slack, Microsoft Azure AD).
+//
+// To enable a provider, set its CLIENT_ID and CLIENT_SECRET in .env
+// To disable password auth, set ALLOW_PASSWORD_AUTH=false
+// To require SSO only, set REQUIRE_SSO=true
+// =============================================================================
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  providers.push(GoogleProvider({
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  }))
-} else {
-  console.warn('Google SSO is not configured. Set GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET to enable.')
-}
+function buildEnvProviders(): NextAuthOptions['providers'] {
+  const providers: NextAuthOptions['providers'] = []
+  const allowPasswordAuth = process.env.ALLOW_PASSWORD_AUTH !== 'false' // default: enabled
+  const requireSso = process.env.REQUIRE_SSO === 'true' // default: not required
+  const configuredSso: string[] = []
 
-if (process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET) {
-  providers.push(SlackProvider({
-    clientId: process.env.SLACK_CLIENT_ID,
-    clientSecret: process.env.SLACK_CLIENT_SECRET,
-  }))
-} else {
-  console.warn('Slack SSO is not configured. Set SLACK_CLIENT_ID/SLACK_CLIENT_SECRET to enable.')
-}
+  // Google SSO
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    providers.push(GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }))
+    configuredSso.push('Google')
+  }
 
-if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
-  providers.push(AzureADProvider({
-    clientId: process.env.AZURE_AD_CLIENT_ID,
-    clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
-    tenantId: process.env.AZURE_AD_TENANT_ID,
-  }))
-} else {
-  console.warn('Azure AD SSO is not configured. Set AZURE_AD_CLIENT_ID/AZURE_AD_CLIENT_SECRET to enable.')
-}
+  // Slack SSO
+  if (process.env.SLACK_CLIENT_ID && process.env.SLACK_CLIENT_SECRET) {
+    providers.push(SlackProvider({
+      clientId: process.env.SLACK_CLIENT_ID,
+      clientSecret: process.env.SLACK_CLIENT_SECRET,
+    }))
+    configuredSso.push('Slack')
+  }
 
-providers.push(
-  CredentialsProvider({
-    name: 'credentials',
-    credentials: {
-      email: { label: 'Email', type: 'email' },
-      password: { label: 'Password', type: 'password' }
-    },
-    async authorize(credentials) {
-      if (!credentials?.email || !credentials?.password) {
-        return null
-      }
+  // Microsoft Azure AD SSO
+  if (process.env.AZURE_AD_CLIENT_ID && process.env.AZURE_AD_CLIENT_SECRET) {
+    providers.push(AzureADProvider({
+      clientId: process.env.AZURE_AD_CLIENT_ID,
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
+      tenantId: process.env.AZURE_AD_TENANT_ID,
+    }))
+    configuredSso.push('Azure AD')
+  }
 
-      const user = await prisma.user.findUnique({
-        where: { email: credentials.email },
-        include: { org: true }
-      })
-
-      if (!user || !user.passwordHash) {
-        return null
-      }
-
-      const isValidPassword = await compare(credentials.password, user.passwordHash)
-
-      if (!isValidPassword) {
-        return null
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        orgId: user.orgId || undefined,
-      }
+  // Log SSO configuration status (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    if (configuredSso.length > 0) {
+      console.log(`✓ SSO enabled: ${configuredSso.join(', ')}`)
+    } else {
+      console.log('○ SSO not configured (optional - see .env for setup instructions)')
     }
-  })
-)
+  }
+
+  // Warn if SSO is required but none configured
+  if (requireSso && configuredSso.length === 0) {
+    console.warn('⚠ REQUIRE_SSO=true but no SSO provider is configured. Users cannot log in!')
+  }
+
+  // Password/credentials authentication
+  if (allowPasswordAuth) {
+    providers.push(
+      CredentialsProvider({
+        name: 'credentials',
+        credentials: {
+          email: { label: 'Email', type: 'email' },
+          password: { label: 'Password', type: 'password' }
+        },
+        async authorize(credentials) {
+          if (!credentials?.email || !credentials?.password) {
+            return null
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            include: { org: true }
+          })
+
+          if (!user || !user.passwordHash) {
+            return null
+          }
+
+          const isValidPassword = await compare(credentials.password, user.passwordHash)
+
+          if (!isValidPassword) {
+            return null
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            orgId: user.orgId || undefined,
+          }
+        }
+      })
+    )
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✓ Password authentication enabled')
+    }
+  } else {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('○ Password authentication disabled (SSO only)')
+    }
+  }
+
+  return providers
+}
+
+const envProviders = buildEnvProviders()
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
-  providers,
+  providers: envProviders,
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 days
@@ -130,6 +176,30 @@ export const authOptions: NextAuthOptions = {
         await ensureOrgAndRole(user.id as string, user.email, user.name || undefined)
       }
     },
+  },
+}
+
+type AuthProvider = NextAuthOptions['providers'][number]
+
+function mergeProviders(base: NextAuthOptions['providers'], extras: NextAuthOptions['providers']): NextAuthOptions['providers'] {
+  const providerMap = new Map<string | null, AuthProvider>()
+  base.forEach((provider) => {
+    providerMap.set(provider.id, provider)
+  })
+  extras.forEach((provider) => {
+    providerMap.set(provider.id, provider)
+  })
+  return Array.from(providerMap.values())
+}
+
+export async function authOptionsForOrg(orgSlug?: string): Promise<NextAuthOptions> {
+  if (!orgSlug) return authOptions
+  const tenantProviders = await loadTenantProviders(orgSlug)
+  if (!tenantProviders.length) return authOptions
+
+  return {
+    ...authOptions,
+    providers: mergeProviders(envProviders, tenantProviders),
   }
 }
 
@@ -146,17 +216,18 @@ async function ensureOrgAndRole(userId: string, email: string, name?: string | n
   if (!orgId) {
     const domain = email.split('@')[1] || 'okrflow.local'
     const orgName = `${domain.split('.').shift() || 'Org'} Workspace`
-    const org = await prisma.organization.findFirst({ where: { name: orgName } }) ??
-      await prisma.organization.create({ data: { name: orgName } })
+    const slug = await generateUniqueOrgSlug(orgName)
+    const org = await prisma.organization.create({ data: { name: orgName, slug } })
     orgId = org.id
   }
 
   if (!existing.orgId || existing.role !== Role.EMPLOYEE || existing.passwordHash === null) {
+    const newRole = existing.orgId ? (existing.role || Role.EMPLOYEE) : Role.ADMIN
     await prisma.user.update({
       where: { id: userId },
       data: {
         orgId,
-        role: existing.role || Role.EMPLOYEE,
+        role: newRole,
         passwordHash: existing.passwordHash ?? '',
         name: existing?.orgId ? undefined : name,
       },

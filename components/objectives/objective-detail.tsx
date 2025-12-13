@@ -1,13 +1,37 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { ProgressChip } from '@/components/objectives/progress-chip'
-import { useObjective } from '@/hooks/useObjectives'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { strings } from '@/config/strings'
+import { fetchJSON, useObjective } from '@/hooks/useObjectives'
 
 export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
   const { data, isLoading, isError, error } = useObjective(objectiveId)
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const deleteObjective = useMutation({
+    mutationFn: async () =>
+      fetchJSON<{ message: string }>(`/api/objectives/${objectiveId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      toast.success(strings.toasts.objectives.deleted)
+      queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] })
+      queryClient.invalidateQueries({ queryKey: ['objectives'] })
+      setConfirmDelete(false)
+      router.push('/objectives')
+    },
+    onError: (err: Error) => toast.error(err?.message ?? strings.toasts.objectives.deleteError),
+  })
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading objective…</p>
@@ -37,6 +61,15 @@ export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
           <ProgressChip value={objective.progress} />
           <Button variant="outline" asChild>
             <Link href={`/objectives/${objective.id}/edit`}>Edit</Link>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleteObjective.isPending}
+          >
+            {strings.buttons.deleteObjective}
           </Button>
         </div>
       </div>
@@ -108,6 +141,26 @@ export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
           ))}
         </div>
       </section>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title={strings.dialogs.deleteObjective.title}
+        description={strings.dialogs.deleteObjective.description}
+        confirmLabel={strings.dialogs.deleteObjective.confirmLabel}
+        confirmingLabel={strings.buttons.deleting}
+        cancelLabel={strings.dialogs.deleteObjective.cancelLabel}
+        isConfirming={deleteObjective.isPending}
+        onCancel={() => {
+          if (!deleteObjective.isPending) {
+            setConfirmDelete(false)
+          }
+        }}
+        onConfirm={() => {
+          if (!deleteObjective.isPending) {
+            deleteObjective.mutate()
+          }
+        }}
+      />
     </div>
   )
 }

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     // Authorize: only owner by default; managers/admins may view others
   const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { title: true, objective: { select: { id: true, ownerId: true, owner: { select: { orgId: true } } } } },
+      select: { title: true, objective: { select: { id: true, ownerId: true, progressType: true, progress: true, owner: { select: { orgId: true } } } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     // Authorize: only KR owner (objective owner) or manager/admin
     const kr = await prisma.keyResult.findUnique({
       where: { id: keyResultId },
-      select: { objective: { select: { id: true, ownerId: true, owner: { select: { orgId: true } } } } },
+      select: { title: true, objective: { select: { id: true, ownerId: true, progressType: true, progress: true, owner: { select: { orgId: true } } } } },
     })
     if (!kr) return createErrorResponse(errors.notFound('Key result'))
     const isOwner = kr.objective.ownerId === session.user.id
@@ -149,6 +149,8 @@ export async function POST(request: NextRequest) {
         select: {
           id: true,
           ownerId: true,
+          progressType: true,
+          progress: true,
           keyResults: {
             select: { id: true, weight: true, target: true, current: true },
           },
@@ -164,14 +166,17 @@ export async function POST(request: NextRequest) {
         progress: calculateKRProgress(keyResult.current, keyResult.target),
       }))
 
-      // Persist the automated score on the objective (0.0 - 1.0 scale)
-      const objectiveProgress = calculateObjectiveProgress(
-        keyResultsWithProgress.map((kr) => ({ weight: kr.weight, progress: kr.progress })),
-      )
-      const score = calculateObjectiveScore(objectiveProgress)
+      const objectiveProgress = objective.progressType === 'MANUAL'
+        ? Math.round(objective.progress ?? 0)
+        : calculateObjectiveProgress(
+          keyResultsWithProgress.map((kr) => ({ weight: kr.weight, progress: kr.progress })),
+        )
+      const score = Number(calculateObjectiveScore(objectiveProgress).toFixed(2))
       await tx.objective.update({
         where: { id: objective.id },
-        data: { score },
+        data: objective.progressType === 'MANUAL'
+          ? { score }
+          : { score, progress: objectiveProgress },
       })
 
       return {

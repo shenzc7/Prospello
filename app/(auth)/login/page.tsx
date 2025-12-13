@@ -9,7 +9,16 @@ export const metadata: Metadata = {
   description: `Sign in to your OKR workspace`,
 }
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams
+  const org = typeof params.org === 'string' ? params.org : undefined
+  const inviteToken = typeof params.invite === 'string' ? params.invite : undefined
+  const email = typeof params.email === 'string' ? params.email : undefined
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
       {/* Subtle background gradient */}
@@ -29,7 +38,7 @@ export default function LoginPage() {
           </h1>
 
           <Suspense fallback={<div className="text-sm text-slate-200 text-center">Loading form…</div>}>
-            <LoginForm />
+            <LoginForm initialOrgSlug={org} inviteToken={inviteToken} initialEmail={email} />
           </Suspense>
         </div>
 

@@ -1,4 +1,4 @@
-import { eachWeekOfInterval, isEqual, startOfWeek, subWeeks } from 'date-fns'
+import { eachWeekOfInterval, startOfWeek, subWeeks } from 'date-fns'
 
 import { calculateObjectiveScore, calculateTrafficLightStatus, type TrafficLightStatus } from '@/lib/utils'
 

@@ -7,7 +7,17 @@ import { getFiscalQuarter } from '@/lib/india'
 import { calculateKRProgress, calculateObjectiveScore } from '@/lib/utils'
 import { updateObjectiveRequestSchema, type UpdateObjectiveRequest } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
-import { ProgressType, Role } from '@prisma/client'
+import { ProgressType, Role, GoalType } from '@prisma/client'
+
+function isValidAlignment(child: GoalType, parent?: GoalType | null): boolean {
+  if (!parent) {
+    return child === 'COMPANY'
+  }
+  if (child === 'DEPARTMENT') return parent === 'COMPANY'
+  if (child === 'TEAM') return parent === 'DEPARTMENT'
+  if (child === 'INDIVIDUAL') return parent === 'TEAM'
+  return false
+}
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -105,7 +115,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // First check if objective exists and get ownership info
     const existingObjective = await prisma.objective.findUnique({
       where: { id },
-      select: { ownerId: true, cycle: true, owner: { select: { orgId: true } } },
+      select: { ownerId: true, cycle: true, goalType: true, parentId: true, owner: { select: { orgId: true } } },
     })
 
     if (!existingObjective) {
@@ -129,11 +139,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const updateData = validation.data
 
+    const effectiveGoalType = (updateData.goalType as GoalType | undefined) ?? (existingObjective.goalType as GoalType)
+    let currentParentGoalType: GoalType | null = null
+    if (existingObjective.parentId) {
+      const parent = await prisma.objective.findUnique({
+        where: { id: existingObjective.parentId },
+        select: { goalType: true },
+      })
+      currentParentGoalType = parent?.goalType ?? null
+    }
+
     // Validate parent objective if being updated
     if (updateData.parentObjectiveId) {
       const parentObjective = await prisma.objective.findUnique({
         where: { id: updateData.parentObjectiveId },
-        select: { cycle: true, ownerId: true, owner: { select: { orgId: true } } },
+        select: { cycle: true, goalType: true, ownerId: true, owner: { select: { orgId: true } } },
       })
 
       if (!parentObjective) {
@@ -146,12 +166,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return createErrorResponse(errors.validation('Parent objective must be in the same cycle'))
       }
 
+      if (!isValidAlignment(effectiveGoalType, parentObjective.goalType)) {
+        return createErrorResponse(errors.validation('Alignment must follow Company → Department → Team → Individual cascade'))
+      }
+
       // Check permission to align to parent
       if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
       }
       if (parentObjective.owner?.orgId !== orgId) {
         return createErrorResponse(errors.forbidden('Parent objective is in a different organization'))
+      }
+    } else {
+      // If no parent is provided in the update payload, ensure existing linkage still respects cascade.
+      if (!existingObjective.parentId && effectiveGoalType !== 'COMPANY') {
+        return createErrorResponse(errors.validation('Non-company objectives must align to a parent objective of the correct type'))
+      }
+      if (existingObjective.parentId && !isValidAlignment(effectiveGoalType, currentParentGoalType)) {
+        return createErrorResponse(errors.validation('Alignment must follow Company → Department → Team → Individual cascade'))
       }
     }
 
@@ -171,10 +203,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       teamId: string | null
       parentId: string | null
       fiscalQuarter: number
+      goalType: GoalType
+      priority: number
+      weight: number
     }> = {}
     if (updateData.title) data.title = updateData.title
     if (updateData.description !== undefined) data.description = updateData.description
     if (updateData.cycle) data.cycle = updateData.cycle
+    if (updateData.goalType) data.goalType = updateData.goalType as GoalType
+    if (updateData.priority !== undefined) data.priority = updateData.priority
+    if (updateData.weight !== undefined) data.weight = updateData.weight
     if (updateData.ownerId) {
       if (!isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Only managers or admins can reassign owners'))

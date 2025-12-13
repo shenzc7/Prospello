@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const runtime = 'nodejs'
 import { getServerSession } from 'next-auth'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'

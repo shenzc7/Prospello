@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { createErrorResponse, createSuccessResponse, errors } from '@/lib/apiError'
-import { DEFAULT_NOTIFICATION_SETTINGS } from '@/lib/notifications'
+import { DEFAULT_NOTIFICATION_SETTINGS } from '@/lib/notificationSettings'
 
 const settingsSchema = z.object({
   emailCheckInReminders: z.boolean().optional(),

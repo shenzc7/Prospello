@@ -128,6 +128,36 @@ export function ObjectiveBasicFields({ control }: Props) {
           />
         )}
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <FormField
+          control={control}
+          name="priority"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Priority (1 = highest)</FormLabel>
+              <FormControl>
+                <Input type="number" min={1} max={5} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
+          name="weight"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Objective Weight (%)</FormLabel>
+              <FormControl>
+                <Input type="number" min={0} max={100} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
     </>
   )
 }

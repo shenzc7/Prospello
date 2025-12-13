@@ -12,6 +12,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
@@ -20,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       where: { id },
       select: {
         objective: {
-          select: { ownerId: true },
+          select: { ownerId: true, owner: { select: { orgId: true } } },
         },
       },
     })
@@ -32,6 +36,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Check permissions - only objective owner can modify key results unless manager/admin
     if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (keyResult.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Key result is in a different organization'))
     }
 
     const body = await request.json().catch(() => null)
@@ -98,6 +105,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!session?.user) {
       return createErrorResponse(errors.unauthorized())
     }
+    const orgId = session.user.orgId
+    if (!orgId) {
+      return createErrorResponse(errors.forbidden('Organization not set for user'))
+    }
 
     const { id } = await params
 
@@ -106,7 +117,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       where: { id },
       select: {
         objective: {
-          select: { ownerId: true },
+          select: { ownerId: true, owner: { select: { orgId: true } } },
         },
       },
     })
@@ -118,6 +129,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     // Check permissions - only objective owner can delete key results unless manager/admin
     if (keyResult.objective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
       return createErrorResponse(errors.forbidden())
+    }
+    if (keyResult.objective.owner?.orgId !== orgId) {
+      return createErrorResponse(errors.forbidden('Key result is in a different organization'))
     }
 
     // Delete the key result

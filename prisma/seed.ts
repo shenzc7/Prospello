@@ -9,7 +9,7 @@ async function main() {
 
   if (!org) {
     org = await prisma.organization.create({
-      data: { name: 'TechFlow Solutions' },
+      data: { name: 'TechFlow Solutions', slug: 'techflow-solutions' },
     })
   }
 

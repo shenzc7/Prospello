@@ -80,8 +80,22 @@ export default function TeamDetailPage() {
     return <p className="text-sm text-muted-foreground">Loading team…</p>
   }
 
+  const loadError = teamQuery.error instanceof Error ? teamQuery.error.message : 'Unable to load team.'
+
   if (teamQuery.isError || !teamQuery.data?.team) {
-    return <p className="text-sm text-destructive">Unable to load team.</p>
+    return (
+      <div className="space-y-3">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => teamQuery.refetch()} disabled={teamQuery.isFetching}>
+            Retry
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => router.push('/teams')}>
+            Back to teams
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (

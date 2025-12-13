@@ -22,6 +22,8 @@ const nextConfig = {
     // Faster page loading
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],
   },
+  // Ensure CJS-only packages are externalized for RSC/Turbopack
+  serverExternalPackages: ['nodemailer'],
 }
 
 module.exports = nextConfig

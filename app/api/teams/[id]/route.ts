@@ -19,11 +19,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) return createErrorResponse(errors.forbidden('Organization not set for user'))
     if (!isManagerOrHigher(session.user.role as Role)) return createErrorResponse(errors.forbidden())
 
     const { id } = await params
-    const team = await prisma.team.findUnique({
-      where: { id },
+    const team = await prisma.team.findFirst({
+      where: { id, orgId },
       include: {
         members: {
           include: { user: { select: { id: true, name: true, email: true, role: true } } },
@@ -68,9 +70,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) return createErrorResponse(errors.forbidden('Organization not set for user'))
     if (!isManagerOrHigher(session.user.role as Role)) return createErrorResponse(errors.forbidden())
 
     const { id } = await params
+    const existingTeam = await prisma.team.findFirst({ where: { id, orgId }, select: { id: true, orgId: true } })
+    if (!existingTeam) return createErrorResponse(errors.notFound('Team'))
+
     const body = await request.json().catch(() => null)
     const parsed = updateSchema.safeParse(body)
     if (!parsed.success) return createErrorResponse(parsed.error)
@@ -80,6 +87,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     if (parsed.data.memberIds) {
+      // Ensure all provided members belong to the same org
+      const members = await prisma.user.findMany({
+        where: { id: { in: parsed.data.memberIds } },
+        select: { id: true, orgId: true },
+      })
+      const invalidMember = members.find((member) => member.orgId !== orgId)
+      if (invalidMember) {
+        return createErrorResponse(errors.forbidden('Members must belong to your organization'))
+      }
+
       await prisma.teamMember.deleteMany({
         where: {
           teamId: id,
@@ -118,9 +135,14 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) return createErrorResponse(errors.unauthorized())
+    const orgId = session.user.orgId
+    if (!orgId) return createErrorResponse(errors.forbidden('Organization not set for user'))
     if (!isManagerOrHigher(session.user.role as Role)) return createErrorResponse(errors.forbidden())
 
     const { id } = await params
+    const team = await prisma.team.findFirst({ where: { id, orgId }, select: { id: true } })
+    if (!team) return createErrorResponse(errors.notFound('Team'))
+
     await prisma.team.delete({ where: { id } })
     return createSuccessResponse({ ok: true })
   } catch (error) {

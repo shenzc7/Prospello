@@ -11,32 +11,38 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { SsoButtons, type SsoProvider } from '@/components/auth/SsoButtons'
 
-const schema = z.object({
+const createSchema = (hasInvite: boolean) => z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string().min(8, 'Please confirm your password'),
-  orgName: z.string().min(2, 'Organization name must be at least 2 characters').optional(),
+  orgName: hasInvite 
+    ? z.string().optional()
+    : z.string().min(2, 'Organization name must be at least 2 characters').optional(),
 }).refine((values) => values.password === values.confirmPassword, {
   path: ['confirmPassword'],
   message: 'Passwords do not match',
 })
 
-type FormValues = z.infer<typeof schema>
-
 export function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
   const callbackUrl = params?.get('callbackUrl') ?? '/'
+  const inviteToken = params?.get('invite')
+  const inviteEmail = params?.get('email')
+  const orgSlug = params?.get('org')
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [ssoLoading, setSsoLoading] = React.useState<SsoProvider | null>(null)
+
+  const schema = React.useMemo(() => createSchema(!!inviteToken), [inviteToken])
+  type FormValues = z.infer<typeof schema>
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: '',
-      email: '',
+      email: inviteEmail || '',
       password: '',
       confirmPassword: '',
       orgName: '',
@@ -56,7 +62,8 @@ export function SignupForm() {
           name: values.name,
           email: values.email,
           password: values.password,
-          orgName: values.orgName || undefined,
+          orgName: inviteToken ? undefined : (values.orgName || undefined),
+          inviteToken: inviteToken || undefined,
         }),
       })
 
@@ -137,16 +144,21 @@ export function SignupForm() {
               type="email"
               autoComplete="email"
               placeholder="name@company.com"
+              disabled={!!inviteToken}
               className={cn(
                 "w-full h-12 px-4 text-sm bg-slate-800/50 border rounded-lg transition-all duration-200",
                 "text-white placeholder:text-slate-500",
                 "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500",
                 "hover:border-slate-600",
+                inviteToken && "opacity-60 cursor-not-allowed",
                 errors.email ? "border-red-500/50" : "border-slate-700"
               )}
             />
             {errors.email && (
               <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
+            )}
+            {inviteToken && (
+              <p className="mt-1.5 text-xs text-slate-400">Email is pre-filled from your invitation</p>
             )}
           </div>
 
@@ -198,27 +210,36 @@ export function SignupForm() {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="orgName" className="block text-sm font-medium text-slate-300 mb-2">
-              Organization (optional)
-            </label>
-            <input
-              {...register('orgName')}
-              id="orgName"
-              type="text"
-              placeholder="e.g., TechFlow"
-              className={cn(
-                "w-full h-12 px-4 text-sm bg-slate-800/50 border rounded-lg transition-all duration-200",
-                "text-white placeholder:text-slate-500",
-                "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500",
-                "hover:border-slate-600",
-                errors.orgName ? "border-red-500/50" : "border-slate-700"
+          {!inviteToken && (
+            <div>
+              <label htmlFor="orgName" className="block text-sm font-medium text-slate-300 mb-2">
+                Organization (optional)
+              </label>
+              <input
+                {...register('orgName')}
+                id="orgName"
+                type="text"
+                placeholder="e.g., TechFlow"
+                className={cn(
+                  "w-full h-12 px-4 text-sm bg-slate-800/50 border rounded-lg transition-all duration-200",
+                  "text-white placeholder:text-slate-500",
+                  "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500",
+                  "hover:border-slate-600",
+                  errors.orgName ? "border-red-500/50" : "border-slate-700"
+                )}
+              />
+              {errors.orgName && (
+                <p className="mt-1.5 text-xs text-red-400">{errors.orgName.message}</p>
               )}
-            />
-            {errors.orgName && (
-              <p className="mt-1.5 text-xs text-red-400">{errors.orgName.message}</p>
-            )}
-          </div>
+            </div>
+          )}
+          {inviteToken && orgSlug && (
+            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <p className="text-sm text-emerald-400">
+                You&apos;re joining <strong>{orgSlug}</strong> organization
+              </p>
+            </div>
+          )}
         </div>
 
         {formError && (

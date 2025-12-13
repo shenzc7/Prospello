@@ -1,17 +1,19 @@
 'use client'
 
 import * as React from 'react'
+import { useSession } from 'next-auth/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import type { Role } from '@prisma/client'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UserRow } from './admin-users-row'
-import { useTeams } from '@/hooks/useObjectives'
+import { fetchJSON, useTeams } from '@/hooks/useObjectives'
 import { maybeHandleDemoRequest } from '@/lib/demo/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
@@ -55,7 +57,8 @@ async function fetchUsers(search: string): Promise<UsersResponse> {
     throw new Error(body.error ?? 'Unable to load users')
   }
 
-  return res.json()
+  const body = await res.json().catch(() => ({}))
+  return (body as { data?: UsersResponse }).data ?? (body as UsersResponse)
 }
 
 async function patchUser(input: { userId: string; role?: Role; teamIds?: string[] }) {
@@ -84,7 +87,8 @@ async function patchUser(input: { userId: string; role?: Role; teamIds?: string[
     throw new Error(body.error ?? 'Failed to update user')
   }
 
-  return res.json()
+  const body = await res.json().catch(() => ({}))
+  return (body as { data?: unknown }).data ?? body
 }
 
 export function AdminUsersClient() {
@@ -94,6 +98,8 @@ export function AdminUsersClient() {
   const [pendingId, setPendingId] = React.useState<string | null>(null)
   const [roleFilter, setRoleFilter] = React.useState<Role | 'ALL'>('ALL')
   const [teamFilter, setTeamFilter] = React.useState<string>('ALL')
+  const [userToDelete, setUserToDelete] = React.useState<AdminUser | null>(null)
+  const { data: session } = useSession()
   const queryClient = useQueryClient()
   const teamsQuery = useTeams('')
 
@@ -125,6 +131,50 @@ export function AdminUsersClient() {
     }
   })
 
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) =>
+      fetchJSON<{ message: string }>(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      setAlert({ variant: 'success', message: 'User deleted' })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setUserToDelete(null)
+    },
+    onError: (error: Error) => {
+      setAlert({ variant: 'destructive', message: error?.message ?? 'Delete failed' })
+    },
+  })
+
+  // Use both state and ref to persist credentials across re-renders
+  const [newUserCredentials, setNewUserCredentials] = React.useState<{
+    email: string
+    tempPassword: string
+    emailSent: boolean
+  } | null>(null)
+  
+  // Ref to persist credentials even if component re-renders
+  const credentialsRef = React.useRef<{
+    email: string
+    tempPassword: string
+    emailSent: boolean
+  } | null>(null)
+  
+  // Sync ref with state
+  React.useEffect(() => {
+    if (newUserCredentials) {
+      credentialsRef.current = newUserCredentials
+    }
+  }, [newUserCredentials])
+  
+  // Restore from ref if state was lost
+  React.useEffect(() => {
+    if (!newUserCredentials && credentialsRef.current) {
+      setNewUserCredentials(credentialsRef.current)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const createUser = useMutation({
     mutationFn: async (input: { email: string; name?: string; role: Role; teamIds?: string[] }) => {
       const demoPayload = maybeHandleDemoRequest('/api/admin/users', {
@@ -142,16 +192,35 @@ export function AdminUsersClient() {
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Failed to create user')
+        const message =
+          typeof body?.error === 'string'
+            ? body.error
+            : body?.error?.msg ?? 'Failed to create user'
+        throw new Error(message)
       }
-      return res.json()
+      const body = await res.json().catch(() => ({}))
+      return (body as { data?: { user?: { email?: string }; tempPassword?: string; emailSent?: boolean } }).data ?? body
     },
-    onSuccess: (data?: { tempPassword?: string }) => {
-      setAlert({ variant: 'success', message: 'User created' })
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    onSuccess: (data?: { user?: { email?: string }; tempPassword?: string; emailSent?: boolean }) => {
+      // Set credentials FIRST before any re-renders
       if (data?.tempPassword) {
-        toast.info(`Temporary password: ${data.tempPassword}`)
+        setNewUserCredentials({
+          email: data.user?.email || '',
+          tempPassword: data.tempPassword,
+          emailSent: data.emailSent ?? false,
+        })
+        if (data.emailSent) {
+          toast.success('User created! Welcome email sent with login credentials.')
+        } else {
+          toast.success('User created! Share the credentials below with them.')
+        }
+      } else {
+        setAlert({ variant: 'success', message: 'User created' })
       }
+      // Invalidate queries AFTER setting state (delayed slightly to ensure state is set)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      }, 100)
     },
     onError: (error: Error) => {
       setAlert({ variant: 'destructive', message: error?.message ?? 'Create failed' })
@@ -270,15 +339,16 @@ export function AdminUsersClient() {
           <Form {...createForm}>
             <form
               className="grid gap-3 md:grid-cols-4 md:items-end"
-              onSubmit={createForm.handleSubmit(async (values) => {
-                setAlert(null)
-                const teamIds = values.teamId && values.teamId !== '__none__' ? [values.teamId] : undefined
-                await createUser.mutateAsync({
-                  email: values.email,
-                  name: values.name,
-                  role: values.role,
-                  teamIds,
-                })
+            onSubmit={createForm.handleSubmit(async (values) => {
+              setAlert(null)
+              const teamIds = values.teamId && values.teamId !== '__none__' ? [values.teamId] : undefined
+              const trimmedName = values.name?.trim()
+              await createUser.mutateAsync({
+                email: values.email,
+                name: trimmedName || undefined,
+                role: values.role,
+                teamIds,
+              })
                 createForm.reset({ email: '', name: '', role: 'EMPLOYEE', teamId: undefined })
               })}
             >
@@ -364,6 +434,61 @@ export function AdminUsersClient() {
         </CardContent>
       </Card>
 
+      {/* New User Credentials Display */}
+      {newUserCredentials ? (
+        <Card className="border-2 border-primary bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              ✅ User Created Successfully
+            </CardTitle>
+            <CardDescription>
+              {newUserCredentials.emailSent
+                ? 'A welcome email has been sent with these credentials.'
+                : 'Share these credentials with the new user (email not configured).'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-2 p-3 rounded-lg bg-background border">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Email:</span>
+                <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{newUserCredentials.email}</code>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Temporary Password:</span>
+                <code className="text-sm font-mono bg-muted px-2 py-1 rounded">{newUserCredentials.tempPassword}</code>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Email: ${newUserCredentials.email}\nPassword: ${newUserCredentials.tempPassword}`
+                  )
+                  toast.success('Credentials copied to clipboard')
+                }}
+              >
+                Copy credentials
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setNewUserCredentials(null)
+                  credentialsRef.current = null
+                }}
+              >
+                Dismiss
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The user should change their password after first login.
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {alert ? (
         <Alert data-testid={`alert-${alert.variant === 'success' ? 'success' : 'error'}`} variant={alert.variant}>
           {alert.message}
@@ -403,6 +528,13 @@ export function AdminUsersClient() {
                   user={user}
                   onUpdate={handleUpdateRole}
                   onUpdateTeams={handleUpdateTeams}
+                  onRequestDelete={(target) => {
+                    setAlert(null)
+                    setUserToDelete(target)
+                  }}
+                  canDelete={Boolean(session?.user?.id) && user.id !== session.user.id}
+                  isSelf={Boolean(session?.user?.id) && user.id === session.user.id}
+                  isDeleting={deleteUser.isPending && userToDelete?.id === user.id}
                   availableTeams={teamsQuery.data?.teams ?? []}
                   pendingId={pendingId}
                   isSaving={updateUser.isPending}
@@ -416,6 +548,26 @@ export function AdminUsersClient() {
           </TableBody>
         </Table>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(userToDelete)}
+        title="Delete user?"
+        description={userToDelete ? `This will permanently remove ${userToDelete.email} and all associated data.` : undefined}
+        confirmLabel="Delete user"
+        confirmingLabel="Deleting…"
+        cancelLabel="Cancel"
+        isConfirming={deleteUser.isPending}
+        onCancel={() => {
+          if (!deleteUser.isPending) {
+            setUserToDelete(null)
+          }
+        }}
+        onConfirm={() => {
+          if (!deleteUser.isPending && userToDelete) {
+            deleteUser.mutate(userToDelete.id)
+          }
+        }}
+      />
     </div>
   )
 }

@@ -17,7 +17,13 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function LoginForm() {
+type LoginFormProps = {
+  initialOrgSlug?: string
+  inviteToken?: string
+  initialEmail?: string
+}
+
+export function LoginForm({ initialOrgSlug, inviteToken, initialEmail }: LoginFormProps) {
   const router = useRouter()
   const params = useSearchParams()
   const { data: session, status } = useSession()
@@ -26,6 +32,7 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [ssoLoading, setSsoLoading] = React.useState<string | null>(null)
   const [hydrated, setHydrated] = React.useState(false)
+  const [workspaceSlug, setWorkspaceSlug] = React.useState(initialOrgSlug || '')
 
   React.useEffect(() => {
     setHydrated(true)
@@ -34,7 +41,7 @@ export function LoginForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: '',
+      email: initialEmail || '',
       password: ''
     }
   })
@@ -57,7 +64,9 @@ export function LoginForm() {
         email: values.email,
         password: values.password,
         callbackUrl: callbackUrl,
-        redirect: false
+        redirect: false,
+        org: workspaceSlug || undefined,
+        invite: inviteToken || undefined,
       })
 
       if (result?.error) {
@@ -79,7 +88,7 @@ export function LoginForm() {
     setFormError(null)
     setSsoLoading(provider)
     try {
-      await signIn(provider, { callbackUrl })
+      await signIn(provider, { callbackUrl, org: workspaceSlug || undefined })
     } catch (error) {
       console.error('sso sign-in failed', error)
       setFormError('SSO sign-in failed. Try again or use your credentials.')
@@ -156,6 +165,30 @@ export function LoginForm() {
             {errors.password && (
               <p className="mt-1.5 text-xs text-red-400">{errors.password.message}</p>
             )}
+          </div>
+
+          <div>
+            <label htmlFor="workspace" className="block text-sm font-medium text-slate-300 mb-2">
+              Workspace slug <span className="text-slate-500">(optional)</span>
+            </label>
+            <input
+              id="workspace"
+              type="text"
+              autoComplete="organization"
+              placeholder="e.g. techflow-solutions"
+              value={workspaceSlug}
+              onChange={(e) => setWorkspaceSlug(e.target.value.trim())}
+              className={cn(
+                "w-full h-12 px-4 text-sm bg-slate-800/50 border rounded-lg transition-all duration-200",
+                "text-white placeholder:text-slate-500",
+                "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500",
+                "hover:border-slate-600",
+                "border-slate-700"
+              )}
+            />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Provided in invite links; used for org-scoped SSO.
+            </p>
           </div>
         </div>
 

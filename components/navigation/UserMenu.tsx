@@ -1,21 +1,26 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { signOut } from 'next-auth/react'
-import { LogOut } from 'lucide-react'
+import { BellDot, LogOut, MailPlus, ShieldCheck } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { strings } from '@/config/strings'
+import { isFeatureEnabled } from '@/config/features'
 import { cn } from '@/lib/ui'
 
 type UserMenuProps = {
   name?: string | null
   email?: string | null
+  role?: string | null
 }
 
-export function UserMenu({ name, email }: UserMenuProps) {
+export function UserMenu({ name, email, role }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const showAlerts = isFeatureEnabled('notificationFeed')
+  const showAdminExtras = role === 'ADMIN' && isFeatureEnabled('adminExtras')
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -75,6 +80,35 @@ export function UserMenu({ name, email }: UserMenuProps) {
             <p className="font-medium text-foreground">{name ?? email ?? strings.navigation.fallbackUser}</p>
             {name && email ? <p className="text-xs text-muted-foreground">{email}</p> : null}
           </div>
+          {showAlerts ? (
+            <Button
+              asChild
+              variant="ghost"
+              className="group w-full justify-start gap-2 rounded-full px-3 py-2 text-sm"
+            >
+              <Link href="/alerts" onClick={() => setOpen(false)}>
+                <BellDot className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" aria-hidden />
+                {strings.navigation.items.alerts}
+              </Link>
+            </Button>
+          ) : null}
+          {showAdminExtras ? (
+            <>
+              <div className="my-2 h-px bg-border/60" />
+              <Button asChild variant="ghost" className="group w-full justify-start gap-2 rounded-full px-3 py-2 text-sm">
+                <Link href="/admin/users" onClick={() => setOpen(false)}>
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" aria-hidden />
+                  Users
+                </Link>
+              </Button>
+              <Button asChild variant="ghost" className="group w-full justify-start gap-2 rounded-full px-3 py-2 text-sm">
+                <Link href="/admin/invitations" onClick={() => setOpen(false)}>
+                  <MailPlus className="h-4 w-4 text-muted-foreground transition group-hover:text-foreground" aria-hidden />
+                  Invitations
+                </Link>
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="ghost"

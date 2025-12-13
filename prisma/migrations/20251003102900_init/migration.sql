@@ -63,6 +63,7 @@ CREATE TABLE "VerificationToken" (
 CREATE TABLE "organizations" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
     "settings" JSONB,
     "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP NOT NULL,
@@ -182,12 +183,40 @@ CREATE TABLE "team_members" (
     CONSTRAINT "team_members_pkey" PRIMARY KEY ("id")
 );
 
+CREATE TABLE "invitations" (
+    "id" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+    "tokenHash" TEXT NOT NULL,
+    "invitedById" TEXT,
+    "expiresAt" TIMESTAMP,
+    "acceptedAt" TIMESTAMP,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP NOT NULL,
+    CONSTRAINT "invitations_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "identity_provider_configs" (
+    "id" TEXT NOT NULL,
+    "orgId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "clientId" TEXT NOT NULL,
+    "clientSecret" TEXT NOT NULL,
+    "issuer" TEXT,
+    "tenantId" TEXT,
+    "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP NOT NULL,
+    CONSTRAINT "identity_provider_configs_pkey" PRIMARY KEY ("id")
+);
+
 -- Indexes
 CREATE UNIQUE INDEX "Account_provider_providerAccountId_key" ON "Account"("provider", "providerAccountId");
 CREATE UNIQUE INDEX "Session_sessionToken_key" ON "Session"("sessionToken");
 CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
 CREATE UNIQUE INDEX "VerificationToken_identifier_token_key" ON "VerificationToken"("identifier", "token");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+CREATE UNIQUE INDEX "organizations_slug_key" ON "organizations"("slug");
 CREATE INDEX "users_role_idx" ON "users"("role");
 CREATE INDEX "users_orgId_idx" ON "users"("orgId");
 CREATE INDEX "objectives_ownerId_cycle_idx" ON "objectives"("ownerId", "cycle");
@@ -200,6 +229,9 @@ CREATE UNIQUE INDEX "check_ins_keyResultId_userId_weekStart_key" ON "check_ins"(
 CREATE INDEX "Notification_userId_read_idx" ON "Notification"("userId", "read");
 CREATE UNIQUE INDEX "team_members_teamId_userId_key" ON "team_members"("teamId", "userId");
 CREATE INDEX "team_members_userId_idx" ON "team_members"("userId");
+CREATE UNIQUE INDEX "invitations_tokenHash_key" ON "invitations"("tokenHash");
+CREATE INDEX "invitations_orgId_email_idx" ON "invitations"("orgId", "email");
+CREATE UNIQUE INDEX "identity_provider_configs_orgId_provider_key" ON "identity_provider_configs"("orgId", "provider");
 
 -- Foreign keys
 ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -219,3 +251,6 @@ ALTER TABLE "check_ins" ADD CONSTRAINT "check_ins_keyResultId_fkey" FOREIGN KEY 
 ALTER TABLE "check_ins" ADD CONSTRAINT "check_ins_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "team_members" ADD CONSTRAINT "team_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_invitedById_fkey" FOREIGN KEY ("invitedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "identity_provider_configs" ADD CONSTRAINT "identity_provider_configs_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;

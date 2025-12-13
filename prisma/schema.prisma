@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -86,9 +86,12 @@ model VerificationToken {
 model Organization {
   id        String   @id @default(cuid())
   name      String
+  slug      String   @unique
   users     User[]
   teams     Team[]
   settings  Json?
+  invitations Invitation[]
+  idpConfigs IdentityProviderConfig[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -121,6 +124,7 @@ model User {
   checkIns   CheckIn[]
   comments   Comment[]
   notifications Notification[]
+  sentInvitations Invitation[] @relation("InvitationInvitedBy")
 
   @@index([role])
   @@index([orgId])
@@ -139,6 +143,10 @@ model Objective {
   parentId    String?
   status      ObjectiveStatus @default(NOT_STARTED)
   goalType    GoalType  @default(INDIVIDUAL)
+  // Business priority: 1 (highest) - 5 (lowest)
+  priority    Int        @default(3)
+  // Weight for alignment and rollups (0-100)
+  weight      Int        @default(0)
   progressType ProgressType @default(AUTOMATIC)
   progress    Float    @default(0)
   fiscalQuarter Int @default(1)
@@ -158,6 +166,7 @@ model Objective {
   @@index([teamId])
   @@index([status])
   @@index([fiscalQuarter])
+  @@index([goalType])
   @@map("objectives")
 }
 
@@ -276,4 +285,40 @@ model Notification {
 
   @@index([userId, read])
   @@map("notifications")
+}
+
+model Invitation {
+  id          String   @id @default(cuid())
+  orgId       String
+  email       String
+  role        Role     @default(EMPLOYEE)
+  tokenHash   String   @unique
+  invitedById String?
+  expiresAt   DateTime?
+  acceptedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedBy User?        @relation("InvitationInvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([orgId, email])
+  @@map("invitations")
+}
+
+model IdentityProviderConfig {
+  id           String   @id @default(cuid())
+  orgId        String
+  provider     String   // e.g., 'google', 'slack', 'azure-ad', 'oidc'
+  clientId     String
+  clientSecret String
+  issuer       String?
+  tenantId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, provider])
+  @@map("identity_provider_configs")
 }

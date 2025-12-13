@@ -18,12 +18,16 @@ type Props = {
   user: AdminUser
   onUpdate: (userId: string, role: Role) => Promise<void>
   onUpdateTeams: (userId: string, teamIds: string[]) => Promise<void>
+  onRequestDelete: (user: AdminUser) => void
+  canDelete: boolean
+  isSelf: boolean
+  isDeleting: boolean
   availableTeams: Array<{ id: string; name: string }>
   pendingId?: string | null
   isSaving: boolean
 }
 
-export function UserRow({ user, onUpdate, onUpdateTeams, availableTeams, pendingId, isSaving }: Props) {
+export function UserRow({ user, onUpdate, onUpdateTeams, onRequestDelete, canDelete, isSelf, isDeleting, availableTeams, pendingId, isSaving }: Props) {
   const form = useForm<{ role: Role }>({
     defaultValues: { role: user.role }
   })
@@ -57,7 +61,7 @@ export function UserRow({ user, onUpdate, onUpdateTeams, availableTeams, pending
                 <FormItem className="min-w-[150px]">
                   <FormControl>
                     <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger data-testid={`admin-users-role-${user.id}`} className="h-10">
+                      <SelectTrigger data-testid={`admin-users-role-${user.id}`} className="h-10" disabled={isSelf}>
                         <SelectValue placeholder="Choose role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -77,7 +81,7 @@ export function UserRow({ user, onUpdate, onUpdateTeams, availableTeams, pending
               <Button
                 data-testid={`admin-users-save-${user.id}`}
                 type="submit"
-                disabled={!dirty || saving}
+                disabled={isSelf || !dirty || saving}
               >
                 {saving ? strings.buttons.saving : strings.buttons.save}
               </Button>
@@ -130,8 +134,21 @@ export function UserRow({ user, onUpdate, onUpdateTeams, availableTeams, pending
       <TableCell className="text-xs text-muted-foreground">
         {new Date(user.createdAt).toLocaleDateString()}
       </TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground">
-        Updated {new Date(user.updatedAt).toLocaleDateString()}
+      <TableCell className="text-right">
+        <div className="flex flex-col items-end gap-2">
+          <span className="text-xs text-muted-foreground">
+            Updated {new Date(user.updatedAt).toLocaleDateString()}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-8 px-3 text-destructive hover:text-destructive"
+            onClick={() => onRequestDelete(user)}
+            disabled={!canDelete || saving || isDeleting}
+          >
+            Delete
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   )

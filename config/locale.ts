@@ -28,3 +28,8 @@ export const localeConfig = {
 }
 
 export type LocaleConfig = typeof localeConfig
+
+
+
+
+

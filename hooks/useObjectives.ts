@@ -30,6 +30,8 @@ export type Objective = {
   endAt: string
   goalType?: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
   progressType?: 'AUTOMATIC' | 'MANUAL'
+  priority?: number
+  weight?: number
   progress: number
   score?: number | null
   status: ObjectiveStatusValue
@@ -47,6 +49,7 @@ export type Objective = {
   parent?: {
     id: string
     title: string
+    goalType?: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
   } | null
   children?: Array<{ id: string; title: string }>
   keyResults: KeyResult[]
@@ -87,18 +90,42 @@ export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> 
   if (!res.ok) {
     let detail = 'Request failed'
     try {
-      const body = await res.json()
-      const errorField = body?.error
+      const body: unknown = await res.json()
+      const errorField = (body as { error?: unknown })?.error
       if (typeof errorField === 'string') {
         detail = errorField
       } else if (errorField && typeof errorField === 'object') {
         // Prefer structured API error message if present
-        detail =
-          typeof errorField.msg === 'string'
-            ? errorField.msg
-            : typeof errorField.message === 'string'
-              ? errorField.message
-              : JSON.stringify(errorField)
+        const msg =
+          typeof (errorField as { msg?: unknown }).msg === 'string'
+            ? (errorField as { msg?: string }).msg
+            : typeof (errorField as { message?: unknown }).message === 'string'
+              ? (errorField as { message?: string }).message
+              : null
+
+        // Extract first validation issue if available (e.g., Zod issues from API)
+        const details = (errorField as { details?: unknown }).details
+        const firstIssue = Array.isArray(details) ? details[0] : null
+        const issueMessage =
+          firstIssue && typeof (firstIssue as { message?: unknown }).message === 'string'
+            ? (firstIssue as { message?: string }).message
+            : null
+        const issuePath =
+          firstIssue && Array.isArray((firstIssue as { path?: unknown }).path) && (firstIssue as { path: unknown[] }).path.length
+            ? `${(firstIssue as { path: unknown[] }).path.join('.')}: `
+            : ''
+
+        if (msg) {
+          detail = issueMessage ? `${msg}: ${issuePath}${issueMessage}` : msg
+        } else if (issueMessage) {
+          detail = `${issuePath}${issueMessage}`
+        } else {
+          detail = JSON.stringify(errorField)
+        }
+      } else if (typeof (body as { message?: unknown })?.message === 'string') {
+        detail = (body as { message: string }).message
+      } else if (body) {
+        detail = JSON.stringify(body)
       }
     } catch (_) {
       // ignore
@@ -166,6 +193,10 @@ type ObjectivePayload = {
   title: string
   description?: string | null
   cycle: string
+  progressType: 'AUTOMATIC' | 'MANUAL'
+  progress?: number
+  priority: number
+  weight: number
   goalType: 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL'
   startAt: string
   endAt: string

@@ -7,6 +7,7 @@ export const strings = {
   },
   navigation: {
     items: {
+      objectives: 'Objectives',
       company: 'Company',
       teams: 'Teams',
       myOkrs: 'My OKRs',

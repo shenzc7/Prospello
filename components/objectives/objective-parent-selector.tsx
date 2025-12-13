@@ -9,6 +9,7 @@ type ParentOption = {
   id: string
   title: string
   cycle: string
+  goalType?: string
 }
 
 type ParentSelectorProps = {
@@ -20,9 +21,10 @@ type ParentSelectorProps = {
   search: string
   onSearch: (value: string) => void
   loading: boolean
+  canHaveNoParent: boolean
 }
 
-export function ObjectiveParentSelector({ field, options, search, onSearch, loading }: ParentSelectorProps) {
+export function ObjectiveParentSelector({ field, options, search, onSearch, loading, canHaveNoParent }: ParentSelectorProps) {
   return (
     <div className="space-y-3">
       <Select
@@ -33,7 +35,9 @@ export function ObjectiveParentSelector({ field, options, search, onSearch, load
           <SelectValue placeholder="No parent" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={NO_PARENT}>No parent</SelectItem>
+          <SelectItem value={NO_PARENT} disabled={!canHaveNoParent}>
+            No parent
+          </SelectItem>
           {options.map((objective) => (
             <SelectItem key={objective.id} value={objective.id}>
               {objective.title} ({objective.cycle})

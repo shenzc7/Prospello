@@ -1,21 +1,43 @@
 'use client'
 
 import { Bell, AlertTriangle, CalendarClock, MessageSquare, Check } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import Link from 'next/link'
+import { formatDistanceToNow } from 'date-fns'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { UserRole } from '@/lib/rbac'
 import { useNotifications, type AppNotification } from '@/hooks/useNotifications'
 
-export function NotificationsFeed({ userRole, userId }: { userRole?: UserRole; userId?: string }) {
-  const { data: session } = useSession()
-  const user = session?.user
-  const currentUserRole = userRole || (user?.role as UserRole)
-  const currentUserId = userId || user?.id
+type NotificationMetadata = {
+  objectiveId?: string
+  keyResultId?: string
+  checkInId?: string
+}
 
-  const { notifications, unread, isLoading, markAllRead } = useNotifications(currentUserId)
+function parseMetadata(metadata: string | null): NotificationMetadata | null {
+  if (!metadata) return null
+  try {
+    const parsed = JSON.parse(metadata) as unknown
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed as NotificationMetadata
+  } catch {
+    return null
+  }
+}
+
+function resolveNotificationLink(metadata: NotificationMetadata | null): { href: string; label: string } | null {
+  if (metadata?.objectiveId) {
+    return { href: `/okrs/${metadata.objectiveId}`, label: 'Open' }
+  }
+  if (metadata?.keyResultId) {
+    return { href: `/initiatives?keyResultId=${encodeURIComponent(metadata.keyResultId)}`, label: 'Open' }
+  }
+  return null
+}
+
+export function NotificationsFeed({ userId }: { userRole?: unknown; userId?: string }) {
+  const { notifications, unread, isLoading, markAllRead } = useNotifications(userId)
 
   const iconFor = (type: AppNotification['type']) => {
     if (type === 'CHECKIN_DUE' || type === 'REMINDER') return <CalendarClock className="h-4 w-4 text-amber-600" />
@@ -51,16 +73,27 @@ export function NotificationsFeed({ userRole, userId }: { userRole?: UserRole; u
                 <div className="mt-0.5">{iconFor(item.type as AppNotification['type'])}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate">{item.message}</p>
-                  {item.metadata ? <p className="text-xs text-muted-foreground truncate">{item.metadata}</p> : null}
+                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    {(() => {
+                      const meta = parseMetadata(item.metadata)
+                      const link = resolveNotificationLink(meta)
+                      if (!link) return null
+                      return (
+                        <Link href={link.href} className="font-medium text-primary hover:underline">
+                          {link.label}
+                        </Link>
+                      )
+                    })()}
+                    <span aria-label={new Date(item.createdAt).toLocaleString()}>
+                      {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                    </span>
+                  </div>
                 </div>
                 {!item.read && <Badge variant="secondary" className="text-[11px]">New</Badge>}
               </div>
             ))}
           </div>
         )}
-        <p className="mt-4 text-[11px] text-muted-foreground">
-          Role: {currentUserRole || 'unknown'} • User: {currentUserId || 'anonymous'}
-        </p>
       </CardContent>
     </Card>
   )

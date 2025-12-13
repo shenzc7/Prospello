@@ -10,14 +10,11 @@ export type AppNavItem = {
 
 export function buildNavItems(role?: string): AppNavItem[] {
   const base: AppNavItem[] = [
-    { href: '/', label: strings.navigation.items.company, icon: 'Target' },
+    { href: '/okrs', label: strings.navigation.items.objectives, icon: 'Target' },
+    { href: '/', label: strings.navigation.items.company, icon: 'Target', exact: true },
     { href: '/teams', label: strings.navigation.items.teams, icon: 'UserRound' },
     { href: '/my-okrs', label: strings.navigation.items.myOkrs, icon: 'ClipboardList' },
   ]
-
-  if (isFeatureEnabled('notificationFeed')) {
-    base.push({ href: '/alerts', label: strings.navigation.items.alerts, icon: 'Bell' })
-  }
 
   if (role === 'ADMIN' || role === 'MANAGER') {
     base.push({ href: '/reports', label: strings.navigation.items.reports, icon: 'BarChart3' })
@@ -27,7 +24,10 @@ export function buildNavItems(role?: string): AppNavItem[] {
   base.push({ href: '/settings', label: strings.navigation.items.settings, icon: 'Settings' })
 
   if (role === 'ADMIN' && isFeatureEnabled('adminExtras')) {
-    base.push({ href: '/admin/users', label: 'Admin', icon: 'ShieldCheck' })
+    base.push(
+      { href: '/admin/users', label: 'Admin', icon: 'ShieldCheck' },
+      { href: '/admin/invitations', label: 'Invitations', icon: 'MailPlus' },
+    )
   }
 
   return base

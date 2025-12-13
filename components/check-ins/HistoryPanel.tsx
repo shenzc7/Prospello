@@ -11,8 +11,13 @@ type Item = { id: string; weekStart: string; value: number; status: 'GREEN'|'YEL
 async function fetchHistory(keyResultId: string) {
   const res = await fetch(`/api/check-ins?keyResultId=${encodeURIComponent(keyResultId)}`, { credentials: 'include', cache: 'no-store' })
   if (!res.ok) throw new Error('Failed to load history')
-  const data = await res.json()
-  return data.checkIns as Item[]
+  const raw = await res.json()
+  // API responses use { ok, data }, but demo may return a direct object. Normalize both.
+  const payload = (raw && typeof raw === 'object' && 'data' in raw)
+    ? (raw as { data: unknown }).data
+    : raw
+  const list = (payload as { checkIns?: unknown })?.checkIns
+  return Array.isArray(list) ? (list as Item[]) : []
 }
 
 type HistoryPanelProps = {

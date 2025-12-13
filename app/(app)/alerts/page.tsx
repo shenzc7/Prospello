@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useDemoMode } from '@/components/demo/DemoProvider'
 import { useSession } from 'next-auth/react'
 import { useMemo } from 'react'
+import type { UserRole } from '@/lib/rbac'
 
 export default function AlertsPage() {
   const { enabled: demoEnabled, role: demoRole } = useDemoMode()
@@ -21,6 +22,8 @@ export default function AlertsPage() {
     if (demoRole === 'MANAGER') return 'user-manager'
     return 'user-admin'
   }, [demoEnabled, demoRole, session?.user?.id])
+
+  const demoUserRole: UserRole | undefined = demoEnabled ? (demoRole as UserRole) : undefined
 
   return (
     <div className="space-y-6">
@@ -49,13 +52,18 @@ export default function AlertsPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
-          <NotificationsFeed userRole={demoEnabled ? (demoRole as any) : undefined} userId={personaUserId} />
+          <NotificationsFeed userRole={demoUserRole} userId={personaUserId} />
         </div>
         <div className="space-y-4">
-          <UpcomingDeadlinesWidget userRole={demoEnabled ? (demoRole as any) : undefined} userId={personaUserId} />
-          <AtRiskObjectivesWidget userRole={demoEnabled ? (demoRole as any) : undefined} userId={personaUserId} />
+          <UpcomingDeadlinesWidget userRole={demoUserRole} userId={personaUserId} />
+          <AtRiskObjectivesWidget userRole={demoUserRole} userId={personaUserId} />
         </div>
       </div>
     </div>
   )
 }
+
+
+
+
+

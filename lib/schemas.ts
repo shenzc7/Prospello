@@ -11,6 +11,10 @@ export const objectiveFormSchema = z.object({
   cycle: z.string().min(1, 'Cycle is required'),
   progressType: z.enum(['AUTOMATIC', 'MANUAL']).default('AUTOMATIC'),
   progress: z.number().min(0).max(100).optional(),
+  // Objective-level priority (1 highest - 5 lowest)
+  priority: z.number().int().min(1).max(5).default(3),
+  // Objective-level weight for alignment (0-100)
+  weight: z.number().int().min(0).max(100).default(0),
   goalType: z.enum(goalTypeValues, {
     required_error: 'Goal type is required',
     invalid_type_error: 'Invalid goal type'
@@ -19,7 +23,7 @@ export const objectiveFormSchema = z.object({
   endAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date'),
   ownerId: z.string().optional(),
   teamId: z.string().optional(),
-  parentObjectiveId: z.string().optional(),
+  parentObjectiveId: z.string().nullable().optional(),
   keyResults: z.array(z.object({
     title: z.string().min(1, 'KR title is required'),
     weight: z.number().int().min(0).max(100),
@@ -64,12 +68,14 @@ export const updateObjectiveRequestSchema = z.object({
   cycle: z.string().min(1, 'Cycle is required').optional(),
   progressType: z.enum(['AUTOMATIC', 'MANUAL']).optional(),
   progress: z.number().min(0).max(100).optional(),
+  priority: z.number().int().min(1).max(5).optional(),
+  weight: z.number().int().min(0).max(100).optional(),
   goalType: z.enum(goalTypeValues).optional(),
   startAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid start date').optional(),
   endAt: z.string().refine((date) => !isNaN(Date.parse(date)), 'Invalid end date').optional(),
   ownerId: z.string().optional(),
   teamId: z.string().optional(),
-  parentObjectiveId: z.string().optional(),
+  parentObjectiveId: z.string().nullable().optional(),
   keyResults: z.array(z.object({
     title: z.string().min(1, 'KR title is required'),
     weight: z.number().int().min(0).max(100),

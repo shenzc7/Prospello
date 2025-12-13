@@ -15,7 +15,7 @@ const prdMode = process.env.NEXT_PUBLIC_PRD_MODE !== 'false'
 // Extra capabilities stay hidden in PRD mode unless explicitly enabled.
 const featureDefaults: Record<FeatureKey, boolean> = {
   adminExtras: true,
-  boardView: false,
+  boardView: true,
   notificationFeed: true,
   productivityWidgets: true,
   appearanceSettings: false,
@@ -52,3 +52,7 @@ export const featureFlags = {
   prdMode,
   isFeatureEnabled,
 }
+
+
+
+

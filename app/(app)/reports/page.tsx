@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { FileText, FileSpreadsheet, TrendingUp, Target, Filter } from 'lucide-react'
+import { FileText, FileSpreadsheet, TrendingUp, Target } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'

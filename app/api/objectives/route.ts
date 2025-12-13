@@ -9,7 +9,18 @@ import { calculateKRProgress, calculateObjectiveScore } from '@/lib/utils'
 import { createObjectiveRequestSchema, listObjectivesQuerySchema } from '@/lib/schemas'
 import { createSuccessResponse, createErrorResponse, errors } from '@/lib/apiError'
 import { monitorDatabaseQuery } from '@/lib/performance'
-import { Role, ObjectiveStatus } from '@prisma/client'
+import { createNotification } from '@/lib/notifications'
+import { Role, ObjectiveStatus, GoalType } from '@prisma/client'
+
+function isValidAlignment(child: GoalType, parent?: GoalType | null): boolean {
+  if (!parent) {
+    return child === 'COMPANY'
+  }
+  if (child === 'DEPARTMENT') return parent === 'COMPANY'
+  if (child === 'TEAM') return parent === 'DEPARTMENT'
+  if (child === 'INDIVIDUAL') return parent === 'TEAM'
+  return false
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -92,6 +103,8 @@ export async function GET(request: NextRequest) {
           cycle: true,
           startAt: true,
           endAt: true,
+          priority: true,
+          weight: true,
           status: true,
           fiscalQuarter: true,
           score: true,
@@ -110,7 +123,7 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, orgId: true },
           },
           parent: {
-            select: { id: true, title: true },
+            select: { id: true, title: true, goalType: true },
           },
           keyResults: {
             select: {
@@ -152,6 +165,8 @@ export async function GET(request: NextRequest) {
       cycle: string
       startAt: Date
       endAt: Date
+      priority: number
+      weight: number
       status: ObjectiveStatus
       fiscalQuarter: number
       score: number | null
@@ -162,7 +177,7 @@ export async function GET(request: NextRequest) {
       parentId: string | null
       owner: { id: string; name: string | null; email: string }
       team: { id: string; name: string } | null
-      parent: { id: string; title: string } | null
+      parent: { id: string; title: string; goalType: GoalType } | null
       keyResults: Array<{
         id: string
         title: string
@@ -237,7 +252,7 @@ export async function POST(request: NextRequest) {
       return createErrorResponse(validation.error)
     }
 
-    const { title, description, cycle, goalType, startAt, endAt, parentObjectiveId, ownerId, teamId, keyResults, progressType, progress } = validation.data
+    const { title, description, cycle, goalType, startAt, endAt, parentObjectiveId, ownerId, teamId, keyResults, progressType, progress, priority, weight } = validation.data
 
     // Role-based limits and validation
     const userRole = session.user.role as Role
@@ -267,7 +282,7 @@ export async function POST(request: NextRequest) {
     if (parentObjectiveId) {
       const parentObjective = await prisma.objective.findUnique({
         where: { id: parentObjectiveId },
-        select: { cycle: true, ownerId: true, owner: { select: { orgId: true } } },
+        select: { cycle: true, goalType: true, ownerId: true, owner: { select: { orgId: true } } },
       })
 
       if (!parentObjective) {
@@ -278,6 +293,10 @@ export async function POST(request: NextRequest) {
         return createErrorResponse(errors.validation('Parent objective must be in the same cycle'))
       }
 
+      if (!isValidAlignment(goalType as GoalType, parentObjective.goalType)) {
+        return createErrorResponse(errors.validation('Alignment must follow Company → Department → Team → Individual cascade'))
+      }
+
       // Check if user can align to this parent (own objective or if manager/admin)
       if (parentObjective.ownerId !== session.user.id && !isManagerOrHigher(session.user.role as Role)) {
         return createErrorResponse(errors.forbidden('Cannot align to objectives you do not own'))
@@ -285,11 +304,8 @@ export async function POST(request: NextRequest) {
       if (parentObjective.owner?.orgId !== orgId) {
         return createErrorResponse(errors.forbidden('Parent objective is in a different organization'))
       }
-    }
-
-    // Prevent self-reference
-    if (parentObjectiveId === session.user.id) {
-      return createErrorResponse(errors.validation('Cannot set objective as its own parent'))
+    } else if (!isValidAlignment(goalType as GoalType, null)) {
+      return createErrorResponse(errors.validation('Company objectives cannot have parents; other goal types must align to a parent'))
     }
 
     // Resolve owner and optional team assignment
@@ -324,6 +340,8 @@ export async function POST(request: NextRequest) {
           description,
           cycle,
           goalType: goalType as 'COMPANY' | 'DEPARTMENT' | 'TEAM' | 'INDIVIDUAL',
+          priority: priority ?? 3,
+          weight: weight ?? 0,
           startAt: startDate,
           endAt: endDate,
           ownerId: resolvedOwnerId,
@@ -387,6 +405,16 @@ export async function POST(request: NextRequest) {
         progress: computedProgress,
       }
     })
+
+    // Notify assignee when someone else assigns them an objective
+    if (result.ownerId !== session.user.id) {
+      await createNotification({
+        userId: result.ownerId,
+        type: 'SYSTEM',
+        message: `${session.user.name || session.user.email} assigned you an objective: ${result.title}`,
+        metadata: { objectiveId: result.id },
+      })
+    }
 
     return createSuccessResponse({ objective: result }, 201)
   } catch (error) {

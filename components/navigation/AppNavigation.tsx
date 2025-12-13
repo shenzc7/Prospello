@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, Settings, Bell, type LucideIcon } from 'lucide-react'
+import { ClipboardList, ShieldCheck, Target, UserRound, BarChart3, Settings, Bell, MailPlus, type LucideIcon } from 'lucide-react'
 import { useEffect, useCallback, useTransition } from 'react'
 
 import { cn } from '@/lib/ui'
@@ -23,6 +23,7 @@ const iconMap: Record<string, LucideIcon> = {
   BarChart3,
   Settings,
   Bell,
+  MailPlus,
 }
 
 type AppNavProps = {
@@ -96,10 +97,9 @@ export function AppNav({ items, orientation = 'horizontal', className }: AppNavP
         className
       )}
     >
-      {items.map(({ href, label, icon: iconName, exact }, index) => {
+      {items.map(({ href, label, icon: iconName, exact }) => {
         const Icon = iconMap[iconName]
         const isActive = exact ? pathname === href : pathname?.startsWith(href)
-        const shortcut = index < 9 ? `${index + 1}` : null
 
         return (
           <Link

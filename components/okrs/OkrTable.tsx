@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ChevronUp, ChevronDown, ArrowUpDown, MoreHorizontal, CheckSquare, Filter } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { ProgressChip } from '@/components/okrs/ProgressChip'
@@ -17,9 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { strings } from '@/config/strings'
-import { ObjectiveStatusValue, useObjectives, type Objective } from '@/hooks/useObjectives'
+import { ObjectiveStatusValue, fetchJSON, useObjectives, type Objective } from '@/hooks/useObjectives'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/ui'
 import { isFeatureEnabled } from '@/config/features'
@@ -78,6 +81,27 @@ export function OkrTable() {
   const [goalTypeFilter, setGoalTypeFilter] = useState<GoalType | ''>('')
   const showBoardView = isFeatureEnabled('boardView')
   const enableShortcuts = isFeatureEnabled('keyboardShortcuts')
+  const queryClient = useQueryClient()
+  const [objectiveToDelete, setObjectiveToDelete] = useState<{ id: string; title: string } | null>(null)
+
+  const deleteObjective = useMutation({
+    mutationFn: async (id: string) =>
+      fetchJSON<{ message: string }>(`/api/objectives/${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: (_data, id) => {
+      toast.success(strings.toasts.objectives.deleted)
+      queryClient.invalidateQueries({ queryKey: ['objective', id] })
+      queryClient.invalidateQueries({ queryKey: ['objectives'] })
+      setObjectiveToDelete(null)
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    },
+    onError: (err: Error) => toast.error(err?.message ?? strings.toasts.objectives.deleteError),
+  })
 
   const query = useObjectives({
     search: search || undefined,
@@ -581,6 +605,17 @@ export function OkrTable() {
                         <DropdownMenuItem asChild>
                           <Link href={`/okrs/${objective.id}/edit`}>Edit</Link>
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onSelect={(event) => {
+                            event.preventDefault()
+                            setObjectiveToDelete({ id: objective.id, title: objective.title })
+                          }}
+                          disabled={deleteObjective.isPending}
+                        >
+                          {strings.buttons.deleteObjective}
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -603,6 +638,26 @@ export function OkrTable() {
           </div>
         </>
       ) : null}
+
+      <ConfirmDialog
+        open={Boolean(objectiveToDelete)}
+        title={strings.dialogs.deleteObjective.title}
+        description={strings.dialogs.deleteObjective.description}
+        confirmLabel={strings.dialogs.deleteObjective.confirmLabel}
+        confirmingLabel={strings.buttons.deleting}
+        cancelLabel={strings.dialogs.deleteObjective.cancelLabel}
+        isConfirming={deleteObjective.isPending}
+        onCancel={() => {
+          if (!deleteObjective.isPending) {
+            setObjectiveToDelete(null)
+          }
+        }}
+        onConfirm={() => {
+          if (!deleteObjective.isPending && objectiveToDelete) {
+            deleteObjective.mutate(objectiveToDelete.id)
+          }
+        }}
+      />
     </div>
   )
 }

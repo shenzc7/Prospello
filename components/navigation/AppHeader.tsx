@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Search, PlusCircle, BellDot, Sparkles } from 'lucide-react'
+import { Search, PlusCircle } from 'lucide-react'
 
 import { UserMenu } from '@/components/navigation/UserMenu'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import { Logo } from '@/components/brand/Logo'
 import { isFeatureEnabled } from '@/config/features'
 import { DemoToggle } from '@/components/demo/DemoToggle'
 import { useDemoMode } from '@/components/demo/DemoProvider'
+import type { DemoRole } from '@/lib/demo/state'
 
 export type AppHeaderProps = {
   user?: {
@@ -34,7 +35,6 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
   const router = useRouter()
   const [query, setQuery] = useState('')
   const { enabled: demoEnabled, role } = useDemoMode()
-  const showAlerts = isFeatureEnabled('notificationFeed')
 
   const submitSearch = () => {
     const term = query.trim()
@@ -104,29 +104,18 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
               New Objective
             </Link>
           </Button>
-          {isFeatureEnabled('demoMode') ? <DemoToggle compact showRole={false} userRole={user?.role as any} /> : null}
-          <UserMenu name={user?.name} email={user?.email} />
+          {isFeatureEnabled('demoMode') ? (
+            <DemoToggle compact showRole={false} userRole={user?.role as DemoRole | undefined} />
+          ) : null}
+          <UserMenu name={user?.name} email={user?.email} role={user?.role} />
         </div>
       </div>
 
       {/* Navigation Bar */}
       {navItems.length ? (
         <div className="mx-auto w-full max-w-screen-xl border-t border-border/30 px-4 sm:px-6">
-          <div className="flex items-center justify-between py-1.5">
+          <div className="flex items-center py-1.5">
             <AppNav items={navItems} orientation="horizontal" className="gap-0.5" />
-            {showAlerts ? (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Link href="/alerts">
-                  <BellDot className="h-3.5 w-3.5" />
-                  Alerts
-                </Link>
-              </Button>
-            ) : null}
           </div>
         </div>
       ) : null}

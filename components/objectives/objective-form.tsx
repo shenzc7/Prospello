@@ -66,6 +66,8 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       cycle: initialValues?.cycle ?? '',
       progressType: initialValues?.progressType ?? 'AUTOMATIC',
       progress: initialValues?.progress ?? 0,
+      priority: initialValues?.priority ?? 3,
+      weight: initialValues?.weight ?? 0,
       goalType: initialValues?.goalType ?? 'INDIVIDUAL',
       startAt: defaultStart,
       endAt: defaultEnd,
@@ -84,6 +86,7 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
   const progressType = useWatch({ control, name: 'progressType' })
   const manualProgress = useWatch({ control, name: 'progress' })
   const goalType = useWatch({ control, name: 'goalType' })
+  const cycle = useWatch({ control, name: 'cycle' })
   const startAt = useWatch({ control, name: 'startAt' })
   const endAt = useWatch({ control, name: 'endAt' })
   const teamId = useWatch({ control, name: 'teamId' })
@@ -163,6 +166,15 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
       return
     }
 
+    if (values.goalType !== 'COMPANY' && !values.parentObjectiveId) {
+      form.setError('parentObjectiveId', {
+        type: 'manual',
+        message: 'Select a parent objective to keep alignment intact',
+      })
+      toast.error('Non-company objectives must align to a parent objective')
+      return
+    }
+
     const payload = {
       title: values.title,
       description: values.description,
@@ -182,6 +194,8 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
         current: kr.current,
         unit: kr.unit,
       })),
+      priority: values.priority ?? 3,
+      weight: values.weight ?? 0,
     }
 
     const action = mode === 'create' ? strings.toasts.objectives.creating : strings.toasts.objectives.updating
@@ -193,19 +207,58 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
 
     if (!mutation) return
 
-    const result = await toast.promise(mutation, {
-      loading: action,
-      success: successMessage,
-      error: (error: Error) => error?.message ?? strings.toasts.objectives.error,
-    }) as unknown as { objective: { id: string } }
+    try {
+      const result = await toast.promise(mutation, {
+        loading: action,
+        success: successMessage,
+        error: (error: Error) => error?.message ?? strings.toasts.objectives.error,
+      }).unwrap()
 
-    router.push(`${redirectPath}/${result.objective.id}`)
+      const newObjectiveId =
+        (result as { objective?: { id?: string } })?.objective?.id ??
+        (result as { data?: { objective?: { id?: string }; id?: string } })?.data?.objective?.id ??
+        (result as { data?: { id?: string } })?.data?.id ??
+        (result as { id?: string })?.id
+
+      if (!newObjectiveId) {
+        console.warn('Objective create/update returned unexpected shape', result)
+        toast.error('Objective saved but missing ID in response')
+        return
+      }
+
+      router.push(`${redirectPath}/${newObjectiveId}`)
+    } catch (error) {
+      console.error('Objective create/update failed', error)
+    }
   })
 
   const isSubmitting = formState.isSubmitting || createMutation.isPending || updateMutation?.isPending
 
-  const parentOptions = (parentQuery.data?.objectives ?? []).filter((objective) => objective.id !== objectiveId)
+  const parentOptions = (parentQuery.data?.objectives ?? [])
+    .filter((objective) => objective.id !== objectiveId)
+    .filter((objective) => !cycle || objective.cycle === cycle)
+  const allowedParentType =
+    goalType === 'DEPARTMENT'
+      ? 'COMPANY'
+      : goalType === 'TEAM'
+        ? 'DEPARTMENT'
+        : goalType === 'INDIVIDUAL'
+          ? 'TEAM'
+          : null
+  const alignmentFilteredParents = allowedParentType
+    ? parentOptions.filter((objective) => objective.goalType === allowedParentType)
+    : parentOptions.filter((objective) => !objective.goalType || objective.goalType === 'COMPANY')
   const disableSubmit = isSubmitting || weightMismatch || Boolean(datesError) || (goalType === 'TEAM' && !teamId)
+
+  useEffect(() => {
+    // Clear parent selection when cycle changes to prevent mismatched alignment that would fail on save
+    const currentParentId = form.getValues('parentObjectiveId')
+    if (!currentParentId) return
+    const parent = alignmentFilteredParents.find((option) => option.id === currentParentId)
+    if (!parent) {
+      form.setValue('parentObjectiveId', undefined)
+    }
+  }, [cycle, alignmentFilteredParents, form])
 
   return (
     <Form {...form}>
@@ -290,14 +343,16 @@ export function ObjectiveForm({ mode, objectiveId, initialValues, redirectPath =
                         value: field.value,
                         onChange: (value) => field.onChange(value || undefined),
                       }}
-                      options={parentOptions.map((objective) => ({
+                      options={alignmentFilteredParents.map((objective) => ({
                         id: objective.id,
                         title: objective.title,
                         cycle: objective.cycle,
+                        goalType: objective.goalType,
                       }))}
                       search={parentSearch}
                       onSearch={setParentSearch}
                       loading={parentQuery.isLoading}
+                      canHaveNoParent={goalType === 'COMPANY'}
                     />
                     <FormMessage />
                   </FormItem>

@@ -113,7 +113,7 @@ export function ObjectiveDetailView({ objectiveId }: { objectiveId: string }) {
         </p>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-6">
         <MetaCard label={strings.labels.start} value={new Date(objective.startAt).toLocaleDateString()} />
         <MetaCard label={strings.labels.end} value={new Date(objective.endAt).toLocaleDateString()} />
         <MetaCard label={strings.labels.fiscalQuarter} value={getFiscalQuarterLabel(objective.fiscalQuarter)} />
@@ -129,6 +129,8 @@ export function ObjectiveDetailView({ objectiveId }: { objectiveId: string }) {
             )
           }
         />
+        <MetaCard label="Priority" value={`P${objective.priority ?? 3}`} />
+        <MetaCard label="Weight" value={`${objective.weight ?? 0}%`} />
       </section>
 
       <section className="space-y-4">
