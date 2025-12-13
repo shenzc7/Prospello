@@ -9,6 +9,7 @@ node_modules/
 # Next.js
 /.next/
 /out/
+/.swc/
 
 # Production
 /build
@@ -31,6 +32,9 @@ yarn-error.log*
 # Vercel
 .vercel
 
+# Cursor editor
+.cursor/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
@@ -38,6 +42,9 @@ next-env.d.ts
 # IDE
 .vscode/
 .idea/
+
+# Git backups (should never be committed)
+.git.backup/
 
 # Database
 *.db
