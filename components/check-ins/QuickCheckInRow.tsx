@@ -4,7 +4,7 @@ import * as React from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query'
 
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
@@ -51,6 +51,15 @@ type ProgressPayload = {
   keyResults: Array<Required<KeyResultProgress>>
 }
 
+type ObjectiveSnapshot = [QueryKey, ObjectiveCache | undefined]
+type ObjectivesSnapshot = [QueryKey, ObjectivesCache | undefined]
+
+type MutationContext = {
+  toastId?: string
+  objectiveSnapshots?: ObjectiveSnapshot[]
+  objectivesSnapshots?: ObjectivesSnapshot[]
+}
+
 type CheckInApiResponse = {
   ok: boolean
   data: {
@@ -89,7 +98,7 @@ export function QuickCheckInRow({
     defaultValues: { value: current ?? 0, status: 'GREEN', comment: '' },
   })
 
-  const mutate = useMutation<CheckInApiResponse, Error, Values>({
+  const mutate = useMutation<CheckInApiResponse, Error, Values, MutationContext>({
     mutationFn: async (values: Values) => {
       const demoPayload = maybeHandleDemoRequest<CheckInApiResponse>('/api/check-ins', {
         method: 'POST',
@@ -119,7 +128,7 @@ export function QuickCheckInRow({
       const objectiveSnapshots = queryClient.getQueriesData<ObjectiveCache>({ queryKey: ['objective'] })
       const objectivesSnapshots = queryClient.getQueriesData<ObjectivesCache>({ queryKey: ['objectives'] })
 
-      function updateObjectiveData(data: ObjectiveCache) {
+      function updateObjectiveData(data: ObjectiveCache | undefined) {
         if (!data?.objective) return data
         const containsKR = data.objective.keyResults?.some((kr) => kr.id === keyResultId)
         if (!containsKR) return data
@@ -137,7 +146,7 @@ export function QuickCheckInRow({
         return { ...data, objective: { ...data.objective, keyResults, progress } }
       }
 
-      function updateObjectivesData(data: ObjectivesCache) {
+      function updateObjectivesData(data: ObjectivesCache | undefined) {
         if (!data?.objectives) return data
         const objectives = data.objectives.map((objective) => {
           const hasKR = objective.keyResults?.some((kr) => kr.id === keyResultId)
@@ -174,13 +183,14 @@ export function QuickCheckInRow({
       }
     },
     onSuccess: (result, values, context) => {
-      if (context?.toastId) {
-        toast.success(strings.toasts.checkIns.success, { id: context.toastId })
+      const ctx = context
+      if (ctx?.toastId) {
+        toast.success(strings.toasts.checkIns.success, { id: ctx.toastId })
       }
       if (result?.ok && result.data?.progress) {
         const payload = result.data.progress
 
-        const applyServerObjective = (data: ObjectiveCache) => {
+        const applyServerObjective = (data: ObjectiveCache | undefined) => {
           if (!data?.objective?.keyResults) return data
           if (!data.objective.keyResults.some((kr) => kr.id === keyResultId)) return data
           return {
@@ -196,7 +206,7 @@ export function QuickCheckInRow({
           }
         }
 
-        const applyServerObjectives = (data: ObjectivesCache) => {
+        const applyServerObjectives = (data: ObjectivesCache | undefined) => {
           if (!data?.objectives) return data
           return {
             ...data,
@@ -214,24 +224,25 @@ export function QuickCheckInRow({
           }
         }
 
-        context?.objectiveSnapshots?.forEach(([queryKey]) => {
-          queryClient.setQueryData<ObjectiveCache>(queryKey, (previous) => applyServerObjective(previous ?? {}))
+        ctx?.objectiveSnapshots?.forEach(([queryKey]) => {
+          queryClient.setQueryData<ObjectiveCache>(queryKey, (previous) => applyServerObjective(previous))
         })
-        context?.objectivesSnapshots?.forEach(([queryKey]) => {
-          queryClient.setQueryData<ObjectivesCache>(queryKey, (previous) => applyServerObjectives(previous ?? {}))
+        ctx?.objectivesSnapshots?.forEach(([queryKey]) => {
+          queryClient.setQueryData<ObjectivesCache>(queryKey, (previous) => applyServerObjectives(previous))
         })
       }
       form.reset({ value: values.value, status: values.status, comment: '' })
       onSuccess?.()
     },
     onError: (error: Error, _values, context) => {
-      if (context?.toastId) {
-        toast.error(error?.message || strings.toasts.checkIns.error, { id: context.toastId })
+      const ctx = context
+      if (ctx?.toastId) {
+        toast.error(error?.message || strings.toasts.checkIns.error, { id: ctx.toastId })
       }
-      context?.objectiveSnapshots?.forEach(([queryKey, data]) => {
+      ctx?.objectiveSnapshots?.forEach(([queryKey, data]) => {
         queryClient.setQueryData<ObjectiveCache>(queryKey, data)
       })
-      context?.objectivesSnapshots?.forEach(([queryKey, data]) => {
+      ctx?.objectivesSnapshots?.forEach(([queryKey, data]) => {
         queryClient.setQueryData<ObjectivesCache>(queryKey, data)
       })
     },

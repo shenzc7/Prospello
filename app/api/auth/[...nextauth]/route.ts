@@ -7,8 +7,9 @@ export const runtime = 'nodejs'
 
 async function handler(
   req: NextRequest,
-  context: { params: { nextauth: string[] } }
+  context: { params: Promise<{ nextauth: string[] }> }
 ) {
+  await context.params
   const url = req.nextUrl || new URL(req.url || '', 'http://localhost:3000')
   const orgSlug = url.searchParams.get('org') || req.headers.get('x-org-slug') || undefined
   const options = orgSlug ? await authOptionsForOrg(orgSlug) : authOptions
