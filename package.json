@@ -11,7 +11,7 @@
     "dev:public": "next dev --turbopack --hostname 0.0.0.0 --port 3000",
     "dev:warm": "next dev --turbopack & sleep 5 && node scripts/warmup.mjs && wait",
     "dev:webpack": "next dev",
-    "build": "ESLINT_NO_DEV_ERRORS=true next build",
+    "build": "npx prisma generate && ESLINT_NO_DEV_ERRORS=true next build",
     "start": "next start",
     "start:public": "next start --hostname 0.0.0.0 --port 3000",
     "lint": "next lint",
