@@ -203,36 +203,55 @@ export async function authOptionsForOrg(orgSlug?: string): Promise<NextAuthOptio
   }
 }
 
-async function ensureOrgAndRole(userId: string, email: string, name?: string | null) {
+export async function ensureOrgAndRole(userId: string, email: string, name?: string | null) {
   const existing = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, orgId: true, passwordHash: true },
+    select: { id: true, role: true, orgId: true, passwordHash: true, email: true },
   })
 
-  if (!existing) return
+  if (!existing) return null
 
   let orgId = existing.orgId
+  let orgExists = false
+
+  if (orgId) {
+    orgExists = Boolean(
+      await prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { id: true },
+      })
+    )
+    if (!orgExists) {
+      orgId = null
+    }
+  }
 
   if (!orgId) {
-    const domain = email.split('@')[1] || 'okrflow.local'
+    const address = email || existing.email || 'okrflow.local'
+    const domain = address.split('@')[1] || 'okrflow.local'
     const orgName = `${domain.split('.').shift() || 'Org'} Workspace`
     const slug = await generateUniqueOrgSlug(orgName)
     const org = await prisma.organization.create({ data: { name: orgName, slug } })
     orgId = org.id
+    orgExists = true
   }
 
-  if (!existing.orgId || existing.role !== Role.EMPLOYEE || existing.passwordHash === null) {
-    const newRole = existing.orgId ? (existing.role || Role.EMPLOYEE) : Role.ADMIN
+  const needsRoleOrOrgUpdate = !existing.orgId || !orgExists || existing.role !== Role.EMPLOYEE || existing.passwordHash === null
+
+  if (needsRoleOrOrgUpdate) {
+    const newRole = existing.orgId && orgExists ? (existing.role || Role.EMPLOYEE) : Role.ADMIN
     await prisma.user.update({
       where: { id: userId },
       data: {
         orgId,
         role: newRole,
         passwordHash: existing.passwordHash ?? '',
-        name: existing?.orgId ? undefined : name,
+        name: existing?.orgId && orgExists ? undefined : name,
       },
     })
   }
+
+  return orgId
 }
 
 export function roleGuard(session: Session | null, requiredRole: Role | Role[]): boolean {
