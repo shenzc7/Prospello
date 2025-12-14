@@ -7,6 +7,7 @@ import { isManagerOrHigher } from '@/lib/rbac'
 import { listUsersQuerySchema } from '@/lib/schemas'
 import { createErrorResponse, createSuccessResponse, errors } from '@/lib/apiError'
 import { Role } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,8 +40,8 @@ export async function GET(request: NextRequest) {
       ? {
         orgId,
         OR: [
-          { email: { contains: search, mode: 'insensitive' } },
-          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: Prisma.QueryMode.insensitive } },
+          { name: { contains: search, mode: Prisma.QueryMode.insensitive } },
         ],
       }
       : { orgId }
@@ -74,6 +75,7 @@ export async function GET(request: NextRequest) {
     return createErrorResponse(error)
   }
 }
+
 
 
 

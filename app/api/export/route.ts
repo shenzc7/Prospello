@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     if (format === 'xlsx' || format === 'excel') {
       const buffer = buildExcel(rows, meta)
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     const pdfBuffer = buildPdf(rows, meta)
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

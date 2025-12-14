@@ -30,7 +30,7 @@ export function LoginForm({ initialOrgSlug, inviteToken, initialEmail }: LoginFo
   const callbackUrl = params?.get('callbackUrl') ?? '/'
   const [formError, setFormError] = React.useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [ssoLoading, setSsoLoading] = React.useState<string | null>(null)
+  const [ssoLoading, setSsoLoading] = React.useState<SsoProvider | null>(null)
   const [hydrated, setHydrated] = React.useState(false)
   const [workspaceSlug, setWorkspaceSlug] = React.useState(initialOrgSlug || '')
 

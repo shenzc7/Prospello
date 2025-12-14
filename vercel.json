@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": ["iad1", "fra1", "sin1"],
+  "regions": ["iad1"],
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30,
@@ -12,11 +12,11 @@
   "crons": [
     {
       "path": "/api/cron/reminders?orgId=all",
-      "schedule": "0 9 * * *"
+      "schedule": "0 9 * * 1-5"
     },
     {
       "path": "/api/cron/scoring?orgId=all",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 2 * * *"
     }
   ],
   "rewrites": [

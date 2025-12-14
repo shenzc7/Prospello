@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Users, Plus, XCircle } from 'lucide-react'
@@ -34,8 +34,13 @@ export default function TeamDetailPage() {
     queryKey: ['team', id],
     queryFn: () => fetchJSON(`/api/teams/${id}`),
     enabled: Boolean(id),
-    onSuccess: (data) => setTeamName(data.team.name),
   })
+
+  useEffect(() => {
+    if (teamQuery.data?.team?.name) {
+      setTeamName(teamQuery.data.team.name)
+    }
+  }, [teamQuery.data?.team?.name])
 
   const updateTeam = useMutation({
     mutationFn: (payload: { name?: string; memberIds?: string[] }) =>

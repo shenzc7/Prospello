@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { ProgressChip } from '@/components/objectives/progress-chip'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { strings } from '@/config/strings'
-import { fetchJSON, useObjective } from '@/hooks/useObjectives'
+import { evictObjectiveFromCache, fetchJSON, useObjective } from '@/hooks/useObjectives'
 
 export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
   const { data, isLoading, isError, error } = useObjective(objectiveId)
@@ -25,12 +25,23 @@ export function ObjectiveDetail({ objectiveId }: { objectiveId: string }) {
       }),
     onSuccess: () => {
       toast.success(strings.toasts.objectives.deleted)
+      evictObjectiveFromCache(queryClient, objectiveId)
       queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] })
       queryClient.invalidateQueries({ queryKey: ['objectives'] })
       setConfirmDelete(false)
       router.push('/objectives')
     },
-    onError: (err: Error) => toast.error(err?.message ?? strings.toasts.objectives.deleteError),
+    onError: (err: Error) => {
+      const message = err?.message ?? strings.toasts.objectives.deleteError
+      if (message.toLowerCase().includes('not found')) {
+        evictObjectiveFromCache(queryClient, objectiveId)
+        setConfirmDelete(false)
+        router.push('/objectives')
+        toast.success(strings.toasts.objectives.deleted)
+        return
+      }
+      toast.error(message)
+    },
   })
 
   if (isLoading) {

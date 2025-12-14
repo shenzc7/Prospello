@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { strings } from '@/config/strings'
-import { ObjectiveStatusValue, fetchJSON, useObjectives, type Objective } from '@/hooks/useObjectives'
+import { ObjectiveStatusValue, evictObjectiveFromCache, fetchJSON, useObjectives, type Objective } from '@/hooks/useObjectives'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/ui'
 import { isFeatureEnabled } from '@/config/features'
@@ -91,6 +91,7 @@ export function OkrTable() {
       }),
     onSuccess: (_data, id) => {
       toast.success(strings.toasts.objectives.deleted)
+      evictObjectiveFromCache(queryClient, id)
       queryClient.invalidateQueries({ queryKey: ['objective', id] })
       queryClient.invalidateQueries({ queryKey: ['objectives'] })
       setObjectiveToDelete(null)
@@ -100,7 +101,23 @@ export function OkrTable() {
         return next
       })
     },
-    onError: (err: Error) => toast.error(err?.message ?? strings.toasts.objectives.deleteError),
+    onError: (err: Error, _variables, contextId) => {
+      const id = (contextId as string | undefined) ?? objectiveToDelete?.id
+      const message = err?.message ?? strings.toasts.objectives.deleteError
+      if (id && message.toLowerCase().includes('not found')) {
+        // The objective is already gone server-side; evict locally so the ghost row disappears.
+        evictObjectiveFromCache(queryClient, id)
+        setObjectiveToDelete(null)
+        setSelectedIds((prev) => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+        toast.success(strings.toasts.objectives.deleted)
+        return
+      }
+      toast.error(message)
+    },
   })
 
   const query = useObjectives({

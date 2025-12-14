@@ -52,11 +52,20 @@ OKRFlow is a production-grade Objectives and Key Results (OKR) management platfo
 - **Audit Logging**: Complete user action tracking for compliance
 - **Data Encryption**: AES-256 encryption for sensitive data at rest
 
-### Analytics & Reporting (`/app/(app)/reports/`, `/components/analytics/`)
+### Global Localization & Customization (`/config/locale.ts`, `/lib/orgSettings.ts`)
+- **Fiscal Year Configuration**: Custom fiscal year start month for financial reporting
+- **Week Start Settings**: Monday/Sunday week start configuration
+- **Scoring Scale Options**: Percentage (0-100%) or fraction (0.0-1.0) scoring
+- **Number & Date Formatting**: Locale-specific number formatting and date display
+- **Hierarchy Labels**: Customizable labels for Company/Department/Team/Individual levels
+- **High Contrast Mode**: Accessibility support for users with visual impairments
+
+### Advanced Analytics & Reporting (`/app/(app)/reports/`, `/components/analytics/`)
 - **Real-time Dashboards**: Live progress visualization with WebSocket updates
 - **Custom Reporting**: PDF/Excel export with scheduled delivery
 - **Trend Analysis**: Historical data with statistical significance testing
 - **Predictive Insights**: ML-based forecasting for goal achievement
+- **Executive Dashboards**: Company-wide OKR alignment and progress tracking
 
 ### Collaboration Platform (`/components/collaboration/`, `/lib/notifications.ts`)
 - **Threaded Discussions**: Context-aware commenting on objectives and KRs
@@ -436,6 +445,18 @@ ENABLE_MEMORY_PROFILING="false"                      # Memory usage monitoring
 # Security Headers (Development)
 ENABLE_SECURITY_HEADERS="false"                      # Disable for API testing
 CORS_ORIGIN="http://localhost:3000"                  # CORS configuration
+
+# Localization Settings (Development)
+NEXT_PUBLIC_FISCAL_YEAR_START_MONTH="4"              # April (India default)
+NEXT_PUBLIC_WEEK_START_DAY="monday"                  # Monday week start
+NEXT_PUBLIC_SCORING_SCALE="percent"                  # 0-100% scoring
+NEXT_PUBLIC_NUMBER_LOCALE="en-IN"                    # Indian number format
+NEXT_PUBLIC_DATE_FORMAT="dd-mm-yyyy"                 # DD-MM-YYYY format
+NEXT_PUBLIC_HIGH_CONTRAST_STATUS="false"             # High contrast mode
+NEXT_PUBLIC_LABEL_COMPANY="Company"                  # Custom hierarchy labels
+NEXT_PUBLIC_LABEL_DEPARTMENT="Department"
+NEXT_PUBLIC_LABEL_TEAM="Team"
+NEXT_PUBLIC_LABEL_INDIVIDUAL="Individual"
 ```
 
 #### Production Optimizations (`/.env.production.local`)

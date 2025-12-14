@@ -89,8 +89,7 @@ export default function AdminPage() {
   const handleFinalizeScores = async () => {
     try {
       if (demoEnabled) {
-        toast({
-          title: 'Demo mode',
+        toast('Demo mode', {
           description: 'Scoring is simulated in demo mode.',
         })
         return
@@ -103,16 +102,13 @@ export default function AdminPage() {
       if (!res.ok) throw new Error('Failed to finalize scores')
 
       const data = await res.json()
-      toast({
-        title: 'Scores Finalized',
+      toast('Scores Finalized', {
         description: data.message,
       })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to finalize scores'
-      toast({
-        title: 'Error',
+      toast.error('Error', {
         description: message,
-        variant: 'destructive',
       })
     } finally {
       setIsScoring(false)
@@ -122,7 +118,7 @@ export default function AdminPage() {
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
       if (demoEnabled) {
-        toast({ title: 'Demo mode', description: 'Exports disabled in demo.' })
+        toast('Demo mode', { description: 'Exports disabled in demo.' })
         return
       }
       const res = await fetch('/api/export', {
@@ -134,10 +130,10 @@ export default function AdminPage() {
         const body = await res.text()
         throw new Error(body || 'Export failed')
       }
-      toast({ title: 'Export started', description: `${format.toUpperCase()} generation kicked off.` })
+      toast('Export started', { description: `${format.toUpperCase()} generation kicked off.` })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to export'
-      toast({ title: 'Export failed', description: message, variant: 'destructive' })
+      toast.error('Export failed', { description: message })
     }
   }
 

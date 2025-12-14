@@ -1,6 +1,6 @@
 'use client'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 export type ObjectiveStatusValue = 'NOT_STARTED' | 'IN_PROGRESS' | 'AT_RISK' | 'DONE'
@@ -18,6 +18,7 @@ type KeyResult = {
     id: string
     title: string
     status: string
+    createdAt: string
   }>
 }
 
@@ -70,6 +71,18 @@ type ObjectivesResponse = {
 
 type ObjectiveResponse = {
   objective: Objective
+}
+
+export function evictObjectiveFromCache(queryClient: QueryClient, objectiveId: string) {
+  const snapshots = queryClient.getQueriesData<ObjectivesResponse>({ queryKey: ['objectives'] })
+  snapshots.forEach(([queryKey, data]) => {
+    if (!data?.objectives?.length) return
+    const nextObjectives = data.objectives.filter((objective) => objective.id !== objectiveId)
+    if (nextObjectives.length !== data.objectives.length) {
+      queryClient.setQueryData(queryKey, { ...data, objectives: nextObjectives })
+    }
+  })
+  queryClient.removeQueries({ queryKey: ['objective', objectiveId], exact: true })
 }
 
 export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {

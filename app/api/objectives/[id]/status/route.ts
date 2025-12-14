@@ -9,7 +9,7 @@ import { updateObjectiveStatusSchema } from '@/lib/schemas'
 import { calculateKRProgress } from '@/lib/utils'
 import { Role } from '@prisma/client'
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
@@ -20,7 +20,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return createErrorResponse(errors.forbidden('Organization not set for user'))
     }
 
-    const { id } = params
+    const { id } = await params
 
     const objective = await prisma.objective.findUnique({
       where: { id },

@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { Button } from '@/components/ui/button'
 import { strings } from '@/config/strings'
-import { type Objective, useObjective } from '@/hooks/useObjectives'
+import { evictObjectiveFromCache, type Objective, useObjective } from '@/hooks/useObjectives'
 import { getFiscalQuarterLabel } from '@/lib/india'
 import { fmtPercent, fmtMetric } from '@/lib/ui'
 import { calculateKRProgress } from '@/lib/utils'
@@ -53,12 +53,23 @@ export function ObjectiveDetailView({ objectiveId }: { objectiveId: string }) {
     mutationFn: async () => deleteResource(`/api/objectives/${objectiveId}`),
     onSuccess: () => {
       toast.success(strings.toasts.objectives.deleted)
+      evictObjectiveFromCache(queryClient, objectiveId)
       queryClient.invalidateQueries({ queryKey: ['objective', objectiveId] })
       queryClient.invalidateQueries({ queryKey: ['objectives'] })
       setConfirmDelete(false)
       router.push('/okrs')
     },
-    onError: (err: Error) => toast.error(err?.message ?? strings.toasts.objectives.deleteError),
+    onError: (err: Error) => {
+      const message = err?.message ?? strings.toasts.objectives.deleteError
+      if (message.toLowerCase().includes('not found')) {
+        evictObjectiveFromCache(queryClient, objectiveId)
+        setConfirmDelete(false)
+        router.push('/okrs')
+        toast.success(strings.toasts.objectives.deleted)
+        return
+      }
+      toast.error(message)
+    },
   })
 
   if (isLoading) {

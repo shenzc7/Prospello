@@ -197,8 +197,8 @@ export async function GET(request: NextRequest) {
           initiativeCount,
         }
       })
-      const progress = objective.progressType === 'MANUAL'
-        ? Math.round(objective.progress ?? 0)
+      const progress = (objective as typeof objective & { progressType: string }).progressType === 'MANUAL'
+        ? Math.round((objective as typeof objective & { progress: number | null }).progress ?? 0)
         : calcProgressFromProgress(
           keyResultsWithProgress.map((kr) => ({ progress: kr.progress, weight: kr.weight }))
         )
