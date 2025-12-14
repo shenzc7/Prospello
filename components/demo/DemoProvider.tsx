@@ -1,15 +1,6 @@
 'use client'
 
-import {
-  ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from 'react'
+import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Sparkles, ShieldCheck, Timer, Eye, EyeOff, Globe2, Users } from 'lucide-react'
 
 import { isFeatureEnabled } from '@/config/features'
@@ -54,7 +45,15 @@ const DemoContext = createContext<DemoContextValue | null>(null)
 const DemoAccessContext = createContext<DemoAccessContextValue | null>(null)
 
 function useDemoStore() {
-  return useSyncExternalStore(subscribe, getDemoState, getDemoState)
+  const [snapshot, setSnapshot] = useState(getDemoState)
+
+  useEffect(() => {
+    return subscribe(() => {
+      setSnapshot(getDemoState())
+    })
+  }, [])
+
+  return snapshot
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
