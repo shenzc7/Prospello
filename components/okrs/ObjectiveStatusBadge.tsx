@@ -41,7 +41,11 @@ type ObjectiveStatusBadgeProps = {
 }
 
 export function ObjectiveStatusBadge({ status, className }: ObjectiveStatusBadgeProps) {
-  const token = STATUS_TOKENS[status]
+  const token = STATUS_TOKENS[status] || STATUS_TOKENS.NOT_STARTED
+
+  if (!STATUS_TOKENS[status] && process.env.NODE_ENV === 'development') {
+    console.warn(`[ObjectiveStatusBadge] Invalid status encountered: "${status}". Defaulting to NOT_STARTED.`)
+  }
 
   return (
     <span
