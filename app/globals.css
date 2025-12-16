@@ -12,6 +12,17 @@ html.dark {
     color-scheme: light !important;
 }
 
+/* Prevent undefined className errors */
+* {
+    box-sizing: border-box;
+}
+
+/* Ensure all elements have defined dimensions */
+body {
+    margin: 0;
+    font-family: inherit;
+}
+
 @layer base {
     :root {
         --background: 214 33% 98%;
