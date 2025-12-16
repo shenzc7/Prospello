@@ -121,8 +121,15 @@ function RecentActivity({ userRole, recentCheckIns }: RecentActivityProps) {
             const statusLabel = activity.status === 'GREEN' ? 'On track' : activity.status === 'YELLOW' ? 'At risk' : 'Off track'
 
             return (
-              <div key={activity.id} className="flex items-start gap-3 rounded-lg border p-3">
-                <Avatar className="h-8 w-8">
+              <Link
+                href={activity.objectiveId ? `/okrs/${activity.objectiveId}` : '#'}
+                key={activity.id}
+                className={cn(
+                  "flex items-start gap-3 rounded-lg border p-3 transition-colors",
+                  activity.objectiveId ? "hover:bg-muted/50 cursor-pointer" : ""
+                )}
+              >
+                <Avatar className="h-8 w-8 mt-0.5">
                   <AvatarFallback className="text-xs">{ownerInitials}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -138,7 +145,7 @@ function RecentActivity({ userRole, recentCheckIns }: RecentActivityProps) {
                 <span className={cn('text-[11px] px-2 py-1 rounded-full border', trafficClasses.bg, trafficClasses.border, trafficClasses.text)}>
                   {Math.round(activity.value)}%
                 </span>
-              </div>
+              </Link>
             )
           })
         )}
@@ -168,7 +175,11 @@ function TopObjectivesWidget({ objectives }: { objectives: Objective[] }) {
       <CardContent>
         <div className="space-y-4">
           {topObjectives.map((objective) => (
-            <div key={objective.id} className="flex items-center justify-between">
+            <Link
+              key={objective.id}
+              href={`/okrs/${objective.id}`}
+              className="flex items-center justify-between p-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
+            >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{objective.title}</p>
                 <div className="flex items-center gap-2 mt-1">
@@ -186,7 +197,7 @@ function TopObjectivesWidget({ objectives }: { objectives: Objective[] }) {
                   />
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </CardContent>
@@ -216,7 +227,11 @@ function ObjectiveProgressList({ objectives }: { objectives: Objective[] }) {
             : (objective.progress ?? 0) / 100
 
           return (
-            <div key={objective.id} className="space-y-2 rounded-lg border border-border/60 p-3">
+            <Link
+              key={objective.id}
+              href={`/okrs/${objective.id}`}
+              className="block space-y-2 rounded-lg border border-border/60 p-3 hover:border-primary/50 hover:bg-muted/30 transition-all"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 min-w-0">
                   <p className="text-sm font-semibold leading-tight truncate">{objective.title}</p>
@@ -253,7 +268,7 @@ function ObjectiveProgressList({ objectives }: { objectives: Objective[] }) {
                   </div>
                 ))}
               </div>
-            </div>
+            </Link>
           )
         })}
       </CardContent>
@@ -392,18 +407,22 @@ function PersonalOKRsWidget({
           </div>
         ) : (
           personalObjectives.map((objective) => (
-            <div key={objective.id} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/70 p-3">
+            <Link
+              key={objective.id}
+              href={`/okrs/${objective.id}`}
+              className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/70 p-3 hover:border-primary/50 hover:shadow-sm transition-all group"
+            >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{objective.title}</p>
+                <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{objective.title}</p>
                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                   <Progress value={objective.progress} className="h-1.5 flex-1" />
                   <span className="min-w-[3rem] text-right font-medium text-foreground">{Math.round(objective.progress)}%</span>
                 </div>
               </div>
-              <Button asChild variant="secondary" size="sm">
-                <Link href={`/okrs/${objective.id}`}>Open</Link>
+              <Button asChild variant="secondary" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <span>Open</span>
               </Button>
-            </div>
+            </Link>
           ))
         )}
         <div className="flex items-center justify-between rounded-lg border border-border/60 bg-primary/5 px-3 py-2 text-xs text-primary">
@@ -485,7 +504,11 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
           const traffic = calculateTrafficLightStatus(objective.progress)
           const trafficClasses = getTrafficLightClasses(traffic)
           return (
-            <div key={objective.id} className="space-y-2 rounded-xl border border-border/70 bg-muted/40 p-3">
+            <Link
+              key={objective.id}
+              href={`/okrs/${objective.id}`}
+              className="block space-y-2 rounded-xl border border-border/70 bg-muted/40 p-3 hover:bg-muted/60 hover:border-primary/30 transition-all"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 min-w-0">
                   <p className="text-sm font-semibold leading-tight">{objective.title}</p>
@@ -511,7 +534,7 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
                   </>
                 ) : null}
               </div>
-            </div>
+            </Link>
           )
         })}
       </CardContent>
@@ -919,7 +942,7 @@ export function Dashboard() {
             />
           </div>
         </div>
-        
+
         {/* Right Column: Action Feed */}
         <Card>
           <CardHeader className="pb-3">

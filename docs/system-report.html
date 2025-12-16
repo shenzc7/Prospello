@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OKRFlow — System Report (PRD Alignment)</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: #eef2ff;
+      color: #0f172a;
+      line-height: 1.55;
+    }
+    a { color: #1d4ed8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #0b1220;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      overflow: auto;
+      font-size: 0.9rem;
+      margin: 12px 0;
+    }
+
+    header {
+      padding: 56px 56px 32px;
+      background: radial-gradient(1000px 600px at 20% 0%, rgba(29,78,216,0.22), transparent 60%),
+                  linear-gradient(135deg, #0b1220, #0f2d7a);
+      color: #fff;
+    }
+    header .kicker {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      opacity: 0.92;
+    }
+    header h1 {
+      margin: 10px 0 12px;
+      font-size: 2.6rem;
+      line-height: 1.15;
+      letter-spacing: 0.01em;
+    }
+    header p { margin: 0; opacity: 0.92; max-width: 980px; }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 0 56px 72px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+      margin-top: -18px;
+      align-items: start;
+    }
+
+    aside {
+      position: sticky;
+      top: 16px;
+    }
+    .toc {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 22px 42px rgba(15,23,42,0.14);
+      padding: 18px 18px 14px;
+      border: 1px solid #e2e8f0;
+    }
+    .toc h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 18px;
+      color: #334155;
+      font-size: 0.92rem;
+    }
+    .toc li { margin: 7px 0; }
+    .toc small { color: #64748b; }
+
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 30px 34px;
+      box-shadow: 0 18px 36px rgba(15,23,42,0.12);
+      border: 1px solid #e2e8f0;
+    }
+    .card + .card { margin-top: 22px; }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 1.65rem;
+      color: #1d4ed8;
+      border-bottom: 2px solid #c7d2fe;
+      padding-bottom: 10px;
+    }
+    .card h3 {
+      margin: 18px 0 6px;
+      color: #0f172a;
+      font-size: 1.1rem;
+    }
+    .muted { color: #475569; }
+    ul { padding-left: 20px; margin: 10px 0; color: #334155; }
+    li { margin: 7px 0; }
+
+    .pillrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .pill {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #312e81;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .pill.ok { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .pill.cfg { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+    .pill.note { background: #f8fafc; border-color: #e2e8f0; color: #334155; }
+
+    .callout {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: #334155;
+      margin: 12px 0 0;
+    }
+    .callout strong { color: #0f172a; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #eef2ff;
+      color: #1d4ed8;
+      font-weight: 800;
+    }
+
+    .diagram {
+      border: 1px dashed #cbd5e1;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+      border-radius: 16px;
+      padding: 14px;
+      margin-top: 12px;
+      overflow: auto;
+    }
+    .diagram svg { width: 100%; height: auto; }
+
+    footer {
+      text-align: center;
+      color: #475569;
+      padding: 26px 0 12px;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 980px) {
+      header { padding: 42px 22px 26px; }
+      .wrap { padding: 0 22px 56px; }
+      .layout { grid-template-columns: 1fr; }
+      aside { position: static; }
+    }
+
+    @media print {
+      @page { size: A4; margin: 16mm; }
+      body { background: #fff; }
+      header { background: #fff; color: #000; padding: 0; }
+      header p { opacity: 1; }
+      .layout { grid-template-columns: 1fr; margin-top: 10px; }
+      aside { display: none; }
+      .card { box-shadow: none; break-inside: avoid; }
+      a { color: #000; text-decoration: none; }
+      .pillrow { display: none; }
+      .pill { background: #fff !important; border-color: #000 !important; color: #000 !important; }
+      .diagram { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="kicker">OKRFlow • System Report • PRD Alignment</div>
+    <h1>End‑to‑End Technical Report</h1>
+    <p>This report documents what OKRFlow is, how it satisfies the PRD (<code>OKRFlow - PRD.md</code>), and how the system works across UI, APIs, database, auth, and operations. It is written for non‑technical and technical readers: each section starts with plain English, then drills into file-level implementation.</p>
+  </header>
+
+  <div class="wrap">
+    <div class="layout">
+      <aside>
+        <div class="toc">
+          <h2>Contents</h2>
+          <ol>
+            <li><a href="#exec">Executive Summary</a></li>
+            <li><a href="#stack">Technology Stack</a></li>
+            <li><a href="#arch">System Architecture</a></li>
+            <li><a href="#prd">PRD Compliance Matrix</a></li>
+            <li><a href="#repo">Repository Map</a></li>
+            <li><a href="#frontend">Frontend (Pages & Components)</a></li>
+            <li><a href="#api">Backend (API Routes)</a></li>
+            <li><a href="#data">Database (Prisma Models)</a></li>
+            <li><a href="#auth">Authentication & Tenancy</a></li>
+            <li><a href="#roles">Roles & Permissions</a></li>
+            <li><a href="#env">Environment Configuration</a></li>
+            <li><a href="#security">Security & Rate Limiting</a></li>
+            <li><a href="#progress">Progress, Scoring & Check‑ins</a></li>
+            <li><a href="#reporting">Reporting & Export</a></li>
+            <li><a href="#integrations">Integrations (Email/Slack/Teams)</a></li>
+            <li><a href="#ops">Deployment & Operations</a></li>
+            <li><a href="#quality">Testing & Quality Gates</a></li>
+            <li><a href="#faq">FAQ & Glossary</a></li>
+          </ol>
+          <div class="callout">
+            <strong>Companion</strong>
+            <div class="muted">Read‑aloud version: <code>docs/client-briefing.html</code></div>
+            <div class="muted">API reference: <code>docs/API.md</code></div>
+          </div>
+        </div>
+      </aside>
+
+      <div>
+        <section class="card" id="exec">
+          <h2>Executive Summary</h2>
+          <p>OKRFlow is a web application that enables organizations to define Objectives and measurable Key Results, align goals across company → department → team → individual, and maintain accountability through weekly check‑ins, dashboards, and reporting exports.</p>
+          <div class="pillrow">
+            <span class="pill ok">PRD Core Features Covered</span>
+            <span class="pill cfg">SSO + Integrations Configurable</span>
+            <span class="pill note">Print‑ready documentation</span>
+          </div>
+          <div class="callout">
+            <strong>Plain‑English summary:</strong> The UI renders dashboards and OKR pages; those pages call authenticated REST API routes under <code>/api</code>; API routes read/write the Postgres database via Prisma; scheduled cron endpoints can run reminders and end‑of‑cycle scoring.
+          </div>
+        </section>
+
+        <section class="card" id="stack">
+          <h2>Technology Stack</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Technology</th>
+                <th>What it’s used for</th>
+                <th>Where to see it</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Web framework</td>
+                <td>Next.js (App Router) + React + TypeScript</td>
+                <td>Server-rendered pages + API routes in one codebase</td>
+                <td><code>app/</code>, <code>package.json</code></td>
+              </tr>
+              <tr>
+                <td>Database access</td>
+                <td>Prisma + PostgreSQL</td>
+                <td>Type-safe persistence, relationships, constraints</td>
+                <td><code>prisma/schema.prisma</code>, <code>lib/prisma.ts</code></td>
+              </tr>
+              <tr>
+                <td>Authentication</td>
+                <td>NextAuth + Prisma adapter</td>
+                <td>SSO providers + credentials option, session handling</td>
+                <td><code>lib/auth.ts</code>, <code>app/api/auth</code></td>
+              </tr>
+              <tr>
+                <td>UI system</td>
+                <td>Tailwind + shadcn/ui + Radix primitives</td>
+                <td>Consistent, accessible UI components</td>
+                <td><code>components/ui</code>, <code>tailwind.config.ts</code></td>
+              </tr>
+              <tr>
+                <td>Data fetching</td>
+                <td>TanStack Query</td>
+                <td>Cached API calls and fast dashboard refresh</td>
+                <td><code>components/providers.tsx</code></td>
+              </tr>
+              <tr>
+                <td>Exports</td>
+                <td>jsPDF + xlsx</td>
+                <td>PDF/Excel exports (UI and server exports)</td>
+                <td><code>components/reports/ExportButton.tsx</code>, <code>lib/exporters.ts</code></td>
+              </tr>
+              <tr>
+                <td>Testing</td>
+                <td>Jest + Playwright (+ axe)</td>
+                <td>Unit tests, end‑to‑end, accessibility checks</td>
+                <td><code>lib/__tests__</code>, <code>e2e/</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card" id="arch">
+          <h2>System Architecture</h2>
+          <p>OKRFlow is a single deployment unit: a Next.js server that renders pages and serves REST API routes. It uses Postgres for durable storage and an authentication layer for secure access.</p>
+          <div class="diagram" aria-label="System diagram">
+            <svg viewBox="0 0 980 340" role="img">
+              <defs>
+                <style>
+                  .box { fill: #ffffff; stroke: #94a3b8; stroke-width: 2; }
+                  .head { fill: #eef2ff; stroke: #94a3b8; stroke-width: 2; }
+                  .txt { font: 14px ui-sans-serif, system-ui; fill: #0f172a; }
+                  .mut { font: 12px ui-sans-serif, system-ui; fill: #475569; }
+                  .arrow { stroke: #1d4ed8; stroke-width: 3; fill: none; marker-end: url(#m); }
+                </style>
+                <marker id="m" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                  <path d="M0,0 L10,3 L0,6 Z" fill="#1d4ed8"></path>
+                </marker>
+              </defs>
+              <rect class="head" x="40" y="40" width="270" height="110" rx="16"></rect>
+              <text class="txt" x="70" y="78">Browser (Frontend UI)</text>
+              <text class="mut" x="70" y="102">Pages, dashboards, forms</text>
+              <text class="mut" x="70" y="124">Calls /api/* routes</text>
+
+              <rect class="head" x="360" y="40" width="300" height="110" rx="16"></rect>
+              <text class="txt" x="390" y="78">Next.js App (Full‑stack)</text>
+              <text class="mut" x="390" y="102">App Router pages + API routes</text>
+              <text class="mut" x="390" y="124">Auth + RBAC + business rules</text>
+
+              <rect class="head" x="710" y="40" width="230" height="110" rx="16"></rect>
+              <text class="txt" x="735" y="78">PostgreSQL</text>
+              <text class="mut" x="735" y="102">Organizations, OKRs, users</text>
+              <text class="mut" x="735" y="124">Constraints & indexes</text>
+
+              <rect class="box" x="360" y="200" width="580" height="110" rx="16"></rect>
+              <text class="txt" x="390" y="238">Automation & Integrations</text>
+              <text class="mut" x="390" y="262">Cron endpoints: reminders + scoring</text>
+              <text class="mut" x="390" y="284">Optional email + Slack/Teams webhooks</text>
+
+              <path class="arrow" d="M310 95 L360 95"></path>
+              <path class="arrow" d="M660 95 L710 95"></path>
+              <path class="arrow" d="M510 150 L510 200"></path>
+            </svg>
+          </div>
+          <div class="callout">
+            <strong>Security boundary:</strong> <code>middleware.ts</code> blocks unauthenticated users from app pages; API routes require a server session (<code>getServerSession</code>) and apply role checks (<code>lib/rbac.ts</code>).
+          </div>
+        </section>
+
+        <section class="card" id="prd">
+          <h2>PRD Compliance Matrix</h2>
+          <p class="muted">Source: <code>OKRFlow - PRD.md</code>. Status vocabulary: “Delivered” means implemented in code and accessible in the app; “Configurable” means implemented but requires environment configuration; “Supported” means the data model and APIs exist even if the exact UI polish can be extended.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>PRD requirement</th>
+                <th>Status</th>
+                <th>Implementation evidence</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Create Objectives and Key Results</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>app/(app)/objectives</code>, <code>app/api/objectives</code>, <code>prisma/schema.prisma</code></td>
+                <td>Objectives have status, cycle, dates, owner, and KRs.</td>
+              </tr>
+              <tr>
+                <td>Initiatives/Tasks linked to Key Results</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>prisma/schema.prisma</code> (Initiative), <code>app/api/initiatives</code>, <code>app/api/key-results/[id]/initiatives</code></td>
+                <td>Tasks are tracked per KR with status TODO/DOING/DONE.</td>
+              </tr>
+              <tr>
+                <td>Goal cycle + start/end dates</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Objective.cycle</code>, <code>startAt</code>, <code>endAt</code> in <code>prisma/schema.prisma</code></td>
+                <td>Cycle is stored as a string (e.g. “Q1-2025”).</td>
+              </tr>
+              <tr>
+                <td>Owners (objective owner)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Objective.ownerId</code> relation in <code>prisma/schema.prisma</code></td>
+                <td>Ownership is first-class and used for filtering.</td>
+              </tr>
+              <tr>
+                <td>Goal type: Company → Department → Team → Individual</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>GoalType</code> enum + <code>Objective.goalType</code> in <code>prisma/schema.prisma</code></td>
+                <td>Alignment via parent-child objective hierarchy.</td>
+              </tr>
+              <tr>
+                <td>Track progress type (manual vs automatic)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>ProgressType</code> enum + <code>Objective.progressType</code></td>
+                <td>Automatic uses KR rollup; manual is supported per objective.</td>
+              </tr>
+              <tr>
+                <td>Key results: min 1, max 5</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>docs/API.md</code> (validation rule), KR creation routes under <code>app/api</code></td>
+                <td>Validation in API routes enforces constraints.</td>
+              </tr>
+              <tr>
+                <td>Weightage & priority</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Objective.priority</code>, <code>Objective.weight</code>, <code>KeyResult.weight</code></td>
+                <td>KR weights roll up progress; objective weight supports alignment rollups.</td>
+              </tr>
+              <tr>
+                <td>Update KR progress (manual entry + auto %)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>KeyResult.current</code>/<code>target</code>, <code>docs/API.md</code> progress formula</td>
+                <td>Auto % derived from current/target and weight.</td>
+              </tr>
+              <tr>
+                <td>Real-time progress bar for each objective</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>components/objectives/progress-chip.tsx</code>, <code>components/dashboard/Dashboard.tsx</code></td>
+                <td>Fast updates via TanStack Query caching/refetch.</td>
+              </tr>
+              <tr>
+                <td>Timeline view (quarterly / yearly OKRs)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>components/analytics/TimelineView.tsx</code></td>
+                <td>Supports visual timeline exploration of progress.</td>
+              </tr>
+              <tr>
+                <td>Automated scoring at end of cycle (0.0–1.0)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Objective.score</code> + <code>app/api/cron/scoring/route.ts</code></td>
+                <td>Job updates objective scores; cycle can be targeted via query params.</td>
+              </tr>
+              <tr>
+                <td>Dashboards: company / team / personal</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>app/(app)/page.tsx</code>, <code>app/(app)/teams</code>, <code>app/(app)/my-okrs</code></td>
+                <td>Navigation exposes each view by role.</td>
+              </tr>
+              <tr>
+                <td>Weekly check-ins with traffic-light status</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>CheckInStatus</code> enum + <code>app/api/check-ins</code></td>
+                <td>One check-in per week per KR per user.</td>
+              </tr>
+              <tr>
+                <td>Commenting & discussion on objectives/KRs</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Comment</code> model + <code>app/api/comments</code></td>
+                <td>Attachable to both objectives and key results.</td>
+              </tr>
+              <tr>
+                <td>Notifications & reminders</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Notification</code> model + <code>app/api/notifications</code> + cron reminders</td>
+                <td>External delivery depends on SMTP/webhook config.</td>
+              </tr>
+              <tr>
+                <td>Export OKR reports (PDF, Excel)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>app/api/export/route.ts</code>, <code>lib/exporters.ts</code>, <code>components/reports/ExportButton.tsx</code></td>
+                <td>API export restricted to managers/admins.</td>
+              </tr>
+              <tr>
+                <td>Trend analysis</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>components/analytics/TimelineView.tsx</code>, <code>app/api/reports</code></td>
+                <td>Trend charting uses stored progress over time.</td>
+              </tr>
+              <tr>
+                <td>Alignment visualization (tree view)</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>components/analytics/AlignmentTree.tsx</code>, <code>app/api/objectives/[id]/tree</code></td>
+                <td>Tree reflects parent-child objective structure.</td>
+              </tr>
+              <tr>
+                <td>Role-based access + user management</td>
+                <td><span class="pill ok">Delivered</span></td>
+                <td><code>Role</code> enum, <code>lib/rbac.ts</code>, <code>app/(app)/admin</code></td>
+                <td>Admin screens + API protect operations by role.</td>
+              </tr>
+              <tr>
+                <td>Integrations: Google/Slack/MS Teams for SSO + reminders</td>
+                <td><span class="pill cfg">Configurable</span></td>
+                <td><code>lib/auth.ts</code>, <code>.env.example</code>, <code>lib/notifications.ts</code></td>
+                <td>Requires provider credentials and webhook URLs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card" id="repo">
+          <h2>Repository Map (Where to Find Things)</h2>
+          <table>
+            <thead>
+              <tr><th>Area</th><th>Directory / file</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>App pages</td><td><code>app/(app)/</code></td><td>Authenticated UI routes (OKRs, objectives, check-ins, teams, reports, admin).</td></tr>
+              <tr><td>Auth pages</td><td><code>app/(auth)/</code></td><td>Login/signup flows integrated with NextAuth.</td></tr>
+              <tr><td>API routes</td><td><code>app/api/</code></td><td>REST endpoints for objectives/KRs/initiatives/check-ins/users/cron/export.</td></tr>
+              <tr><td>Components</td><td><code>components/</code></td><td>UI modules (dashboard, analytics, objectives, check-ins, collaboration, navigation, UI primitives).</td></tr>
+              <tr><td>Business logic</td><td><code>lib/</code></td><td>Auth, RBAC, progress calculation, scheduler, notifications, exporters, validations.</td></tr>
+              <tr><td>DB schema</td><td><code>prisma/schema.prisma</code></td><td>Entities, enums, relationships, and constraints.</td></tr>
+              <tr><td>Docs</td><td><code>docs/</code></td><td>API spec, onboarding, deployment checklist.</td></tr>
+              <tr><td>Route protection</td><td><code>middleware.ts</code></td><td>Redirects unauthenticated users; restricts admin routes; supports demo mode.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="card" id="frontend">
+          <h2>Frontend (Pages & Components)</h2>
+          <h3>How rendering works (plain English)</h3>
+          <ul>
+            <li><code>app/layout.tsx</code> applies global styles and wraps every route in shared providers.</li>
+            <li><code>components/providers.tsx</code> mounts NextAuth SessionProvider and TanStack Query cache.</li>
+            <li>Feature pages under <code>app/(app)/</code> fetch data via <code>/api</code> routes and render module components.</li>
+          </ul>
+          <h3>Navigation and “dashboard-first” UX</h3>
+          <ul>
+            <li>Top navigation and search live in <code>components/navigation/AppHeader.tsx</code> and route searches to <code>/okrs?search=...</code>.</li>
+            <li>Horizontal navigation tabs live in <code>components/navigation/AppNavigation.tsx</code>.</li>
+          </ul>
+          <h3>Feature modules</h3>
+          <ul>
+            <li>Objectives & KRs: <code>components/objectives/</code>, <code>app/(app)/objectives/</code>, <code>app/(app)/okrs/</code>.</li>
+            <li>Check-ins: <code>components/check-ins/</code>, <code>app/(app)/checkins/</code>.</li>
+            <li>Dashboards: <code>components/dashboard/Dashboard.tsx</code>.</li>
+            <li>Analytics visuals: <code>components/analytics/</code> (heatmap, tree, timeline).</li>
+            <li>Collaboration: <code>components/collaboration/</code> (comment panels and threads).</li>
+          </ul>
+          <div class="callout">
+            <strong>Performance note:</strong> TanStack Query caches API responses (stale time 30s by default), which keeps navigation fast while still updating quickly when data changes.
+          </div>
+        </section>
+
+        <section class="card" id="api">
+          <h2>Backend (API Routes)</h2>
+          <p>All backend endpoints are implemented as Next.js Route Handlers under <code>app/api/*</code>. They require authentication via NextAuth session cookies and return structured JSON responses (documented in <code>docs/API.md</code>).</p>
+          <h3>Authoritative endpoint reference</h3>
+          <ul>
+            <li><strong>API documentation:</strong> <code>docs/API.md</code> lists endpoints and data types.</li>
+          </ul>
+          <h3>Common endpoint groups (high level)</h3>
+          <ul>
+            <li>Objectives: <code>app/api/objectives</code> (+ nested routes such as <code>[id]/tree</code> and <code>[id]/key-results</code>).</li>
+            <li>Key Results: <code>app/api/key-results</code> (+ initiatives).</li>
+            <li>Initiatives: <code>app/api/initiatives</code>.</li>
+            <li>Check-ins: <code>app/api/check-ins</code>.</li>
+            <li>Admin: <code>app/api/admin</code> (users/roles/invitations).</li>
+            <li>Exports: <code>app/api/export</code>.</li>
+            <li>Cron: <code>app/api/cron/reminders</code>, <code>app/api/cron/scoring</code>.</li>
+          </ul>
+          <div class="callout">
+            <strong>Error format:</strong> API responses standardize success and validation errors; see <code>docs/API.md</code> for the exact schema.
+          </div>
+        </section>
+
+        <section class="card" id="data">
+          <h2>Database (Prisma Models)</h2>
+          <p>Data is stored in Postgres and accessed through Prisma. The schema intentionally encodes PRD concepts: goal type, weighted progress, check-in status, and role-based access.</p>
+          <h3>Core entities and relationships</h3>
+          <table>
+            <thead><tr><th>Entity</th><th>Purpose</th><th>Key fields</th><th>Key relationships</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Organization</strong></td>
+                <td>Tenant boundary</td>
+                <td><code>slug</code>, <code>settings</code>, <code>features</code></td>
+                <td>Has Users, Teams, Objectives, IdentityProviderConfig</td>
+              </tr>
+              <tr>
+                <td><strong>User</strong></td>
+                <td>Account + role</td>
+                <td><code>role</code>, <code>orgId</code>, <code>teamId</code></td>
+                <td>Owns Objectives; writes CheckIns and Comments</td>
+              </tr>
+              <tr>
+                <td><strong>Objective</strong></td>
+                <td>Qualitative goal</td>
+                <td><code>goalType</code>, <code>priority</code>, <code>weight</code>, <code>cycle</code>, <code>startAt</code>/<code>endAt</code></td>
+                <td>Has KeyResults; parent/child hierarchy; belongs to Team/Org</td>
+              </tr>
+              <tr>
+                <td><strong>KeyResult</strong></td>
+                <td>Measurable outcome</td>
+                <td><code>weight</code>, <code>target</code>, <code>current</code>, <code>unit</code></td>
+                <td>Has Initiatives, CheckIns, Comments</td>
+              </tr>
+              <tr>
+                <td><strong>CheckIn</strong></td>
+                <td>Weekly status update</td>
+                <td><code>weekStart</code>, <code>value</code>, <code>status</code></td>
+                <td>Unique per KR/user/week; ties to user and KR</td>
+              </tr>
+              <tr>
+                <td><strong>Invitation</strong></td>
+                <td>Invite users into tenant</td>
+                <td><code>tokenHash</code>, <code>expiresAt</code>, <code>role</code></td>
+                <td>Belongs to org, optionally references inviter</td>
+              </tr>
+              <tr>
+                <td><strong>IdentityProviderConfig</strong></td>
+                <td>Tenant SSO configuration</td>
+                <td><code>provider</code>, <code>clientId</code>, <code>tenantId</code></td>
+                <td>Belongs to org; used by <code>lib/idp.ts</code></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            <strong>Data integrity:</strong> The schema uses indexes and unique constraints to enforce critical business rules (e.g., one check-in per week per KR per user).
+          </div>
+        </section>
+
+        <section class="card" id="auth">
+          <h2>Authentication & Tenancy</h2>
+          <h3>Route protection</h3>
+          <ul>
+            <li><code>middleware.ts</code> blocks unauthenticated users from non-public routes and restricts <code>/admin</code> to admins (unless demo mode cookie is enabled).</li>
+            <li>API routes typically use <code>getServerSession</code> with <code>authOptions</code> (<code>lib/auth.ts</code>).</li>
+          </ul>
+          <h3>Login options (SSO + credentials)</h3>
+          <ul>
+            <li>SSO providers are enabled when env variables exist (Google/Slack/Azure AD) in <code>lib/auth.ts</code>.</li>
+            <li>Credentials login can be enabled/disabled via <code>ALLOW_PASSWORD_AUTH</code> (see <code>.env.example</code>).</li>
+          </ul>
+          <h3>Tenant creation and org binding</h3>
+          <ul>
+            <li><code>ensureOrgAndRole</code> in <code>lib/auth.ts</code> auto-creates an organization when a user signs in without an existing org, deriving a default org name/slug from the user’s email domain.</li>
+            <li>Role defaults to EMPLOYEE for normal joins; first-time org creation sets ADMIN.</li>
+          </ul>
+          <div class="callout">
+            <strong>What stakeholders should hear:</strong> authentication is enterprise-ready (SSO-ready) and the system is tenant-separated by organization identifiers in data models and access checks.
+          </div>
+        </section>
+
+        <section class="card" id="roles">
+          <h2>Roles & Permissions</h2>
+          <p>OKRFlow uses three PRD-defined roles: ADMIN, MANAGER, EMPLOYEE. Role is stored on the user record and enforced at three layers: navigation (what tabs appear), middleware route protection, and API authorization.</p>
+          <h3>Where role enforcement happens</h3>
+          <ul>
+            <li><strong>Route protection:</strong> <code>middleware.ts</code> blocks non-admin users from the <code>/admin</code> section.</li>
+            <li><strong>API protection:</strong> API handlers call RBAC helpers from <code>lib/rbac.ts</code> and return standardized errors via <code>lib/apiError.ts</code>.</li>
+            <li><strong>UI navigation:</strong> navigation items are built based on role using <code>lib/navigation.ts</code> and rendered by <code>components/navigation/AppNavigation.tsx</code>.</li>
+          </ul>
+          <h3>Practical permissions matrix (typical)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Admin</th>
+                <th>Manager</th>
+                <th>Employee</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Create/edit OKRs</td><td>✓</td><td>✓</td><td>✓ (own scope)</td></tr>
+              <tr><td>Create aligned team OKRs</td><td>✓</td><td>✓</td><td>—</td></tr>
+              <tr><td>User administration</td><td>✓</td><td>Limited</td><td>—</td></tr>
+              <tr><td>Export reports (PDF/Excel)</td><td>✓</td><td>✓</td><td>— (blocked by API)</td></tr>
+              <tr><td>Trigger reminder/scoring jobs manually</td><td>✓</td><td>✓</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">
+            <strong>Note:</strong> The exact “scope” of edit actions is enforced by org and team fields in the schema plus RBAC checks in API handlers (<code>lib/rbac.ts</code>).
+          </div>
+        </section>
+
+        <section class="card" id="env">
+          <h2>Environment Configuration</h2>
+          <p>Environment variables are centralized in <code>env.example</code>. Deployments should treat these as required configuration inputs rather than code changes.</p>
+          <h3>Must-have variables</h3>
+          <ul>
+            <li><code>DATABASE_URL</code> — PostgreSQL connection string.</li>
+            <li><code>NEXTAUTH_URL</code> — public URL for callbacks.</li>
+            <li><code>NEXTAUTH_SECRET</code> — signing secret for sessions/JWT.</li>
+          </ul>
+          <h3>SSO variables (optional)</h3>
+          <ul>
+            <li><code>GOOGLE_CLIENT_ID</code> / <code>GOOGLE_CLIENT_SECRET</code></li>
+            <li><code>SLACK_CLIENT_ID</code> / <code>SLACK_CLIENT_SECRET</code></li>
+            <li><code>AZURE_AD_CLIENT_ID</code> / <code>AZURE_AD_CLIENT_SECRET</code> / <code>AZURE_AD_TENANT_ID</code></li>
+          </ul>
+          <h3>Automation and notifications</h3>
+          <ul>
+            <li><code>CRON_SECRET</code> — authorizes cron triggers (GET uses <code>Authorization: Bearer</code>, POST uses <code>x-cron-secret</code>).</li>
+            <li><code>SMTP_HOST</code>/<code>SMTP_PORT</code>/<code>SMTP_USER</code>/<code>SMTP_PASS</code>/<code>SMTP_FROM</code> — enables email delivery.</li>
+            <li><code>SLACK_WEBHOOK_URL</code> / <code>TEAMS_WEBHOOK_URL</code> — enables webhook delivery.</li>
+            <li><code>DISABLE_INTERNAL_SCHEDULER</code> and <code>SCHEDULER_INTERVAL_MS</code> — internal scheduler controls for non-Vercel deployments.</li>
+          </ul>
+          <div class="callout">
+            <strong>Recommended operational model:</strong> on Vercel, rely on Vercel Cron calling the cron endpoints; internal scheduler is automatically disabled on Vercel (<code>lib/scheduler.ts</code>).
+          </div>
+        </section>
+
+        <section class="card" id="security">
+          <h2>Security & Rate Limiting</h2>
+          <h3>Authentication and authorization</h3>
+          <ul>
+            <li>Session-based auth via NextAuth; route guarding in <code>middleware.ts</code>; role checks in <code>lib/rbac.ts</code>.</li>
+            <li>Tenant separation is encoded in the schema (<code>orgId</code> on Teams/Users and objective relationships) and enforced in API handlers.</li>
+          </ul>
+          <h3>API error handling</h3>
+          <ul>
+            <li>Standardized error responses are generated via <code>lib/apiError.ts</code> (validation, unauthorized, forbidden, not found, rate limit, internal error).</li>
+          </ul>
+          <h3>Rate limiting</h3>
+          <ul>
+            <li>In-memory best-effort limiter: <code>lib/rateLimit.ts</code> (suitable for development and limited serverless protection).</li>
+            <li>API docs describe target limits (see “Rate Limiting” in <code>docs/API.md</code>).</li>
+          </ul>
+          <div class="callout">
+            <strong>Production note:</strong> for strict rate limiting in serverless environments, a shared store (e.g., Redis/Vercel KV) is recommended; <code>lib/rateLimit.ts</code> explicitly documents this limitation.
+          </div>
+        </section>
+
+        <section class="card" id="progress">
+          <h2>Progress, Scoring & Check‑ins</h2>
+          <h3>Progress calculation</h3>
+          <p>Objective progress is calculated as a weighted rollup of key result completion. The explicit formula is documented in <code>docs/API.md</code> under “Progress Calculation”.</p>
+          <h3>Weekly check‑ins (Green/Yellow/Red)</h3>
+          <ul>
+            <li>Statuses: <code>CheckInStatus</code> enum in <code>prisma/schema.prisma</code>.</li>
+            <li>Business rule: only one check-in per week per key result per user, enforced by <code>@@unique([keyResultId, userId, weekStart])</code>.</li>
+            <li>Summary logic: <code>lib/checkin-summary.ts</code>.</li>
+          </ul>
+          <h3>Automated end-of-cycle scoring</h3>
+          <ul>
+            <li>Objective stores <code>score</code> (0.0–1.0) in <code>prisma/schema.prisma</code>.</li>
+            <li>Scoring cron: <code>app/api/cron/scoring/route.ts</code> triggers <code>runScoringJob</code> in <code>lib/jobs.ts</code>.</li>
+          </ul>
+          <div class="callout">
+            <strong>Automation security:</strong> cron endpoints are protected by <code>CRON_SECRET</code> and support both Vercel Cron authorization (GET) and internal/manual secret header (POST).
+          </div>
+        </section>
+
+        <section class="card" id="reporting">
+          <h2>Reporting & Export</h2>
+          <h3>Exports</h3>
+          <ul>
+            <li><strong>Server export:</strong> <code>app/api/export/route.ts</code> generates downloadable PDF/Excel and restricts exports to manager/admin roles.</li>
+            <li><strong>Client export:</strong> <code>components/reports/ExportButton.tsx</code> can export the currently loaded dataset in the UI.</li>
+          </ul>
+          <h3>Analytics visuals</h3>
+          <ul>
+            <li>Alignment tree: <code>components/analytics/AlignmentTree.tsx</code>.</li>
+            <li>Heatmap: <code>components/analytics/HeatMap.tsx</code>.</li>
+            <li>Timeline: <code>components/analytics/TimelineView.tsx</code>.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="integrations">
+          <h2>Integrations (Email / Slack / Teams)</h2>
+          <p>Integrations are implemented but depend on environment configuration. This is intentional: enterprises vary in providers and security requirements.</p>
+          <h3>SSO</h3>
+          <ul>
+            <li>Environment-based providers are configured in <code>lib/auth.ts</code> and described in <code>.env.example</code>.</li>
+            <li>Per-tenant identity provider configs are stored in <code>IdentityProviderConfig</code> and loaded by <code>lib/idp.ts</code>.</li>
+          </ul>
+          <h3>Notifications</h3>
+          <ul>
+            <li>Email delivery is wired via <code>lib/mailer.ts</code> (Nodemailer) and controlled by SMTP env vars.</li>
+            <li>Slack/Teams reminders can be delivered via webhook URLs (<code>.env.example</code>).</li>
+          </ul>
+        </section>
+
+        <section class="card" id="ops">
+          <h2>Deployment & Operations</h2>
+          <h3>Local setup (developer onboarding)</h3>
+          <pre>npm ci
+cp .env.example .env.local
+npx prisma generate
+npx prisma migrate dev
+npm run db:seed
+npm run dev</pre>
+          <h3>Production checklist (high level)</h3>
+          <ul>
+            <li>Ensure required env vars are set (<code>DATABASE_URL</code>, <code>NEXTAUTH_URL</code>, <code>NEXTAUTH_SECRET</code>).</li>
+            <li>Set <code>CRON_SECRET</code> and schedule calls to cron routes (<code>app/api/cron/*</code>).</li>
+            <li>Run Prisma migrations in production (<code>npx prisma migrate deploy</code>).</li>
+            <li>Refer to <code>docs/VERCEL_DEPLOYMENT.md</code> for rollout and rollback guidance.</li>
+          </ul>
+          <h3>Scheduler behavior</h3>
+          <ul>
+            <li><code>lib/prisma.ts</code> attempts to start the internal scheduler; <code>lib/scheduler.ts</code> automatically disables internal scheduling on Vercel and during build phases.</li>
+            <li>For predictable operations, production should use explicit cron triggers (Vercel Cron) calling <code>/api/cron/reminders</code> and <code>/api/cron/scoring</code>.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="quality">
+          <h2>Testing & Quality Gates</h2>
+          <ul>
+            <li><strong>Unit tests:</strong> Jest runs via <code>npm test</code>; business logic tests under <code>lib/__tests__</code>.</li>
+            <li><strong>E2E:</strong> Playwright tests in <code>e2e/</code> and <code>tests-e2e/</code> validate flows (OKRs, check-ins, notifications).</li>
+            <li><strong>Accessibility:</strong> axe checks via <code>@axe-core/playwright</code>.</li>
+            <li><strong>Gate:</strong> <code>npm run verify</code> runs lint → tests → build.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="faq">
+          <h2>FAQ & Glossary</h2>
+          <h3>FAQ</h3>
+          <ul>
+            <li><strong>What is an “Objective”?</strong> A qualitative goal (“Improve NPS”). In code: <code>Objective</code> model.</li>
+            <li><strong>What is a “Key Result”?</strong> A measurable outcome (“NPS ≥ 70”). In code: <code>KeyResult</code> model.</li>
+            <li><strong>What is “alignment”?</strong> Linking goals across levels. In code: <code>Objective.parentId</code> and <code>Objective.goalType</code>, visualized by <code>AlignmentTree</code>.</li>
+            <li><strong>What is a “check‑in”?</strong> A weekly update on a KR with a status and value. In code: <code>CheckIn</code> model with unique weekly constraint.</li>
+            <li><strong>What does “multi‑tenant” mean here?</strong> Each organization’s data is separated by organization ID and guarded by role checks and route protections.</li>
+          </ul>
+          <h3>Glossary (non‑technical)</h3>
+          <ul>
+            <li><strong>Frontend:</strong> the screens users interact with in the browser.</li>
+            <li><strong>Backend:</strong> the server endpoints (<code>/api</code>) that save and fetch data.</li>
+            <li><strong>Database:</strong> where objectives, KRs, users, and check-ins are stored.</li>
+            <li><strong>SSO:</strong> “Sign in with Google/Microsoft/etc.”</li>
+            <li><strong>Cron:</strong> scheduled automation that runs on a timer (reminders/scoring).</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <footer>OKRFlow — System Report • Source PRD: <code>OKRFlow - PRD.md</code> • Repo documentation: <code>docs/API.md</code>, <code>docs/ONBOARDING.md</code>, <code>docs/VERCEL_DEPLOYMENT.md</code></footer>
+  </div>
+</body>
+</html>

@@ -143,6 +143,7 @@ export async function GET() {
             title: true,
             objective: {
               select: {
+                id: true,
                 title: true,
                 owner: { select: { name: true, email: true } },
               },
@@ -162,6 +163,7 @@ export async function GET() {
         id: checkIn.id,
         keyResultId: checkIn.keyResultId,
         keyResultTitle: checkIn.keyResult.title,
+        objectiveId: checkIn.keyResult.objective.id,
         objectiveTitle: checkIn.keyResult.objective.title,
         ownerName: checkIn.keyResult.objective.owner.name || checkIn.keyResult.objective.owner.email,
         ownerEmail: checkIn.keyResult.objective.owner.email,

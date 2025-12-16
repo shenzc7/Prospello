@@ -47,36 +47,36 @@ export function ObjectivesList() {
       ) : (
         <div className="space-y-4">
           {objectives.map((objective) => (
-          <Link
-            key={objective.id}
-            href={`/objectives/${objective.id}`}
-            className="block rounded-lg border p-5 transition hover:border-primary"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold">{objective.title}</h2>
-                <p className="text-sm text-muted-foreground">
-                  Cycle: {objective.cycle} • Owner: {objective.owner.name ?? objective.owner.email}
-                </p>
+            <Link
+              key={objective.id}
+              href={`/okrs/${objective.id}`}
+              className="block rounded-lg border p-5 transition hover:border-primary"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">{objective.title}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Cycle: {objective.cycle} • Owner: {objective.owner.name ?? objective.owner.email}
+                  </p>
+                </div>
+                <ProgressChip value={objective.progress} />
               </div>
-              <ProgressChip value={objective.progress} />
-            </div>
-            <div className="mt-4 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
-              <div>
-                <span className="font-medium text-foreground">{strings.labels.start}</span>
-                <p>{new Date(objective.startAt).toLocaleDateString()}</p>
+              <div className="mt-4 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+                <div>
+                  <span className="font-medium text-foreground">{strings.labels.start}</span>
+                  <p>{new Date(objective.startAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">{strings.labels.end}</span>
+                  <p>{new Date(objective.endAt).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <span className="font-medium text-foreground">Aligned KRs</span>
+                  <p>{objective.keyResults.length} KRs • {objective._count?.children ?? 0} children</p>
+                </div>
               </div>
-              <div>
-                <span className="font-medium text-foreground">{strings.labels.end}</span>
-                <p>{new Date(objective.endAt).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Aligned KRs</span>
-                <p>{objective.keyResults.length} KRs • {objective._count?.children ?? 0} children</p>
-              </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          ))}
         </div>
       )}
 

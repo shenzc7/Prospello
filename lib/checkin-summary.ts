@@ -77,6 +77,7 @@ export type CheckInSummary = {
     id: string
     keyResultId: string
     keyResultTitle: string
+    objectiveId: string
     objectiveTitle: string
     ownerName: string
     ownerEmail: string

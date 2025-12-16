@@ -149,7 +149,9 @@ export function OkrBoard() {
 
 function Card({ objective }: { objective: Objective }) {
   return (
-    <div className="bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:border-border/80 transition-all duration-200 cursor-pointer group hover:scale-[1.02]"
+    <Link
+      href={`/okrs/${objective.id}`}
+      className="block bg-card/90 backdrop-blur-sm border border-border/60 rounded-xl p-4 sm:p-5 shadow-card hover:shadow-card-hover hover:border-border/80 transition-all duration-200 cursor-pointer group hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -214,11 +216,11 @@ function Card({ objective }: { objective: Objective }) {
             </span>
           </div>
         </div>
-        <Button asChild variant="ghost" size="sm" className="h-7 px-2 sm:px-3 text-xs hover:bg-primary/5 hover:text-primary flex-shrink-0">
-          <Link href={`/okrs/${objective.id}`}>View</Link>
-        </Button>
+        <span className="inline-flex items-center justify-center rounded-full h-7 px-2 sm:px-3 text-xs font-medium text-muted-foreground group-hover:bg-primary/5 group-hover:text-primary flex-shrink-0">
+          View
+        </span>
       </div>
-    </div>
+    </Link>
   )
 }
 

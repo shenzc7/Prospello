@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { ChevronUp, ChevronDown, ArrowUpDown, MoreHorizontal, CheckSquare, Filter } from 'lucide-react'
@@ -64,6 +65,21 @@ type SortField = 'title' | 'progress' | 'status' | 'owner' | 'cycle' | 'createdA
 type SortDirection = 'asc' | 'desc'
 type GoalType = 'company' | 'department' | 'team' | 'individual'
 
+function resolveStatusParam(value: string | null): ObjectiveStatusValue | '' {
+  if (value === 'NOT_STARTED' || value === 'IN_PROGRESS' || value === 'AT_RISK' || value === 'DONE') return value
+  return ''
+}
+
+function resolveCycleParam(value: string | null) {
+  if (!value || value === ALL_CYCLES || value === 'all') return ALL_CYCLES
+  return value
+}
+
+function resolveGoalTypeParam(value: string | null): GoalType | '' {
+  if (value === 'company' || value === 'department' || value === 'team' || value === 'individual') return value
+  return ''
+}
+
 function resolveGoalType(objective: Objective): GoalType {
   if (!objective.parent && !objective.team) return 'company'
   if (!objective.parent && objective.team) return 'department'
@@ -72,6 +88,12 @@ function resolveGoalType(objective: Objective): GoalType {
 }
 
 export function OkrTable() {
+  const searchParams = useSearchParams()
+  const searchParam = searchParams.get('search') ?? ''
+  const cycleParam = searchParams.get('cycle')
+  const statusParam = searchParams.get('status')
+  const goalTypeParam = searchParams.get('goalType')
+
   const [search, setSearch] = useState('')
   const [cycle, setCycle] = useState<string>(ALL_CYCLES)
   const [status, setStatus] = useState<ObjectiveStatusValue | ''>('')
@@ -83,6 +105,22 @@ export function OkrTable() {
   const enableShortcuts = isFeatureEnabled('keyboardShortcuts')
   const queryClient = useQueryClient()
   const [objectiveToDelete, setObjectiveToDelete] = useState<{ id: string; title: string } | null>(null)
+
+  useEffect(() => {
+    setSearch(searchParam)
+  }, [searchParam])
+
+  useEffect(() => {
+    setCycle(resolveCycleParam(cycleParam))
+  }, [cycleParam])
+
+  useEffect(() => {
+    setStatus(resolveStatusParam(statusParam))
+  }, [statusParam])
+
+  useEffect(() => {
+    setGoalTypeFilter(resolveGoalTypeParam(goalTypeParam))
+  }, [goalTypeParam])
 
   const deleteObjective = useMutation({
     mutationFn: async (id: string) =>

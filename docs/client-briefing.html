@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OKRFlow — Client Briefing (Read‑Aloud)</title>
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: #f1f5f9;
+      color: #0f172a;
+      line-height: 1.55;
+    }
+    a { color: #1d4ed8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    header {
+      padding: 56px 56px 32px;
+      background: radial-gradient(1000px 600px at 20% 0%, rgba(29,78,216,0.18), transparent 60%),
+                  linear-gradient(135deg, #0b1220, #0f2d7a);
+      color: #ffffff;
+    }
+    header .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      opacity: 0.9;
+    }
+    header h1 {
+      margin: 10px 0 10px;
+      font-size: 2.4rem;
+      line-height: 1.15;
+      letter-spacing: 0.01em;
+    }
+    header p {
+      margin: 0;
+      opacity: 0.92;
+      max-width: 900px;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 56px 64px;
+    }
+
+    .toc {
+      margin-top: -18px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(15,23,42,0.14);
+      padding: 18px 22px;
+    }
+    .toc h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+    .toc ol {
+      margin: 0;
+      padding-left: 18px;
+      columns: 2;
+      column-gap: 28px;
+      color: #334155;
+    }
+    .toc li { break-inside: avoid; margin: 6px 0; }
+
+    section {
+      margin-top: 22px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 18px 36px rgba(15,23,42,0.12);
+      padding: 30px 34px;
+    }
+    section h2 {
+      margin: 0 0 12px;
+      font-size: 1.55rem;
+      color: #1d4ed8;
+      border-bottom: 2px solid #c7d2fe;
+      padding-bottom: 10px;
+    }
+    section h3 {
+      margin: 18px 0 8px;
+      color: #0f172a;
+      font-size: 1.1rem;
+    }
+
+    .callout {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px 16px;
+      color: #334155;
+      margin: 12px 0 0;
+    }
+    .callout strong { color: #0f172a; }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    ul { padding-left: 20px; margin: 10px 0; color: #334155; }
+    li { margin: 7px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 12px 12px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #eef2ff;
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+    pre {
+      background: #0b1220;
+      color: #e2e8f0;
+      padding: 14px 16px;
+      border-radius: 14px;
+      overflow: auto;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      color: #475569;
+      padding: 26px 0 16px;
+      font-size: 0.85rem;
+    }
+
+    @media (max-width: 920px) {
+      main { padding: 0 22px 56px; }
+      header { padding: 42px 22px 26px; }
+      .grid2 { grid-template-columns: 1fr; }
+      .toc ol { columns: 1; }
+      section { padding: 22px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      header { background: #fff; color: #000; padding: 0; }
+      header .kicker { color: #000; opacity: 1; }
+      header p { color: #111; opacity: 1; }
+      .toc { box-shadow: none; border: 1px solid #e5e7eb; margin-top: 12px; }
+      section { box-shadow: none; border: 1px solid #e5e7eb; break-inside: avoid; }
+      a { color: #000; text-decoration: none; }
+      .callout { border: 1px solid #e5e7eb; background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="kicker">OKRFlow • Client Briefing • Read‑Aloud Script</div>
+    <h1>System Walk‑Through (Non‑Technical, PRD‑Aligned)</h1>
+    <p>This document is designed to be read in front of stakeholders. It explains what OKRFlow does, how the user experience maps to the PRD, and where the main building blocks live in the codebase. For deeper engineering detail (API schemas, data model, ops runbooks), see <code>docs/system-report.html</code>.</p>
+  </header>
+  <main>
+    <div class="toc">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#one-minute">One‑Minute Overview</a></li>
+        <li><a href="#prd">PRD Alignment (A–F)</a></li>
+        <li><a href="#journey">User Journey (End‑to‑End)</a></li>
+        <li><a href="#dashboards">Dashboards (Company / Team / Personal)</a></li>
+        <li><a href="#collab">Check‑ins, Comments, Reminders</a></li>
+        <li><a href="#admin">Admin, Roles, Teams</a></li>
+        <li><a href="#auth">Login & SSO</a></li>
+        <li><a href="#run">How it Runs (Local / Prod)</a></li>
+        <li><a href="#questions">Common Questions (Answer Script)</a></li>
+      </ol>
+    </div>
+
+    <section id="one-minute">
+      <h2>One‑Minute Overview</h2>
+      <div class="grid2">
+        <div>
+          <p>OKRFlow is an OKR tracking web application that helps an organization create Objectives and Key Results, align them from company → department → team → individual, and track progress with weekly check‑ins and dashboards.</p>
+          <p>It is built as a single full‑stack product: the UI and the API live in the same Next.js application. Data is stored in PostgreSQL through Prisma. Authentication supports SSO providers (Google, Slack, Azure AD) and optional password login depending on configuration.</p>
+          <div class="callout">
+            <strong>Plain‑English architecture:</strong> the browser shows pages; pages call <code>/api/*</code>; API reads/writes the database; dashboards recalculate progress; optional scheduled jobs send reminders and end‑of‑cycle scoring.
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Where the “app shell” is defined</strong>
+          <ul>
+            <li>Root layout: <code>app/layout.tsx</code></li>
+            <li>Global providers: <code>components/providers.tsx</code></li>
+            <li>Header navigation: <code>components/navigation/AppHeader.tsx</code></li>
+            <li>Protected routing: <code>middleware.ts</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="prd">
+      <h2>PRD Alignment (A–F)</h2>
+      <p>The implementation is aligned to the PRD’s feature set. Each PRD section maps to a dedicated part of the UI plus supporting API and database logic.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>PRD section</th>
+            <th>What stakeholders see</th>
+            <th>Where it is implemented</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>A. OKR Creation & Alignment</strong></td>
+            <td>Create objectives, add 1–5 key results, attach initiatives/tasks, set owners, goal types (company→individual), cycle dates, and weighting/priority.</td>
+            <td>
+              UI: <code>app/(app)/objectives/</code>, <code>app/(app)/okrs/</code>, <code>components/objectives/</code><br />
+              Data model: <code>prisma/schema.prisma</code> (Objective: <code>goalType</code>, <code>priority</code>, <code>weight</code>, <code>progressType</code>)<br />
+              Business logic: <code>lib/okr.ts</code>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>B. Tracking & Progress</strong></td>
+            <td>Update progress, view progress bars per objective, weekly updates, and end‑of‑cycle scoring (0.0–1.0).</td>
+            <td>
+              Check-ins UI: <code>app/(app)/checkins/</code><br />
+              Check-in rules: <code>prisma/schema.prisma</code> (<code>@@unique([keyResultId, userId, weekStart])</code>)<br />
+              Scoring jobs: <code>app/api/cron/scoring/route.ts</code>, <code>lib/jobs.ts</code>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>C. Dashboards</strong></td>
+            <td>Company dashboard, team views, and “My OKRs” view with quick actions and progress indicators.</td>
+            <td>
+              Pages: <code>app/(app)/page.tsx</code>, <code>app/(app)/teams/</code>, <code>app/(app)/my-okrs/</code><br />
+              Widgets: <code>components/dashboard/Dashboard.tsx</code>, <code>components/objectives/progress-chip.tsx</code>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>D. Collaboration & Check-ins</strong></td>
+            <td>Weekly check-ins with Green/Yellow/Red, comments/discussion, and reminders for updates.</td>
+            <td>
+              Comments: <code>app/api/comments</code>, <code>components/collaboration/</code><br />
+              Check-in summary logic: <code>lib/checkin-summary.ts</code><br />
+              Notifications: <code>app/api/notifications</code>, <code>lib/notifications.ts</code>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>E. Reporting & Analytics</strong></td>
+            <td>Export reports to PDF/Excel and see trend/heatmap/tree visualizations.</td>
+            <td>
+              Export API (manager/admin): <code>app/api/export/route.ts</code>, <code>lib/exporters.ts</code><br />
+              Export UI: <code>components/reports/ExportButton.tsx</code><br />
+              Analytics: <code>components/analytics/HeatMap.tsx</code>, <code>AlignmentTree.tsx</code>, <code>TimelineView.tsx</code>
+            </td>
+          </tr>
+          <tr>
+            <td><strong>F. Admin & Roles</strong></td>
+            <td>Role-based access (Admin/Manager/Employee), user/team assignment, SSO integrations for login and reminders.</td>
+            <td>
+              Admin UI: <code>app/(app)/admin/</code><br />
+              Role enforcement: <code>lib/rbac.ts</code>, <code>middleware.ts</code><br />
+              SSO: <code>lib/auth.ts</code>, per-org provider configs: <code>lib/idp.ts</code>, <code>prisma/schema.prisma</code> (<code>IdentityProviderConfig</code>)
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>What “real-time visibility” means here:</strong> dashboards and lists update quickly through TanStack Query caching and refetching; it is not dependent on WebSocket infrastructure.
+      </div>
+    </section>
+
+    <section id="journey">
+      <h2>User Journey (End‑to‑End)</h2>
+      <h3>1) Login</h3>
+      <ul>
+        <li>Users log in via SSO (Google/Slack/Azure AD) or password login depending on configuration (<code>lib/auth.ts</code> and <code>.env.example</code>).</li>
+        <li>Protected routes are enforced by <code>middleware.ts</code>.</li>
+      </ul>
+      <h3>2) Create and align OKRs</h3>
+      <ul>
+        <li>Admins define company OKRs for a cycle; managers align team OKRs beneath them; employees create individual OKRs linked to their team’s goals.</li>
+        <li>Objective hierarchy is expressed via <code>Objective.parentId</code> and <code>Objective.goalType</code> (see <code>prisma/schema.prisma</code>).</li>
+      </ul>
+      <h3>3) Track progress weekly</h3>
+      <ul>
+        <li>Users submit weekly check-ins per key result (Green/Yellow/Red), and the system stores one check-in per key result per week.</li>
+      </ul>
+      <h3>4) Review dashboards and reports</h3>
+      <ul>
+        <li>Dashboards summarize where the company stands, what is at risk, and what actions are due next.</li>
+        <li>Reports export consolidated OKR status to PDF/Excel for leadership review.</li>
+      </ul>
+    </section>
+
+    <section id="dashboards">
+      <h2>Dashboards (Company / Team / Personal)</h2>
+      <p>The PRD goal is that within 30 seconds, a user understands: (1) overall progress, (2) what is at risk, and (3) what they personally must update. The dashboard layout and widgets are designed for that outcome.</p>
+      <div class="grid2">
+        <div>
+          <h3>Company dashboard</h3>
+          <ul>
+            <li>Overall progress gauge and key highlights (<code>components/dashboard/Dashboard.tsx</code>).</li>
+            <li>Team heatmap and at-risk list (<code>components/analytics/HeatMap.tsx</code>, <code>components/productivity/AtRiskObjectivesWidget.tsx</code>).</li>
+            <li>Top objectives snapshot with expandable key results (<code>components/board/ObjectiveCard.tsx</code>).</li>
+          </ul>
+          <h3>Team dashboard</h3>
+          <ul>
+            <li>Team-focused OKRs and progress rollups (routes under <code>app/(app)/teams/</code>).</li>
+          </ul>
+          <h3>Personal dashboard (“My OKRs”)</h3>
+          <ul>
+            <li>Personal OKR list and quick update actions (<code>app/(app)/my-okrs/</code>).</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <strong>Navigation & search (PRD UI requirement)</strong>
+          <ul>
+            <li>Top navigation + tabs: <code>components/navigation/AppHeader.tsx</code></li>
+            <li>Search input routes to: <code>/okrs?search=...</code></li>
+            <li>Horizontal nav menu: <code>components/navigation/AppNavigation.tsx</code></li>
+            <li>Optional sidebar component exists: <code>components/navigation/AppSidebar.tsx</code> (not required for PRD and not wired in the default shell)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="collab">
+      <h2>Check‑ins, Comments, Reminders</h2>
+      <h3>Weekly check‑ins</h3>
+      <ul>
+        <li>Status colors are a first-class concept (<code>CheckInStatus</code>: GREEN/YELLOW/RED).</li>
+        <li>One check-in per KR per week is enforced by a database uniqueness constraint (see <code>CheckIn</code> in <code>prisma/schema.prisma</code>).</li>
+        <li>Aggregation and summary logic lives in <code>lib/checkin-summary.ts</code>.</li>
+      </ul>
+      <h3>Comments and discussions</h3>
+      <ul>
+        <li>Comments can attach to an objective or key result (<code>Comment.objectiveId</code> / <code>Comment.keyResultId</code>).</li>
+        <li>API: <code>app/api/comments</code>; UI: <code>components/collaboration/</code>.</li>
+      </ul>
+      <h3>Reminders and scoring automation</h3>
+      <ul>
+        <li>Cron endpoints: <code>app/api/cron/reminders/route.ts</code> and <code>app/api/cron/scoring/route.ts</code>.</li>
+        <li>Authorization: Vercel Cron uses <code>Authorization: Bearer $CRON_SECRET</code> (GET); manual calls can use <code>x-cron-secret</code> (POST).</li>
+      </ul>
+    </section>
+
+    <section id="admin">
+      <h2>Admin, Roles, Teams</h2>
+      <p>The PRD requires Admin/Manager/Employee roles. OKRFlow stores roles in the database and applies them in middleware, API checks, and UI navigation.</p>
+      <ul>
+        <li>Role enum: <code>prisma/schema.prisma</code> (<code>Role</code>).</li>
+        <li>Role enforcement and helpers: <code>lib/rbac.ts</code>, <code>middleware.ts</code>.</li>
+        <li>Admin UI: <code>app/(app)/admin/</code> and admin APIs under <code>app/api/admin</code>.</li>
+        <li>Teams: <code>Team</code> and <code>TeamMember</code> tables in <code>prisma/schema.prisma</code>; team views under <code>app/(app)/teams/</code>.</li>
+      </ul>
+      <div class="callout">
+        <strong>Exports (PRD reporting):</strong> Export is restricted to Admin/Manager at the API level (<code>app/api/export/route.ts</code>), matching typical enterprise expectations.
+      </div>
+    </section>
+
+    <section id="auth">
+      <h2>Login & SSO</h2>
+      <ul>
+        <li>Auth routes: <code>app/(auth)/login</code>, <code>app/(auth)/signup</code>.</li>
+        <li>NextAuth configuration and providers: <code>lib/auth.ts</code>.</li>
+        <li>SSO providers supported via env variables: Google, Slack, Azure AD (<code>.env.example</code>).</li>
+        <li>Tenant-specific provider settings: <code>IdentityProviderConfig</code> in <code>prisma/schema.prisma</code> and loader in <code>lib/idp.ts</code>.</li>
+        <li>Automatic org provisioning on first login: <code>ensureOrgAndRole</code> in <code>lib/auth.ts</code>.</li>
+      </ul>
+    </section>
+
+    <section id="run">
+      <h2>How it Runs (Local / Production)</h2>
+      <h3>Local development</h3>
+      <pre>npm ci
+cp .env.example .env.local
+npx prisma generate
+npx prisma migrate dev
+npm run db:seed
+npm run dev</pre>
+      <h3>Production essentials</h3>
+      <ul>
+        <li>Set <code>DATABASE_URL</code>, <code>NEXTAUTH_URL</code>, and <code>NEXTAUTH_SECRET</code> (see <code>.env.example</code>).</li>
+        <li>Configure cron secrets for reminders and scoring (<code>CRON_SECRET</code>).</li>
+        <li>See deployment checklists in <code>docs/VERCEL_DEPLOYMENT.md</code>.</li>
+      </ul>
+    </section>
+
+    <section id="questions">
+      <h2>Common Questions (Answer Script)</h2>
+      <h3>“What exactly was built?”</h3>
+      <div class="callout">
+        OKRFlow is a single web application that includes: an OKR UI, a REST API, authentication, a PostgreSQL data model, reporting exports, and automated jobs for reminders/scoring. The platform supports role-based access and multi-tenant organization separation.
+      </div>
+
+      <h3>“Where does the backend live?”</h3>
+      <div class="callout">
+        The backend is implemented as Next.js API routes under <code>app/api/*</code>, using Prisma to read/write PostgreSQL. Shared business rules (progress, scoring, check-ins) are in <code>lib/*</code>.
+      </div>
+
+      <h3>“How is alignment handled?”</h3>
+      <div class="callout">
+        Objectives link to each other via a parent-child relationship (<code>Objective.parentId</code>) and are categorized by <code>goalType</code> (company/department/team/individual). Progress rolls up through weighted key results and objective weights.
+      </div>
+
+      <h3>“How is progress calculated?”</h3>
+      <div class="callout">
+        Key results have <code>current</code>, <code>target</code>, and <code>weight</code>; objective progress is a weighted rollup. The exact formula is documented in <code>docs/API.md</code> under “Progress Calculation”.
+      </div>
+
+      <h3>“How do reminders and end-of-cycle scoring run?”</h3>
+      <div class="callout">
+        Cron endpoints (<code>app/api/cron/reminders/route.ts</code>, <code>app/api/cron/scoring/route.ts</code>) trigger jobs in <code>lib/jobs.ts</code>. Access is protected by <code>CRON_SECRET</code>.
+      </div>
+    </section>
+  </main>
+  <footer>OKRFlow — Read‑Aloud Client Briefing • Companion deep report: <code>docs/system-report.html</code></footer>
+</body>
+</html>
