@@ -11,9 +11,7 @@ import { Input } from '@/components/ui/input'
 import { AppNav, type AppNavItem } from '@/components/navigation/AppNavigation'
 import { Logo } from '@/components/brand/Logo'
 import { isFeatureEnabled } from '@/config/features'
-import { DemoToggle } from '@/components/demo/DemoToggle'
-import { useDemoMode } from '@/components/demo/DemoProvider'
-import type { DemoRole } from '@/lib/demo/state'
+
 
 export type AppHeaderProps = {
   user?: {
@@ -34,7 +32,7 @@ function getQuarterLabel() {
 export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const { enabled: demoEnabled, role } = useDemoMode()
+
 
   const submitSearch = () => {
     const term = query.trim()
@@ -61,15 +59,9 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
               {envLabel}
             </span>
           ) : null}
-          {demoEnabled ? (
-            <span className="rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-              Demo • {role}
-            </span>
-          ) : (
-            <span className="hidden sm:inline-flex rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-              {getQuarterLabel()}
-            </span>
-          )}
+          <span className="hidden sm:inline-flex rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+            {getQuarterLabel()}
+          </span>
         </div>
 
         {/* Center: Search */}
@@ -104,9 +96,6 @@ export function AppHeader({ user, navItems = [], envLabel }: AppHeaderProps) {
               New Objective
             </Link>
           </Button>
-          {isFeatureEnabled('demoMode') ? (
-            <DemoToggle compact showRole={false} userRole={user?.role as DemoRole | undefined} />
-          ) : null}
           <UserMenu name={user?.name} email={user?.email} role={user?.role} />
         </div>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { maybeHandleDemoRequest } from '@/lib/demo/api'
+
 
 export type ObjectiveStatusValue = 'NOT_STARTED' | 'IN_PROGRESS' | 'AT_RISK' | 'DONE'
 
@@ -86,10 +86,7 @@ export function evictObjectiveFromCache(queryClient: QueryClient, objectiveId: s
 }
 
 export async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const demoPayload = maybeHandleDemoRequest<T>(url, init)
-  if (demoPayload !== null) {
-    return demoPayload
-  }
+
 
   const res = await fetch(url, {
     ...init,
@@ -173,7 +170,13 @@ type ObjectivesQueryOptions = {
   enabled?: boolean
 }
 
+import { useDemo } from '@/components/demo/DemoContext'
+import { useDemoData } from '@/hooks/useDemoData'
+
 export function useObjectives(params: ObjectivesQueryParams, options?: ObjectivesQueryOptions) {
+  const { isEnabled, role } = useDemo()
+  const { objectives: demoObjectives } = useDemoData(role)
+
   const query = new URLSearchParams()
   if (params.search) query.set('search', params.search)
   if (params.cycle) query.set('cycle', params.cycle)
@@ -185,21 +188,52 @@ export function useObjectives(params: ObjectivesQueryParams, options?: Objective
   if (typeof params.offset === 'number') query.set('offset', String(params.offset))
   const suffix = query.toString() ? `?${query.toString()}` : ''
 
-  return useQuery<ObjectivesResponse, Error>({
+  const queryResult = useQuery<ObjectivesResponse, Error>({
     queryKey: ['objectives', params],
     queryFn: () => fetchJSON(`/api/objectives${suffix}`),
-    enabled: options?.enabled ?? true,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    enabled: (options?.enabled ?? true) && !isEnabled,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
   })
+
+  if (isEnabled) {
+    return {
+      ...queryResult,
+      data: {
+        objectives: demoObjectives,
+        pagination: { total: demoObjectives.length, limit: 100, offset: 0, hasMore: false }
+      },
+      isLoading: false,
+      isSuccess: true,
+    } as any
+  }
+
+  return queryResult
 }
 
 export function useObjective(id: string | undefined) {
-  return useQuery<ObjectiveResponse, Error>({
+  const { isEnabled, role } = useDemo()
+  const { objectives: demoObjectives } = useDemoData(role)
+
+  const queryResult = useQuery<ObjectiveResponse, Error>({
     queryKey: ['objective', id],
     queryFn: () => fetchJSON(`/api/objectives/${id}`),
-    enabled: Boolean(id),
+    enabled: Boolean(id) && !isEnabled,
   })
+
+  if (isEnabled && id) {
+    const found = demoObjectives.find(o => o.id === id)
+    if (found) {
+      return {
+        ...queryResult,
+        data: { objective: found },
+        isLoading: false,
+        isSuccess: true
+      } as any
+    }
+  }
+
+  return queryResult
 }
 
 type ObjectivePayload = {

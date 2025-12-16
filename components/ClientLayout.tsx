@@ -7,7 +7,8 @@ import { ReactNode, memo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { buildNavItems } from '@/lib/navigation'
 import { AppHeader } from '@/components/navigation/AppHeader'
-import { useDemoMode } from '@/components/demo/DemoProvider'
+import { DemoControl } from '@/components/demo/DemoControl'
+
 
 type ClientLayoutProps = {
   children: ReactNode
@@ -27,10 +28,12 @@ const MemoizedHeader = memo(function MemoizedHeader({
   return <AppHeader user={user} navItems={navItems} envLabel={envLabel} />
 })
 
+import { useDemo } from '@/components/demo/DemoContext'
+
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
-  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
+  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
 
   // Auth pages render without any layout chrome
   const isAuthPage = pathname?.startsWith('/login')
@@ -49,6 +52,7 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
             <div className="h-4 w-96 bg-muted rounded" />
           </div>
         </main>
+        <DemoControl />
       </div>
     )
   }

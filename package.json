@@ -20,7 +20,16 @@
     "warmup": "node scripts/warmup.mjs",
     "db:seed": "tsx prisma/seed.ts"
   },
-  "keywords": ["okr", "goals", "objectives", "key-results", "performance", "enterprise", "analytics", "collaboration"],
+  "keywords": [
+    "okr",
+    "goals",
+    "objectives",
+    "key-results",
+    "performance",
+    "enterprise",
+    "analytics",
+    "collaboration"
+  ],
   "author": "Prospello Development Team",
   "license": "MIT",
   "dependencies": {
@@ -44,10 +53,12 @@
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.51.1",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.23.26",
     "jspdf": "^3.0.4",
     "lucide-react": "^0.544.0",
     "next": "^15.5.4",
@@ -58,7 +69,7 @@
     "react-dom": "^18.0.0",
     "react-hook-form": "^7.53.0",
     "sonner": "^1.5.0",
-    "tailwind-merge": "^2.5.2",
+    "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "xlsx": "^0.18.5",
     "zod": "^3.22.0"

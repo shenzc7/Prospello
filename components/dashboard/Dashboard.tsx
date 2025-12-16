@@ -28,7 +28,7 @@ import { useCheckInSummary } from '@/hooks/useCheckInSummary'
 import type { HeroSummary, AlignmentNode, CheckInSummary } from '@/lib/checkin-summary'
 import { AlignmentTree } from '@/components/analytics/AlignmentTree'
 import { isFeatureEnabled } from '@/config/features'
-import { useDemoMode } from '@/components/demo/DemoProvider'
+
 
 type DashboardMetrics = {
   totalObjectives: number
@@ -545,22 +545,15 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
 export function Dashboard() {
   const { data: session } = useSession()
   const user = session?.user
-  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
-  const userRole = (demoEnabled ? demoRole : user?.role) as UserRole
-  const demoViewerEmail = demoEnabled
-    ? demoRole === 'EMPLOYEE'
-      ? 'eden@okrflow.demo'
-      : demoRole === 'MANAGER'
-        ? 'morgan@okrflow.demo'
-        : undefined
-    : undefined
+
+  const userRole = (user?.role) as UserRole
+
   const { data: checkInSummary } = useCheckInSummary()
   const showProductivityExtras = isFeatureEnabled('productivityWidgets')
   const showNotificationFeed = isFeatureEnabled('notificationFeed')
 
   // Build query params based on user role
   const queryParams = useMemo(() => {
-    if (demoEnabled) return {}
     if (!user) return {}
 
     switch (userRole) {
@@ -573,7 +566,7 @@ export function Dashboard() {
       default:
         return { ownerId: user.id }
     }
-  }, [demoEnabled, user, userRole])
+  }, [user, userRole])
 
   const { data: objectivesData, isLoading } = useObjectives(queryParams)
 
@@ -583,17 +576,7 @@ export function Dashboard() {
 
     const objectives = objectivesData.objectives
 
-    if (demoEnabled) {
-      if (userRole === 'EMPLOYEE' && demoViewerEmail) {
-        return objectives.filter((obj) => obj.owner.email === demoViewerEmail)
-      }
-      if (userRole === 'MANAGER' && demoViewerEmail) {
-        return objectives.filter((obj) => obj.team?.id === 'team-gtm' || obj.owner.email === demoViewerEmail)
-      }
-      return objectives
-    }
-
-    if (!user) return objectives
+    if (!user) return [] // If no user, return empty array (no demo mode)
 
     switch (userRole) {
       case 'ADMIN':
@@ -606,9 +589,9 @@ export function Dashboard() {
       case 'EMPLOYEE':
         return objectives.filter(obj => obj.owner.id === user.id)
       default:
-        return objectives.filter(obj => obj.owner.id === user.id)
+        return objectives.filter(obj => obj.owner.id === user.id) // Default to filtering by user's own objectives
     }
-  }, [demoEnabled, demoViewerEmail, objectivesData?.objectives, user, userRole])
+  }, [objectivesData?.objectives, user, userRole])
 
   const computedTeamHeatmap = useMemo(() => {
     const map = new Map<string, {
