@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { fetchJSON, useUserOptions } from '@/hooks/useObjectives'
+import { fetchJSON, useUserOptions, useTeam } from '@/hooks/useObjectives'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -30,11 +30,7 @@ export default function TeamDetailPage() {
   const [teamName, setTeamName] = useState('')
   const { data: userOptions } = useUserOptions('')
 
-  const teamQuery = useQuery<{ team: TeamDetail }>({
-    queryKey: ['team', id],
-    queryFn: () => fetchJSON(`/api/teams/${id}`),
-    enabled: Boolean(id),
-  })
+  const teamQuery = useTeam(id as string)
 
   useEffect(() => {
     if (teamQuery.data?.team?.name) {

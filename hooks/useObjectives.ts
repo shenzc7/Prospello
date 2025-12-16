@@ -197,11 +197,29 @@ export function useObjectives(params: ObjectivesQueryParams, options?: Objective
   })
 
   if (isEnabled) {
+    let filtered = [...demoObjectives]
+
+    if (params.status) {
+      filtered = filtered.filter(obj => obj.status === params.status)
+    }
+
+    if (params.teamId) {
+      filtered = filtered.filter(obj => obj.team?.id === params.teamId)
+    }
+
+    if (params.search) {
+      const q = params.search.toLowerCase()
+      filtered = filtered.filter(obj =>
+        obj.title.toLowerCase().includes(q) ||
+        obj.description?.toLowerCase().includes(q)
+      )
+    }
+
     return {
       ...queryResult,
       data: {
-        objectives: demoObjectives,
-        pagination: { total: demoObjectives.length, limit: 100, offset: 0, hasMore: false }
+        objectives: filtered,
+        pagination: { total: filtered.length, limit: 100, offset: 0, hasMore: false }
       },
       isLoading: false,
       isSuccess: true,
@@ -322,14 +340,66 @@ export function useUserOptions(search: string) {
   })
 }
 
+import { TEAMS } from '@/hooks/useDemoData'
+
 export function useTeams(search: string) {
+  const { isEnabled } = useDemo()
+
   const query = new URLSearchParams()
   if (search) query.set('search', search)
   const suffix = query.toString() ? `?${query.toString()}` : ''
 
-  return useQuery<{ teams: Array<{ id: string; name: string; members?: Array<{ id: string; name?: string | null; email: string; role: string }> }> }, Error>({
+  const queryResult = useQuery<{ teams: Array<{ id: string; name: string; members?: Array<{ id: string; name?: string | null; email: string; role: string }> }> }, Error>({
     queryKey: ['teams', search],
     queryFn: () => fetchJSON(`/api/teams${suffix}`),
-    enabled: true,
+    enabled: !isEnabled,
   })
+
+  if (isEnabled) {
+    return {
+      ...queryResult,
+      data: { teams: TEAMS },
+      isLoading: false,
+      isSuccess: true,
+    } as any
+  }
+
+  return queryResult
+}
+
+export function useTeam(id: string) {
+  const { isEnabled, role } = useDemo()
+  const { objectives } = useDemoData(role)
+
+  const queryResult = useQuery<{ team: { id: string; name: string; members: Array<{ id: string; name?: string | null; email: string; role: string }>; objectives: Array<{ id: string; title: string; status: string; progress: number }> } }, Error>({
+    queryKey: ['team', id],
+    queryFn: () => fetchJSON(`/api/teams/${id}`),
+    enabled: Boolean(id) && !isEnabled,
+  })
+
+  if (isEnabled && id) {
+    const team = TEAMS.find(t => t.id === id)
+    if (team) {
+      const teamObjectives = objectives.filter(o => o.team?.id === id).map(o => ({
+        id: o.id,
+        title: o.title,
+        status: o.status,
+        progress: o.progress
+      }))
+
+      return {
+        ...queryResult,
+        data: {
+          team: {
+            ...team,
+            objectives: teamObjectives
+          }
+        },
+        isLoading: false,
+        isSuccess: true
+      } as any
+    }
+  }
+
+  return queryResult
 }

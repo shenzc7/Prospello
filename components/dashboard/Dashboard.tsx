@@ -47,11 +47,16 @@ interface MetricCardProps {
     label: string
   }
   icon?: React.ReactNode
+  href?: string
+  onClick?: () => void
 }
 
-function MetricCard({ title, value, description, trend, icon }: MetricCardProps) {
-  return (
-    <Card className="shadow-card hover:shadow-card-hover transition-all duration-200">
+function MetricCard({ title, value, description, trend, icon, href, onClick }: MetricCardProps) {
+  const Content = (
+    <Card className={cn(
+      "shadow-card hover:shadow-card-hover transition-all duration-200",
+      (href || onClick) && "cursor-pointer hover:border-primary/50 hover:bg-muted/30"
+    )}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-medium text-muted-foreground">{title}</span>
@@ -70,6 +75,16 @@ function MetricCard({ title, value, description, trend, icon }: MetricCardProps)
       </CardContent>
     </Card>
   )
+
+  if (href) {
+    return <Link href={href}>{Content}</Link>
+  }
+
+  if (onClick) {
+    return <div onClick={onClick}>{Content}</div>
+  }
+
+  return Content
 }
 
 interface QuickActionProps {
@@ -921,23 +936,27 @@ export function Dashboard() {
               title="Total Objectives"
               value={metrics.totalObjectives}
               description="Active OKRs across the company"
+              href="/okrs"
             />
             <MetricCard
               title="Completion Rate"
               value={`${metrics.completionRate}%`}
               description="Objectives scored as done"
               trend={{ value: 12, label: "from last month" }}
+              href="/okrs?status=DONE"
             />
             <MetricCard
               title="At Risk"
               value={metrics.atRiskObjectives}
               description="Needs attention this week"
+              href="/okrs?status=AT_RISK"
             />
             <MetricCard
               title="Average Progress"
               value={`${metrics.avgProgress}%`}
               description="Weighted across all objectives"
               trend={{ value: 8, label: "from last week" }}
+              href="/okrs"
             />
           </div>
         </div>

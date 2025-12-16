@@ -12,7 +12,7 @@ const USERS = {
     EMPLOYEE: { id: 'u-ic-pm', name: 'Alex PM', email: 'alex@okrflow.demo', role: 'EMPLOYEE' },
 } as const
 
-const TEAMS = [
+export const TEAMS = [
     { id: 't-exec', name: 'Executive', members: [USERS.ADMIN] },
     { id: 't-eng', name: 'Engineering', members: [USERS.MANAGER] },
     { id: 't-product', name: 'Product', members: [USERS.EMPLOYEE] },

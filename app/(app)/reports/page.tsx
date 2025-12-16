@@ -14,6 +14,7 @@ import { TimelineView } from '@/components/analytics/TimelineView'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
 import { AlignmentTree } from '@/components/analytics/AlignmentTree'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
+import { useDemo } from '@/components/demo/DemoContext'
 import type { AlignmentNode } from '@/lib/checkin-summary'
 
 function ExportSection() {
@@ -40,8 +41,20 @@ function ExportSection() {
     URL.revokeObjectURL(url)
   }
 
+  const { isEnabled } = useDemo()
+
   const downloadFromApi = async (format: 'pdf' | 'xlsx' | 'csv') => {
     setDownloading(true)
+
+    // Demo Mode Simulation
+    if (isEnabled) {
+      setTimeout(() => {
+        toast.success(`Simulation: Downloaded ${format.toUpperCase()} report`)
+        setDownloading(false)
+      }, 800)
+      return
+    }
+
     try {
       const res = await fetch(`/api/reports/export?format=${format}`)
       if (!res.ok) {
@@ -268,7 +281,7 @@ export default function ReportsPage() {
             <SelectContent>
               <SelectItem value="all">All cycles</SelectItem>
               {cycles.map((cycle) => (
-                <SelectItem key={cycle} value={cycle}>{cycle}</SelectItem>
+                <SelectItem key={String(cycle)} value={String(cycle)}>{String(cycle)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
