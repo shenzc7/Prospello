@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
 import type { CheckInSummary, HeroSummary } from '@/lib/checkin-summary'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
-import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 type RecentCheckIn = CheckInSummary['recentCheckIns'][number]
 
@@ -216,14 +215,6 @@ export default function CheckinsPage() {
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
-      const demoPayload = maybeHandleDemoRequest('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format, scope: 'weekly-checkins' }),
-      })
-      if (demoPayload !== null) {
-        throw new Error('Demo mode is read-only. Export available outside demo.')
-      }
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

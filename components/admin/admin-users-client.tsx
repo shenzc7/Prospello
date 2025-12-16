@@ -14,7 +14,6 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { UserRow } from './admin-users-row'
 import { fetchJSON, useTeams } from '@/hooks/useObjectives'
-import { maybeHandleDemoRequest } from '@/lib/demo/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,10 +42,6 @@ export const ROLE_OPTIONS: Role[] = ['ADMIN', 'MANAGER', 'EMPLOYEE']
 
 async function fetchUsers(search: string): Promise<UsersResponse> {
   const qs = search ? `?search=${encodeURIComponent(search)}` : ''
-  const demoPayload = maybeHandleDemoRequest<UsersResponse>(`/api/admin/users${qs}`)
-  if (demoPayload !== null) {
-    return demoPayload
-  }
   const res = await fetch(`/api/admin/users${qs}`, {
     credentials: 'include',
     cache: 'no-store'
@@ -62,17 +57,6 @@ async function fetchUsers(search: string): Promise<UsersResponse> {
 }
 
 async function patchUser(input: { userId: string; role?: Role; teamIds?: string[] }) {
-  const demoPayload = maybeHandleDemoRequest(`/api/admin/users/${input.userId}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify({ role: input.role, teamIds: input.teamIds })
-  })
-  if (demoPayload !== null) {
-    return demoPayload
-  }
   const res = await fetch(`/api/admin/users/${input.userId}`, {
     method: 'PATCH',
     headers: {
@@ -177,14 +161,6 @@ export function AdminUsersClient() {
 
   const createUser = useMutation({
     mutationFn: async (input: { email: string; name?: string; role: Role; teamIds?: string[] }) => {
-      const demoPayload = maybeHandleDemoRequest('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input),
-      })
-      if (demoPayload !== null) {
-        return demoPayload
-      }
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

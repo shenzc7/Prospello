@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { maybeHandleDemoRequest } from '@/lib/demo/api'
 
 export interface AppNotification {
   id: string
@@ -25,10 +24,6 @@ export function useNotifications(userId?: string) {
     queryKey: ['notifications', userId],
     queryFn: async () => {
       const suffix = userId ? `?userId=${encodeURIComponent(userId)}` : ''
-      const demoPayload = maybeHandleDemoRequest<NotificationResponse>(`/api/notifications${suffix}`)
-      if (demoPayload !== null) {
-        return demoPayload
-      }
       const res = await fetch(`/api/notifications${suffix}`)
       if (!res.ok) throw new Error('Failed to fetch notifications')
       return res.json()
@@ -40,14 +35,6 @@ export function useNotifications(userId?: string) {
 
   const markReadMutation = useMutation({
     mutationFn: async (ids?: string[]) => {
-      const demoPayload = maybeHandleDemoRequest('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids, all: !ids }),
-      })
-      if (demoPayload !== null) {
-        return demoPayload
-      }
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -17,7 +17,7 @@ import { useObjectives } from '@/hooks/useObjectives'
 import { SkeletonRow } from '@/components/ui/SkeletonRow'
 import { ObjectiveStatusBadge } from '@/components/okrs/ObjectiveStatusBadge'
 import { calculateKRProgress } from '@/lib/utils'
-import { useDemoMode } from '@/components/demo/DemoProvider'
+import { useDemo } from '@/components/demo/DemoContext'
 
 const ALL_CYCLES = '__all_cycles__'
 
@@ -28,7 +28,7 @@ function fmtPercent(value?: number) {
 
 export function MyOkrsClient() {
   const { data: session, status } = useSession()
-  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
+  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
   const [cycle, setCycle] = useState<string>(ALL_CYCLES)
   const ownerId = demoEnabled
     ? demoRole === 'EMPLOYEE'

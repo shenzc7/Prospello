@@ -16,7 +16,6 @@ import { useSession } from 'next-auth/react'
 import { UserRole } from '@/lib/rbac'
 import { calculateTrafficLightStatus, getTrafficLightClasses } from '@/lib/utils'
 import { HeatMap } from '@/components/analytics/HeatMap'
-import { maybeHandleDemoRequest } from '@/lib/demo/api'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type ObjectiveData = {
@@ -238,14 +237,6 @@ function TeamOverview({ userRole }: { userRole: UserRole }) {
 
   const createTeam = useMutation({
     mutationFn: async () => {
-      const demoPayload = maybeHandleDemoRequest('/api/teams', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newTeamName }),
-      })
-      if (demoPayload !== null) {
-        throw new Error('Demo mode is read-only. Toggle off to create teams.')
-      }
       const res = await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -267,14 +258,6 @@ function TeamOverview({ userRole }: { userRole: UserRole }) {
 
   const updateTeam = useMutation({
     mutationFn: async ({ id, name, memberIds }: { id: string; name?: string; memberIds?: string[] }) => {
-      const demoPayload = maybeHandleDemoRequest(`/api/teams/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, memberIds }),
-      })
-      if (demoPayload !== null) {
-        throw new Error('Demo mode is read-only. Toggle off to edit teams.')
-      }
       const res = await fetch(`/api/teams/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

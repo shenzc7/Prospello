@@ -22,8 +22,7 @@ import { featureFlags, isFeatureEnabled } from '@/config/features'
 import { fetchJSON } from '@/hooks/useObjectives'
 import { DEFAULT_NOTIFICATION_SETTINGS } from '@/lib/notificationSettings'
 import { mergeOrgSettings, defaultOrgLocaleSettings, type OrgLocaleSettings } from '@/lib/orgSettings'
-import { DemoToggle } from '@/components/demo/DemoToggle'
-import { useDemoAccess, useDemoMode } from '@/components/demo/DemoProvider'
+import { useDemo } from '@/components/demo/DemoContext'
 
 function ProfileSettings() {
   const { data: session } = useSession()
@@ -942,8 +941,7 @@ function AdminSettings() {
 export default function SettingsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
-  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
-  const { featureEnabled: demoFeatureEnabled, setUserOptIn: setDemoFeature } = useDemoAccess()
+  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
   const params = useSearchParams()
   const showNotificationsTab = !featureFlags.prdMode || isFeatureEnabled('notificationFeed')
   const showAppearanceTab = isFeatureEnabled('appearanceSettings')
@@ -997,33 +995,21 @@ export default function SettingsPage() {
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">Demo mode</p>
                 <p className="text-sm font-semibold text-foreground">Showcase-ready data</p>
                 <p className="text-xs text-muted-foreground">
-                  Session only. Current view: {demoFeatureEnabled && demoEnabled ? demoRole : 'off'}.
+                  Session only. Current view: {demoEnabled ? demoRole : 'off'}.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Availability</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {demoFeatureEnabled ? 'Enabled for this browser' : 'Hidden until you enable'}
-                  </p>
-                </div>
-                <Switch
-                  checked={demoFeatureEnabled}
-                  onCheckedChange={(checked) => setDemoFeature(checked)}
-                  aria-label="Toggle demo mode availability"
-                />
+              <div className="text-right">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Control</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Use the floating demo control button
+                </p>
               </div>
             </div>
-            {demoFeatureEnabled ? (
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-                <p className="text-xs text-muted-foreground">Start, stop, and switch demo personas.</p>
-                <DemoToggle compact />
-              </div>
-            ) : (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
               <p className="text-xs text-muted-foreground">
-                Enable to show the demo controls and sample data for this browser only.
+                Demo mode is controlled via the floating control button in the bottom-right corner of the screen.
               </p>
-            )}
+            </div>
           </div>
         </div>
       </div>

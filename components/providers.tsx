@@ -3,11 +3,9 @@
 import * as React from 'react'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NavigationProgress } from '@/components/ui/navigation-progress'
 import { Toaster } from '@/components/ui/toaster'
 import { ClientLayout } from '@/components/ClientLayout'
-import { AuthProvider } from '@/components/auth/AuthProvider'
-import { QueryProvider } from '@/components/providers/QueryProvider'
+import AuthProvider from '@/components/auth/SessionProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { DemoProvider } from '@/components/demo/DemoContext'
 
@@ -29,19 +27,14 @@ export function Providers({ children }: ProvidersProps) {
     <QueryClientProvider client={queryClient}>
       <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
         <div className="relative flex min-h-screen flex-col">
-          <React.Suspense fallback={null}>
-            <NavigationProgress />
-          </React.Suspense>
           <AuthProvider>
-            <QueryProvider>
-              <TooltipProvider>
-                <DemoProvider>
-                  <ClientLayout>
-                    {children}
-                  </ClientLayout>
-                </DemoProvider>
-              </TooltipProvider>
-            </QueryProvider>
+            <TooltipProvider>
+              <DemoProvider>
+                <ClientLayout>
+                  {children}
+                </ClientLayout>
+              </DemoProvider>
+            </TooltipProvider>
           </AuthProvider>
           <Toaster />
         </div>

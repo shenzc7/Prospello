@@ -7,13 +7,13 @@ import { NotificationsFeed } from '@/components/productivity/NotificationsFeed'
 import { UpcomingDeadlinesWidget } from '@/components/productivity/UpcomingDeadlinesWidget'
 import { AtRiskObjectivesWidget } from '@/components/productivity/AtRiskObjectivesWidget'
 import { Button } from '@/components/ui/button'
-import { useDemoMode } from '@/components/demo/DemoProvider'
+import { useDemo } from '@/components/demo/DemoContext'
 import { useSession } from 'next-auth/react'
 import { useMemo } from 'react'
 import type { UserRole } from '@/lib/rbac'
 
 export default function AlertsPage() {
-  const { enabled: demoEnabled, role: demoRole } = useDemoMode()
+  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
   const { data: session } = useSession()
 
   const personaUserId = useMemo(() => {

@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
-import { useDemoMode } from '@/components/demo/DemoProvider'
+import { useDemo } from '@/components/demo/DemoContext'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,7 +65,7 @@ function extractInvitation(body: unknown): InvitationResult | null {
 
 export function AdminInvitationsClient() {
   const { data: session } = useSession()
-  const { enabled: demoEnabled } = useDemoMode()
+  const { isEnabled: demoEnabled } = useDemo()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [invite, setInvite] = React.useState<InvitationResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)

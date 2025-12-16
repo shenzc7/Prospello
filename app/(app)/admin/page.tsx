@@ -25,7 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { isFeatureEnabled } from '@/config/features'
-import { useDemoMode } from '@/components/demo/DemoProvider'
+import { useDemo } from '@/components/demo/DemoContext'
 import { useObjectives } from '@/hooks/useObjectives'
 import { HeatMap } from '@/components/analytics/HeatMap'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
@@ -53,7 +53,7 @@ function StatCard({ title, value, description, icon }: { title: string; value: s
 export default function AdminPage() {
   const { data: session } = useSession()
   const role = session?.user?.role
-  const { enabled: demoEnabled } = useDemoMode()
+  const { isEnabled: demoEnabled } = useDemo()
   const isAdmin = role === 'ADMIN' || demoEnabled
   const { toast } = useToast()
   const [cycle, setCycle] = useState('Q4 2024')
