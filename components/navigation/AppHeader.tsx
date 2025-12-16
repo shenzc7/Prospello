@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AppNav, type AppNavItem } from '@/components/navigation/AppNavigation'
 import { Logo } from '@/components/brand/Logo'
-import { isFeatureEnabled } from '@/config/features'
 
 
 export type AppHeaderProps = {

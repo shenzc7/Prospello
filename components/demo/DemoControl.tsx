@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings, Users, X, Check, MonitorPlay } from 'lucide-react'
+import { Settings, Users, Check, MonitorPlay } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -12,12 +11,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useDemo, type DemoRole } from '@/components/demo/DemoContext'
-import { cn } from '@/lib/ui'
+import { useDemo } from '@/components/demo/DemoContext'
 
 export function DemoControl() {
     const { isEnabled, role, toggleDemo, setRole } = useDemo()
-    const [isExpanded, setIsExpanded] = useState(false)
 
     // Floating "Pill" Design
     return (
