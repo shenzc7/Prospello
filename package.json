@@ -1,7 +1,7 @@
 {
   "name": "okrflow",
   "version": "1.0.0",
-  "description": "Enterprise OKR Management Platform - Complete Objectives and Key Results tracking system with hierarchical goal alignment, real-time progress monitoring, and advanced analytics (updated)",
+  "description": "Enterprise OKR Management Platform - Complete Objectives and Key Results tracking system with hierarchical goal alignment, real-time progress monitoring, and advanced analytics",
   "main": "index.js",
   "directories": {
     "doc": "docs"

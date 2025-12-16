@@ -542,11 +542,25 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
   )
 }
 
+import { useDemo } from '@/components/demo/DemoContext'
+
 export function Dashboard() {
   const { data: session } = useSession()
   const user = session?.user
 
-  const userRole = (user?.role) as UserRole
+  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
+
+  const userRole = demoEnabled ? demoRole : (user?.role as UserRole)
+
+  const demoViewerEmail = useMemo(() => {
+    if (!demoEnabled) return null
+    switch (demoRole) {
+      case 'ADMIN': return 'avery@okrflow.demo'
+      case 'MANAGER': return 'david@okrflow.demo'
+      case 'EMPLOYEE': return 'alex@okrflow.demo'
+      default: return 'avery@okrflow.demo'
+    }
+  }, [demoEnabled, demoRole])
 
   const { data: checkInSummary } = useCheckInSummary()
   const showProductivityExtras = isFeatureEnabled('productivityWidgets')
@@ -576,20 +590,22 @@ export function Dashboard() {
 
     const objectives = objectivesData.objectives
 
-    if (!user) return [] // If no user, return empty array (no demo mode)
+    if (!user && !demoEnabled) return [] // If no user and not demo, return empty array
+
+    const effectiveId = demoEnabled ? (demoViewerEmail === 'avery@okrflow.demo' ? 'u-ceo' : demoViewerEmail === 'david@okrflow.demo' ? 'u-vp-eng' : 'u-ic-pm') : user?.id
 
     switch (userRole) {
       case 'ADMIN':
         return objectives
       case 'MANAGER':
         return objectives.filter(obj =>
-          obj.owner.id === user.id ||
+          obj.owner.id === effectiveId ||
           obj.team?.name?.includes('Team')
         )
       case 'EMPLOYEE':
-        return objectives.filter(obj => obj.owner.id === user.id)
+        return objectives.filter(obj => obj.owner.id === effectiveId)
       default:
-        return objectives.filter(obj => obj.owner.id === user.id) // Default to filtering by user's own objectives
+        return objectives.filter(obj => obj.owner.id === effectiveId)
     }
   }, [objectivesData?.objectives, user, userRole])
 
