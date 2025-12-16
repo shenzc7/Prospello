@@ -607,7 +607,7 @@ export function Dashboard() {
       default:
         return objectives.filter(obj => obj.owner.id === effectiveId)
     }
-  }, [objectivesData?.objectives, user, userRole])
+  }, [objectivesData?.objectives, user, userRole, demoEnabled, demoViewerEmail])
 
   const computedTeamHeatmap = useMemo(() => {
     const map = new Map<string, {
