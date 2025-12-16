@@ -25,7 +25,7 @@ const queryClient = new QueryClient({
 export function Providers({ children }: ProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <NextThemesProvider attribute="class" defaultTheme="light" forcedTheme="light" enableSystem={false}>
+      <NextThemesProvider attribute="class" defaultTheme="light" enableSystem={false}>
         <div className="relative flex min-h-screen flex-col">
           <AuthProvider>
             <TooltipProvider>

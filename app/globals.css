@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force light theme */
+html {
+    color-scheme: light;
+}
+
+/* Ensure light theme is always applied */
+html.dark {
+    color-scheme: light !important;
+}
+
 @layer base {
     :root {
         --background: 214 33% 98%;
