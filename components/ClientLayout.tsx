@@ -8,6 +8,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { buildNavItems } from '@/lib/navigation'
 import { AppHeader } from '@/components/navigation/AppHeader'
 import { DemoControl } from '@/components/demo/DemoControl'
+import { useDemo } from '@/components/demo/DemoContext'
 
 
 type ClientLayoutProps = {
@@ -28,7 +29,7 @@ const MemoizedHeader = memo(function MemoizedHeader({
   return <AppHeader user={user} navItems={navItems} envLabel={envLabel} />
 })
 
-import { useDemo } from '@/components/demo/DemoContext'
+
 
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
