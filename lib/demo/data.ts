@@ -1,749 +1,428 @@
+import { startOfQuarter, endOfQuarter, subDays, addDays, startOfWeek, endOfWeek, subWeeks, format } from 'date-fns'
+
 import type { Objective } from '@/hooks/useObjectives'
-import type { CheckInSummary } from '@/lib/checkin-summary'
+import type { CheckInSummary, SummaryKeyResult, ProgressHeatmapRow } from '@/lib/checkin-summary'
 import type { Comment } from '@/hooks/useComments'
 import type { AppNotification } from '@/hooks/useNotifications'
+import { calculateTrafficLightStatus, calculateObjectiveScore } from '@/lib/utils'
 
+// --- Types & Helpers ---
+
+const today = new Date()
+const qStart = startOfQuarter(today).toISOString()
+const qEnd = endOfQuarter(today).toISOString()
+const qLabel = `Q${Math.floor((today.getMonth() + 3) / 3)} ${today.getFullYear()}`
+
+// Roles
 export const demoUsers = [
-  { id: 'user-admin', name: 'Avery CEO', email: 'avery@okrflow.demo', role: 'ADMIN' },
-  { id: 'user-manager', name: 'Morgan Lead', email: 'morgan@okrflow.demo', role: 'MANAGER' },
-  { id: 'user-employee', name: 'Eden IC', email: 'eden@okrflow.demo', role: 'EMPLOYEE' },
-  { id: 'user-emea', name: 'Lea Ops', email: 'lea@okrflow.demo', role: 'MANAGER' },
-  { id: 'user-apac', name: 'Kenji PM', email: 'kenji@okrflow.demo', role: 'MANAGER' },
-  { id: 'user-data', name: 'Ravi Data', email: 'ravi@okrflow.demo', role: 'EMPLOYEE' },
-  { id: 'user-eng', name: 'Priya Eng', email: 'priya@okrflow.demo', role: 'EMPLOYEE' },
-  { id: 'user-sales', name: 'Diego AE', email: 'diego@okrflow.demo', role: 'EMPLOYEE' },
-  { id: 'user-latam', name: 'Sofia CS', email: 'sofia@okrflow.demo', role: 'EMPLOYEE' },
+  // Leadership
+  { id: 'u-ceo', name: 'Avery CEO', email: 'avery@okrflow.demo', role: 'ADMIN', avatar: 'AC' },
+  { id: 'u-vp-sales', name: 'Marcus Sales', email: 'marcus@okrflow.demo', role: 'MANAGER', avatar: 'MS' },
+  { id: 'u-vp-prod', name: 'Elena Product', email: 'elena@okrflow.demo', role: 'MANAGER', avatar: 'EP' },
+  { id: 'u-vp-eng', name: 'David Eng', email: 'david@okrflow.demo', role: 'MANAGER', avatar: 'DE' },
+  // Managers
+  { id: 'u-m-growth', name: 'Sarah Growth', email: 'sarah@okrflow.demo', role: 'MANAGER', avatar: 'SG' },
+  { id: 'u-m-platform', name: 'James Platform', email: 'james@okrflow.demo', role: 'MANAGER', avatar: 'JP' },
+  // ICs (The user personas)
+  { id: 'u-ic-prod', name: 'Alex PM', email: 'alex@okrflow.demo', role: 'EMPLOYEE', avatar: 'AP' },
+  { id: 'u-ic-eng', name: 'Sam Dev', email: 'sam@okrflow.demo', role: 'EMPLOYEE', avatar: 'SD' },
+  { id: 'u-ic-sales', name: 'Lisa AE', email: 'lisa@okrflow.demo', role: 'EMPLOYEE', avatar: 'LA' },
 ] as const
 
 export const demoTeams = [
-  {
-    id: 'team-gtm',
-    name: 'Growth',
-    members: [demoUsers[1], demoUsers[2], demoUsers[7]],
-  },
-  {
-    id: 'team-product',
-    name: 'Product',
-    members: [demoUsers[0], demoUsers[2], demoUsers[6]],
-  },
-  {
-    id: 'team-cs',
-    name: 'Customer Success',
-    members: [demoUsers[1]],
-  },
-  {
-    id: 'team-sales',
-    name: 'Sales',
-    members: [demoUsers[0], demoUsers[1], demoUsers[7]],
-  },
-  {
-    id: 'team-emea',
-    name: 'EMEA Expansion',
-    members: [demoUsers[3], demoUsers[8]],
-  },
-  {
-    id: 'team-apac',
-    name: 'APAC Growth',
-    members: [demoUsers[4], demoUsers[6]],
-  },
-  {
-    id: 'team-platform',
-    name: 'Platform & Data',
-    members: [demoUsers[5], demoUsers[6]],
-  },
-  {
-    id: 'team-support',
-    name: 'Support & LATAM',
-    members: [demoUsers[8]],
-  },
+  { id: 't-exec', name: 'Executive', members: [demoUsers[0], demoUsers[1], demoUsers[2], demoUsers[3]] },
+  { id: 't-sales', name: 'Sales', members: [demoUsers[1], demoUsers[8]] },
+  { id: 't-product', name: 'Product', members: [demoUsers[2], demoUsers[4], demoUsers[6]] },
+  { id: 't-eng', name: 'Engineering', members: [demoUsers[3], demoUsers[5], demoUsers[7]] },
+  { id: 't-growth', name: 'Growth', members: [demoUsers[4], demoUsers[6], demoUsers[8]] },
+  { id: 't-platform', name: 'Platform', members: [demoUsers[5], demoUsers[7]] },
 ]
 
-const today = new Date()
-const start = new Date(today.getFullYear(), 9, 1).toISOString()
-const end = new Date(today.getFullYear(), 11, 31).toISOString()
+// --- Generators ---
 
+// 1. Objectives & Hierarchy
+
+// Company Level
+const objCompany1: Objective = {
+  id: 'o-c-1',
+  title: 'Achieve $10M ARR Milestone',
+  description: 'Scale revenue through new market expansion and enterprise upsell.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'COMPANY',
+  progressType: 'AUTOMATIC',
+  progress: 72,
+  status: 'ON_TRACK', // mapped later
+  score: 0.72,
+  owner: demoUsers[0],
+  team: demoTeams[0],
+  parent: null,
+  children: [], // Populated later
+  keyResults: [
+    { id: 'kr-c-1-1', title: 'Reach $10M ARR', weight: 40, target: 10000000, current: 8500000, unit: 'USD', progress: 85, initiativeCount: 2 },
+    { id: 'kr-c-1-2', title: 'New Market Expansion (APAC)', weight: 30, target: 1000000, current: 450000, unit: 'USD', progress: 45, initiativeCount: 3 },
+    { id: 'kr-c-1-3', title: 'Enterprise Logo Retention > 95%', weight: 30, target: 95, current: 92, unit: '%', progress: 96, initiativeCount: 1 },
+  ],
+}
+
+const objCompany2: Objective = {
+  id: 'o-c-2',
+  title: 'World-Class Product Experience',
+  description: 'Deliver a seamless, high-performance experience to reduce churn.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'COMPANY',
+  progressType: 'AUTOMATIC',
+  progress: 58,
+  status: 'AT_RISK',
+  score: 0.58,
+  owner: demoUsers[2],
+  team: demoTeams[0],
+  parent: null,
+  children: [],
+  keyResults: [
+    { id: 'kr-c-2-1', title: 'Reduce Churn to < 5%', weight: 40, target: 5, current: 6.2, unit: '%', progress: 60, initiativeCount: 2 },
+    { id: 'kr-c-2-2', title: 'Raise NPS to 60', weight: 30, target: 60, current: 48, unit: 'score', progress: 50, initiativeCount: 2 },
+    { id: 'kr-c-2-3', title: 'Launch Mobile App', weight: 30, target: 100, current: 70, unit: '%', progress: 70, initiativeCount: 4 },
+  ],
+}
+
+// Team Level (Sales)
+const objTeamSales1: Objective = {
+  id: 'o-t-s-1',
+  title: 'Dominate Enterprise Market',
+  description: 'Secure 10 Fortune 500 logos.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'TEAM',
+  progressType: 'AUTOMATIC',
+  progress: 65,
+  status: 'ON_TRACK',
+  score: 0.65,
+  owner: demoUsers[1],
+  team: demoTeams[1],
+  parent: { id: objCompany1.id, title: objCompany1.title },
+  children: [],
+  keyResults: [
+    { id: 'kr-t-s-1-1', title: 'Close 10 Enterprise Deals', weight: 50, target: 10, current: 6, unit: 'deals', progress: 60, initiativeCount: 5 },
+    { id: 'kr-t-s-1-2', title: 'Generate $5M Pipeline', weight: 50, target: 5000000, current: 3500000, unit: 'USD', progress: 70, initiativeCount: 3 },
+  ],
+}
+
+// Team Level (Product)
+const objTeamProd1: Objective = {
+  id: 'o-t-p-1',
+  title: 'Revamp Onboarding Flow',
+  description: 'Improve activation rates for new signups.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'TEAM',
+  progressType: 'AUTOMATIC',
+  progress: 42,
+  status: 'AT_RISK', // Yellow
+  score: 0.42,
+  owner: demoUsers[4], // Sarah Growth (Product works with Growth)
+  team: demoTeams[2],
+  parent: { id: objCompany2.id, title: objCompany2.title },
+  children: [],
+  keyResults: [
+    { id: 'kr-t-p-1-1', title: 'Activation Rate > 40%', weight: 60, target: 40, current: 28, unit: '%', progress: 40, initiativeCount: 2 },
+    { id: 'kr-t-p-1-2', title: 'Reduce Time to Value < 2 days', weight: 40, target: 2, current: 3.5, unit: 'days', progress: 45, initiativeCount: 3 },
+  ],
+}
+
+// Team Level (Engineering)
+const objTeamEng1: Objective = {
+  id: 'o-t-e-1',
+  title: 'Scale Infrastructure 10x',
+  description: 'Prepare platform for enterprise load.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'TEAM',
+  progressType: 'AUTOMATIC',
+  progress: 88,
+  status: 'ON_TRACK',
+  score: 0.88,
+  owner: demoUsers[3],
+  team: demoTeams[3],
+  parent: { id: objCompany2.id, title: objCompany2.title },
+  children: [],
+  keyResults: [
+    { id: 'kr-t-e-1-1', title: '99.99% Uptime', weight: 50, target: 99.99, current: 99.95, unit: '%', progress: 90, initiativeCount: 1 },
+    { id: 'kr-t-e-1-2', title: 'Migrate to Kubernetes', weight: 50, target: 100, current: 85, unit: '%', progress: 85, initiativeCount: 2 },
+  ],
+}
+
+// Individual Level (IC Role - Alex PM)
+const objIcAlex1: Objective = {
+  id: 'o-i-a-1',
+  title: 'Launch Self-Serve Analytics',
+  description: 'Empower users to build their own reports.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'INDIVIDUAL',
+  progressType: 'AUTOMATIC',
+  progress: 30,
+  status: 'OFF_TRACK', // Red
+  score: 0.3,
+  owner: demoUsers[6], // Alex PM
+  team: demoTeams[2],
+  parent: { id: objTeamProd1.id, title: objTeamProd1.title },
+  children: [],
+  keyResults: [
+    { id: 'kr-i-a-1-1', title: 'Beta Release to 50 users', weight: 50, target: 50, current: 10, unit: 'users', progress: 20, initiativeCount: 4 },
+    { id: 'kr-i-a-1-2', title: 'Feature Adoption 20%', weight: 50, target: 20, current: 8, unit: '%', progress: 40, initiativeCount: 1 },
+  ],
+}
+
+// Individual Level (IC Role - Sam Dev)
+const objIcSam1: Objective = {
+  id: 'o-i-s-1',
+  title: 'Refactor Legacy API',
+  description: 'Improve response times and maintainability.',
+  cycle: qLabel,
+  startAt: qStart,
+  endAt: qEnd,
+  goalType: 'INDIVIDUAL',
+  progressType: 'AUTOMATIC',
+  progress: 92,
+  status: 'ON_TRACK',
+  score: 0.92,
+  owner: demoUsers[7], // Sam Dev
+  team: demoTeams[3],
+  parent: { id: objTeamEng1.id, title: objTeamEng1.title },
+  children: [],
+  keyResults: [
+    { id: 'kr-i-s-1-1', title: 'Reduce API Latency < 100ms', weight: 100, target: 100, current: 95, unit: 'ms', progress: 92, initiativeCount: 1 },
+  ],
+}
+
+// Link children
+objCompany1.children?.push({ id: objTeamSales1.id, title: objTeamSales1.title })
+objCompany2.children?.push({ id: objTeamProd1.id, title: objTeamProd1.title }, { id: objTeamEng1.id, title: objTeamEng1.title })
+objTeamProd1.children?.push({ id: objIcAlex1.id, title: objIcAlex1.title })
+objTeamEng1.children?.push({ id: objIcSam1.id, title: objIcSam1.title })
+
+function computeStatus(progress: number) {
+  if (progress >= 70) return 'DONE'
+  if (progress >= 40) return 'IN_PROGRESS'
+  return 'AT_RISK'
+}
+
+// Final List
 export const demoObjectives: Objective[] = [
+  objCompany1, objCompany2,
+  objTeamSales1, objTeamProd1, objTeamEng1,
+  objIcAlex1, objIcSam1
+].map(o => ({ ...o, status: computeStatus(o.progress) as any }))
+
+
+// 2. Check-ins & History
+// We generate a "Recent Check-in" history for the dashboard feed.
+// Ensure objectiveId is present !!
+
+export const demoRecentCheckIns = [
   {
-    id: 'obj-company-1',
-    title: 'Expand into 2 new markets',
-    description: 'Land lighthouse customers in APAC and EU',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'COMPANY',
-    progressType: 'AUTOMATIC',
-    progress: 63,
-    score: 0.7,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[0],
-    team: null,
-    parent: null,
-    children: [
-      { id: 'obj-team-1', title: 'Increase qualified pipeline 40%' },
-      { id: 'obj-team-2', title: 'Improve product onboarding' },
-    ],
-    keyResults: [
-      { id: 'kr-company-1', title: 'Signed ARR from new regions', weight: 40, target: 1000000, current: 620000, unit: 'USD', progress: 62, initiativeCount: 3 },
-      { id: 'kr-company-2', title: 'Regional NPS > 70', weight: 30, target: 70, current: 52, progress: 74, initiativeCount: 2 },
-      { id: 'kr-company-3', title: 'Partner pipeline sources 30%', weight: 30, target: 30, current: 18, progress: 60, initiativeCount: 1 },
-    ],
-    _count: { children: 2 },
+    id: 'ci-1',
+    keyResultId: 'kr-t-e-1-1',
+    keyResultTitle: '99.99% Uptime',
+    objectiveId: objTeamEng1.id,
+    objectiveTitle: objTeamEng1.title,
+    ownerName: 'David Eng',
+    ownerEmail: 'david@okrflow.demo',
+    status: 'GREEN' as const,
+    value: 99.95,
+    comment: 'Stable all week. No incidents.',
+    weekStart: subDays(new Date(), 2),
   },
   {
-    id: 'obj-team-1',
-    title: 'Increase qualified pipeline 40%',
-    description: 'Focus on PLG and outbound efficiency',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 72,
-    score: 0.78,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[1],
-    team: demoTeams[0],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [{ id: 'obj-ic-1', title: 'Launch ABM motion' }],
-    keyResults: [
-      { id: 'kr-team-1', title: 'Outbound reply rate 12%+', weight: 30, target: 12, current: 10.5, unit: '%', progress: 88, initiativeCount: 4 },
-      { id: 'kr-team-2', title: 'SQL to Opp conversion 35%', weight: 30, target: 35, current: 28, unit: '%', progress: 80, initiativeCount: 2 },
-      { id: 'kr-team-3', title: 'Pipeline coverage 4.5x', weight: 40, target: 4.5, current: 3.2, progress: 71, initiativeCount: 3 },
-    ],
-    _count: { children: 1 },
+    id: 'ci-2',
+    keyResultId: 'kr-c-2-1',
+    keyResultTitle: 'Reduce Churn to < 5%',
+    objectiveId: objCompany2.id,
+    objectiveTitle: objCompany2.title,
+    ownerName: 'Elena Product',
+    ownerEmail: 'elena@okrflow.demo',
+    status: 'YELLOW' as const,
+    value: 6.2,
+    comment: 'Churn ticked up slightly due to legacy pricing migration.',
+    weekStart: subDays(new Date(), 4),
   },
   {
-    id: 'obj-team-2',
-    title: 'Improve product onboarding',
-    description: 'Reduce time-to-value and activation drop-offs',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 58,
-    score: 0.64,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[0],
-    team: demoTeams[1],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [{ id: 'obj-ic-2', title: 'Optimize onboarding funnel' }],
-    keyResults: [
-      { id: 'kr-team-4', title: 'Activation rate 65%', weight: 40, target: 65, current: 52, unit: '%', progress: 80, initiativeCount: 2 },
-      { id: 'kr-team-5', title: 'Time to first value < 1 day', weight: 30, target: 1, current: 1.4, unit: 'days', progress: 60, initiativeCount: 2 },
-      { id: 'kr-team-6', title: 'Onboarding drop-off < 25%', weight: 30, target: 25, current: 33, unit: '%', progress: 64, initiativeCount: 1 },
-    ],
-    _count: { children: 1 },
+    id: 'ci-3',
+    keyResultId: 'kr-t-s-1-1',
+    keyResultTitle: 'Close 10 Enterprise Deals',
+    objectiveId: objTeamSales1.id,
+    objectiveTitle: objTeamSales1.title,
+    ownerName: 'Marcus Sales',
+    ownerEmail: 'marcus@okrflow.demo',
+    status: 'GREEN' as const,
+    value: 60,
+    comment: '2 big logos signed yesterday! On track.',
+    weekStart: subDays(new Date(), 1),
   },
   {
-    id: 'obj-team-3',
-    title: 'Reduce churn to <4%',
-    description: 'Improve adoption and renewals in top 50 accounts',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 66,
-    score: 0.74,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[1],
-    team: demoTeams[2],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [],
-    keyResults: [
-      { id: 'kr-team-7', title: 'NPS > 55', weight: 40, target: 55, current: 49, unit: 'score', progress: 89, initiativeCount: 2 },
-      { id: 'kr-team-8', title: 'Gross churn <4%', weight: 30, target: 4, current: 5.4, unit: '%', progress: 73, initiativeCount: 2 },
-      { id: 'kr-team-9', title: 'Adoption in top 50 accounts 70%', weight: 30, target: 70, current: 54, unit: '%', progress: 77, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-team-4',
-    title: 'Accelerate enterprise deals',
-    description: 'Land 3 enterprise wins and expand ACV',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 54,
-    score: 0.6,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[0],
-    team: demoTeams[3],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [],
-    keyResults: [
-      { id: 'kr-team-10', title: 'Enterprise ACV $1.5M', weight: 40, target: 1500000, current: 820000, unit: 'USD', progress: 55, initiativeCount: 3 },
-      { id: 'kr-team-11', title: 'Win rate 28%', weight: 30, target: 28, current: 21, unit: '%', progress: 75, initiativeCount: 2 },
-      { id: 'kr-team-12', title: 'Discovery-to-demo < 5 days', weight: 30, target: 5, current: 7, unit: 'days', progress: 60, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-ic-1',
-    title: 'Launch ABM motion',
-    description: 'Pilot ABM for top 50 accounts',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'INDIVIDUAL',
-    progressType: 'AUTOMATIC',
-    progress: 76,
-    score: 0.82,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[2],
-    team: demoTeams[0],
-    parent: { id: 'obj-team-1', title: 'Increase qualified pipeline 40%' },
-    children: [],
-    keyResults: [
-      { id: 'kr-ic-1', title: 'Target list coverage 95%', weight: 40, target: 95, current: 92, unit: '%', progress: 97, initiativeCount: 2 },
-      { id: 'kr-ic-2', title: 'Warm intro meetings 30', weight: 30, target: 30, current: 18, progress: 60, initiativeCount: 2 },
-      { id: 'kr-ic-3', title: 'ABM influenced pipeline $250k', weight: 30, target: 250000, current: 140000, progress: 56, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-ic-2',
-    title: 'Optimize onboarding funnel',
-    description: 'Increase guided onboarding completion',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'INDIVIDUAL',
-    progressType: 'AUTOMATIC',
-    progress: 48,
-    score: 0.52,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[2],
-    team: demoTeams[1],
-    parent: { id: 'obj-team-2', title: 'Improve product onboarding' },
-    children: [],
-    keyResults: [
-      { id: 'kr-ic-4', title: 'Guided onboarding completion 75%', weight: 50, target: 75, current: 48, unit: '%', progress: 64, initiativeCount: 2 },
-      { id: 'kr-ic-5', title: 'Time to aha moment 15 min', weight: 25, target: 15, current: 22, unit: 'minutes', progress: 68, initiativeCount: 1 },
-      { id: 'kr-ic-6', title: 'Onboarding CSAT 4.5', weight: 25, target: 4.5, current: 4.0, progress: 89, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-emea-1',
-    title: 'Stabilize EMEA onboarding',
-    description: 'Reduce churn and activation drop-offs across EU/MEA',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 49,
-    score: 0.55,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[3],
-    team: demoTeams[4],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [],
-    keyResults: [
-      { id: 'kr-emea-1', title: 'EU activation rate 70%', weight: 40, target: 70, current: 46, unit: '%', progress: 66, initiativeCount: 3 },
-      { id: 'kr-emea-2', title: 'Support response < 1h', weight: 30, target: 1, current: 1.6, unit: 'hours', progress: 42, initiativeCount: 2 },
-      { id: 'kr-emea-3', title: 'Churn <5% in MEA', weight: 30, target: 5, current: 7.2, unit: '%', progress: 39, initiativeCount: 2 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-apac-1',
-    title: 'Win APAC lighthouse accounts',
-    description: 'Enterprise wins in Singapore, Sydney, and Tokyo',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 61,
-    score: 0.68,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[4],
-    team: demoTeams[5],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [],
-    keyResults: [
-      { id: 'kr-apac-1', title: 'Signed ACV $750k', weight: 40, target: 750000, current: 420000, unit: 'USD', progress: 56, initiativeCount: 4 },
-      { id: 'kr-apac-2', title: 'APAC NPS > 65', weight: 30, target: 65, current: 58, progress: 78, initiativeCount: 2 },
-      { id: 'kr-apac-3', title: 'Local partner enablement 3', weight: 30, target: 3, current: 2, progress: 67, initiativeCount: 2 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-platform-1',
-    title: 'Platform reliability & AI signals',
-    description: 'Ship data platform to serve 100+ workspaces',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 57,
-    score: 0.61,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[5],
-    team: demoTeams[6],
-    parent: { id: 'obj-company-1', title: 'Expand into 2 new markets' },
-    children: [{ id: 'obj-ic-3', title: 'Harden data pipelines' }],
-    keyResults: [
-      { id: 'kr-platform-1', title: '99.9% uptime rolling 30d', weight: 40, target: 99.9, current: 99.4, unit: '%', progress: 74, initiativeCount: 3 },
-      { id: 'kr-platform-2', title: 'Latency P95 < 300ms', weight: 30, target: 300, current: 420, unit: 'ms', progress: 48, initiativeCount: 2 },
-      { id: 'kr-platform-3', title: 'AI check-in summaries GA', weight: 30, target: 1, current: 0.6, progress: 60, initiativeCount: 2 },
-    ],
-    _count: { children: 1 },
-  },
-  {
-    id: 'obj-support-1',
-    title: 'Bring LATAM support to green',
-    description: 'Reduce backlog and response times for Spanish/Portuguese queues',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 44,
-    score: 0.5,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[8],
-    team: demoTeams[7],
-    parent: { id: 'obj-team-3', title: 'Reduce churn to <4%' },
-    children: [],
-    keyResults: [
-      { id: 'kr-support-1', title: 'Ticket backlog < 80', weight: 30, target: 80, current: 126, progress: 35, initiativeCount: 2 },
-      { id: 'kr-support-2', title: 'CSAT > 4.6', weight: 35, target: 4.6, current: 4.2, progress: 70, initiativeCount: 2 },
-      { id: 'kr-support-3', title: 'First reply < 15m', weight: 35, target: 15, current: 22, unit: 'minutes', progress: 41, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-sales-2',
-    title: 'Enterprise renewals + upsell',
-    description: 'Retain top 50 and expand seats where value is proven',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'TEAM',
-    progressType: 'AUTOMATIC',
-    progress: 52,
-    score: 0.6,
-    status: 'IN_PROGRESS',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[7],
-    team: demoTeams[3],
-    parent: { id: 'obj-team-4', title: 'Accelerate enterprise deals' },
-    children: [],
-    keyResults: [
-      { id: 'kr-sales-1', title: 'Renewal rate 94%', weight: 40, target: 94, current: 90, unit: '%', progress: 82, initiativeCount: 2 },
-      { id: 'kr-sales-2', title: 'Upsell ACV $400k', weight: 30, target: 400000, current: 180000, unit: 'USD', progress: 45, initiativeCount: 3 },
-      { id: 'kr-sales-3', title: 'Time-to-close < 25d', weight: 30, target: 25, current: 32, unit: 'days', progress: 38, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
-  {
-    id: 'obj-ic-3',
-    title: 'Harden data pipelines',
-    description: 'Resolve nightly failures and scale event ingestion',
-    cycle: 'Q4-2024',
-    startAt: start,
-    endAt: end,
-    goalType: 'INDIVIDUAL',
-    progressType: 'AUTOMATIC',
-    progress: 38,
-    score: 0.45,
-    status: 'AT_RISK',
-    fiscalQuarter: 4,
-    createdAt: start,
-    owner: demoUsers[5],
-    team: demoTeams[6],
-    parent: { id: 'obj-platform-1', title: 'Platform reliability & AI signals' },
-    children: [],
-    keyResults: [
-      { id: 'kr-ic-7', title: 'Ingestion error rate <0.1%', weight: 40, target: 0.1, current: 0.35, unit: '%', progress: 32, initiativeCount: 2 },
-      { id: 'kr-ic-8', title: 'Backfill SLA < 2h', weight: 30, target: 2, current: 3.4, unit: 'hours', progress: 41, initiativeCount: 1 },
-      { id: 'kr-ic-9', title: 'Data quality alerts automated', weight: 30, target: 1, current: 0.5, progress: 50, initiativeCount: 1 },
-    ],
-    _count: { children: 0 },
-  },
+    id: 'ci-4',
+    keyResultId: 'kr-i-a-1-1',
+    keyResultTitle: 'Beta Release to 50 users',
+    objectiveId: objIcAlex1.id,
+    objectiveTitle: objIcAlex1.title,
+    ownerName: 'Alex PM',
+    ownerEmail: 'alex@okrflow.demo',
+    status: 'RED' as const,
+    value: 20,
+    comment: 'Blocked by authentication bug. Engineering investigating.',
+    weekStart: subDays(new Date(), 0), // Today
+  }
 ]
+
+// 3. Summaries & Heatmaps
 
 export const demoCheckInSummary: CheckInSummary = {
   hero: {
-    avgProgress: 66,
-    completionRate: 48,
-    atRiskObjectives: 18,
-    objectiveCount: 132,
-    scoreAverage: 0.72,
+    avgProgress: Math.round(demoObjectives.reduce((acc, o) => acc + o.progress, 0) / demoObjectives.length),
+    completionRate: 45,
+    atRiskObjectives: 2,
+    objectiveCount: demoObjectives.length,
+    scoreAverage: 0.65,
   },
   weeklySummary: {
-    onTrack: 68,
-    atRisk: 22,
-    offTrack: 9,
-    dueThisWeek: 26,
+    onTrack: 12,
+    atRisk: 5,
+    offTrack: 2,
+    dueThisWeek: 4,
   },
   teamHeatmap: [
-    { teamId: 'team-gtm', teamName: 'Growth', progress: 72, status: 'green', objectiveCount: 18, memberCount: 26 },
-    { teamId: 'team-product', teamName: 'Product', progress: 63, status: 'yellow', objectiveCount: 16, memberCount: 24 },
-    { teamId: 'team-platform', teamName: 'Platform & Data', progress: 57, status: 'yellow', objectiveCount: 14, memberCount: 18 },
-    { teamId: 'team-apac', teamName: 'APAC Growth', progress: 61, status: 'green', objectiveCount: 12, memberCount: 17 },
-    { teamId: 'team-emea', teamName: 'EMEA Expansion', progress: 49, status: 'yellow', objectiveCount: 9, memberCount: 14 },
-    { teamId: 'team-support', teamName: 'Support & LATAM', progress: 44, status: 'red', objectiveCount: 7, memberCount: 10 },
-    { teamId: 'team-sales', teamName: 'Sales', progress: 54, status: 'yellow', objectiveCount: 15, memberCount: 22 },
+    { teamId: 't-eng', teamName: 'Engineering', progress: 88, status: 'green', objectiveCount: 2, memberCount: 3 },
+    { teamId: 't-sales', teamName: 'Sales', progress: 65, status: 'yellow', objectiveCount: 1, memberCount: 2 },
+    { teamId: 't-product', teamName: 'Product', progress: 42, status: 'red', objectiveCount: 3, memberCount: 3 },
+    { teamId: 't-growth', teamName: 'Growth', progress: 70, status: 'green', objectiveCount: 1, memberCount: 3 },
   ],
   heatmap: [
+    // This drives the 'Pulse' view - taking a few KRs
     {
-      keyResultId: 'kr-team-1',
-      keyResultTitle: 'Outbound reply rate 12%+',
-      objectiveTitle: 'Increase qualified pipeline 40%',
-      ownerName: 'Morgan Lead',
+      keyResultId: 'kr-t-e-1-1',
+      keyResultTitle: '99.99% Uptime',
+      objectiveTitle: objTeamEng1.title,
+      ownerName: 'David Eng',
       weeklyProgress: [
-        { value: 72, status: 'green', date: new Date() },
-        { value: 68, status: 'yellow', date: new Date() },
-      ],
+        { value: 98, status: 'green', date: subWeeks(today, 3) },
+        { value: 99, status: 'green', date: subWeeks(today, 2) },
+        { value: 99.5, status: 'green', date: subWeeks(today, 1) },
+        { value: 99.95, status: 'green', date: today },
+      ]
     },
     {
-      keyResultId: 'kr-platform-2',
-      keyResultTitle: 'Latency P95 < 300ms',
-      objectiveTitle: 'Platform reliability & AI signals',
-      ownerName: 'Ravi Data',
+      keyResultId: 'kr-c-2-1',
+      keyResultTitle: 'Reduce Churn',
+      objectiveTitle: objCompany2.title,
+      ownerName: 'Elena Product',
       weeklyProgress: [
-        { value: 48, status: 'yellow', date: new Date() },
-        { value: 35, status: 'red', date: new Date() },
-      ],
-    },
-    {
-      keyResultId: 'kr-team-5',
-      keyResultTitle: 'Time to first value < 1 day',
-      objectiveTitle: 'Improve product onboarding',
-      ownerName: 'Avery CEO',
-      weeklyProgress: [
-        { value: 52, status: 'yellow', date: new Date() },
-        { value: 60, status: 'green', date: new Date() },
-      ],
-    },
-    {
-      keyResultId: 'kr-support-1',
-      keyResultTitle: 'Ticket backlog < 80',
-      objectiveTitle: 'Bring LATAM support to green',
-      ownerName: 'Sofia CS',
-      weeklyProgress: [
-        { value: 42, status: 'yellow', date: new Date() },
-        { value: 28, status: 'red', date: new Date() },
-      ],
-    },
-    {
-      keyResultId: 'kr-apac-1',
-      keyResultTitle: 'Signed ACV $750k',
-      objectiveTitle: 'Win APAC lighthouse accounts',
-      ownerName: 'Kenji PM',
-      weeklyProgress: [
-        { value: 56, status: 'yellow', date: new Date() },
-        { value: 63, status: 'green', date: new Date() },
-      ],
-    },
+        { value: 7.0, status: 'red', date: subWeeks(today, 3) },
+        { value: 6.8, status: 'red', date: subWeeks(today, 2) },
+        { value: 6.5, status: 'yellow', date: subWeeks(today, 1) },
+        { value: 6.2, status: 'yellow', date: today },
+      ]
+    }
   ],
   alignment: [
+    // Simplified tree for the alignment map
     {
-      id: 'obj-company-1',
-      title: 'Expand into 2 new markets',
-      progress: 63,
-      owner: 'Avery CEO',
+      id: objCompany1.id,
+      title: objCompany1.title,
+      progress: objCompany1.progress,
+      owner: objCompany1.owner.name,
       goalType: 'COMPANY',
       children: [
         {
-          id: 'obj-team-1',
-          title: 'Increase qualified pipeline 40%',
-          progress: 72,
-          owner: 'Morgan Lead',
+          id: objTeamSales1.id,
+          title: objTeamSales1.title,
+          progress: objTeamSales1.progress,
+          owner: objTeamSales1.owner.name,
+          goalType: 'TEAM',
+        }
+      ]
+    },
+    {
+      id: objCompany2.id,
+      title: objCompany2.title,
+      progress: objCompany2.progress,
+      owner: objCompany2.owner.name,
+      goalType: 'COMPANY',
+      children: [
+        {
+          id: objTeamEng1.id,
+          title: objTeamEng1.title,
+          progress: objTeamEng1.progress,
+          owner: objTeamEng1.owner.name,
           goalType: 'TEAM',
           children: [
-            {
-              id: 'obj-ic-1',
-              title: 'Launch ABM motion',
-              progress: 76,
-              owner: 'Eden IC',
-              goalType: 'INDIVIDUAL',
-            },
-          ],
+            { id: objIcSam1.id, title: objIcSam1.title, progress: objIcSam1.progress, owner: objIcSam1.owner.name, goalType: 'INDIVIDUAL' }
+          ]
         },
         {
-          id: 'obj-team-2',
-          title: 'Improve product onboarding',
-          progress: 58,
-          owner: 'Avery CEO',
+          id: objTeamProd1.id,
+          title: objTeamProd1.title,
+          progress: objTeamProd1.progress,
+          owner: objTeamProd1.owner.name,
           goalType: 'TEAM',
           children: [
-            {
-              id: 'obj-ic-2',
-              title: 'Optimize onboarding funnel',
-              progress: 48,
-              owner: 'Eden IC',
-              goalType: 'INDIVIDUAL',
-            },
-          ],
-        },
-        {
-          id: 'obj-platform-1',
-          title: 'Platform reliability & AI signals',
-          progress: 57,
-          owner: 'Ravi Data',
-          goalType: 'TEAM',
-        },
-        {
-          id: 'obj-team-3',
-          title: 'Reduce churn to <4%',
-          progress: 66,
-          owner: 'Morgan Lead',
-          goalType: 'TEAM',
-        },
-        {
-          id: 'obj-team-4',
-          title: 'Accelerate enterprise deals',
-          progress: 54,
-          owner: 'Avery CEO',
-          goalType: 'TEAM',
-        },
-        {
-          id: 'obj-emea-1',
-          title: 'Stabilize EMEA onboarding',
-          progress: 49,
-          owner: 'Lea Ops',
-          goalType: 'TEAM',
-        },
-        {
-          id: 'obj-apac-1',
-          title: 'Win APAC lighthouse accounts',
-          progress: 61,
-          owner: 'Kenji PM',
-          goalType: 'TEAM',
-        },
-        {
-          id: 'obj-support-1',
-          title: 'Bring LATAM support to green',
-          progress: 44,
-          owner: 'Sofia CS',
-          goalType: 'TEAM',
-        },
-      ],
-    },
+            { id: objIcAlex1.id, title: objIcAlex1.title, progress: objIcAlex1.progress, owner: objIcAlex1.owner.name, goalType: 'INDIVIDUAL' }
+          ]
+        }
+      ]
+    }
   ],
-  recentCheckIns: [
-    {
-      id: 'ci-1',
-      keyResultId: 'kr-team-1',
-      keyResultTitle: 'Outbound reply rate 12%+',
-      objectiveTitle: 'Increase qualified pipeline 40%',
-      ownerName: 'Morgan Lead',
-      ownerEmail: 'morgan@okrflow.demo',
-      status: 'GREEN',
-      value: 72,
-      comment: 'Great lift after new sequences',
-      weekStart: new Date(),
-    },
-    {
-      id: 'ci-2',
-      keyResultId: 'kr-ic-5',
-      keyResultTitle: 'Time to aha moment 15 min',
-      objectiveTitle: 'Optimize onboarding funnel',
-      ownerName: 'Eden IC',
-      ownerEmail: 'eden@okrflow.demo',
-      status: 'YELLOW',
-      value: 45,
-      comment: 'Need more guidance for new personas',
-      weekStart: new Date(),
-    },
-    {
-      id: 'ci-3',
-      keyResultId: 'kr-platform-2',
-      keyResultTitle: 'Latency P95 < 300ms',
-      objectiveTitle: 'Platform reliability & AI signals',
-      ownerName: 'Ravi Data',
-      ownerEmail: 'ravi@okrflow.demo',
-      status: 'RED',
-      value: 35,
-      comment: 'Spike after traffic doubled; mitigation in progress.',
-      weekStart: new Date(),
-    },
-    {
-      id: 'ci-4',
-      keyResultId: 'kr-support-1',
-      keyResultTitle: 'Ticket backlog < 80',
-      objectiveTitle: 'Bring LATAM support to green',
-      ownerName: 'Sofia CS',
-      ownerEmail: 'sofia@okrflow.demo',
-      status: 'YELLOW',
-      value: 42,
-      comment: 'Added weekend coverage; backlog trending down.',
-      weekStart: new Date(),
-    },
-    {
-      id: 'ci-5',
-      keyResultId: 'kr-apac-1',
-      keyResultTitle: 'Signed ACV $750k',
-      objectiveTitle: 'Win APAC lighthouse accounts',
-      ownerName: 'Kenji PM',
-      ownerEmail: 'kenji@okrflow.demo',
-      status: 'GREEN',
-      value: 63,
-      comment: 'Tokyo logo signed, Sydney legal in-flight.',
-      weekStart: new Date(),
-    },
-  ],
+  recentCheckIns: demoRecentCheckIns,
 }
 
 export const demoComments: Comment[] = [
   {
-    id: 'c1',
-    content: 'Risk flagged: onboarding drop-offs in week 2 cohort.',
-    objectiveId: 'obj-team-2',
-    keyResultId: 'kr-team-6',
-    createdAt: new Date().toISOString(),
-    user: demoUsers[0],
-  },
-  {
-    id: 'c2',
-    content: 'We need PMM support for APAC launch messaging.',
-    objectiveId: 'obj-company-1',
-    keyResultId: 'kr-company-1',
-    createdAt: new Date().toISOString(),
+    id: 'cm-1',
+    content: 'Are we on track for the enterprise features?',
+    objectiveId: objCompany1.id,
+    keyResultId: 'kr-c-1-3',
+    createdAt: subDays(today, 1).toISOString(),
     user: demoUsers[1],
   },
   {
-    id: 'c3',
-    content: 'Data latency breaches in EU nightly loads. Paging platform.',
-    objectiveId: 'obj-platform-1',
-    keyResultId: 'kr-platform-2',
-    createdAt: new Date().toISOString(),
-    user: demoUsers[5],
-  },
-  {
-    id: 'c4',
-    content: 'LATAM backlog dropping 12% week-over-week after shift changes.',
-    objectiveId: 'obj-support-1',
-    keyResultId: 'kr-support-1',
-    createdAt: new Date().toISOString(),
-    user: demoUsers[8],
-  },
+    id: 'cm-2',
+    content: 'Yes, engineering has shipped the beta APIs.',
+    objectiveId: objCompany1.id,
+    keyResultId: 'kr-c-1-3',
+    createdAt: subDays(today, 0).toISOString(),
+    user: demoUsers[3],
+  }
 ]
 
 export const demoNotifications: AppNotification[] = [
   {
-    id: 'n1',
-    userId: 'user-admin',
+    id: 'n-1',
+    userId: 'u-ic-prod',
     type: 'checkin',
-    message: 'Growth team weekly check-in due tomorrow',
+    message: 'Weekly check-in due for "Launch Self-Serve Analytics"',
     read: false,
     metadata: null,
-    createdAt: new Date().toISOString(),
+    createdAt: subDays(today, 1).toISOString(),
   },
   {
-    id: 'n2',
-    userId: 'user-manager',
-    type: 'objective',
-    message: 'New objective aligned: Optimize onboarding funnel',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n3',
-    userId: 'user-employee',
+    id: 'n-2',
+    userId: 'u-ic-prod',
     type: 'comment',
-    message: 'Avery commented on Partner pipeline sources 30%',
+    message: 'Elena commented on your Key Result',
     read: true,
     metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n4',
-    userId: 'user-manager',
-    type: 'reminder',
-    message: 'Churn reduction KR needs update before Friday',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n5',
-    userId: 'user-employee',
-    type: 'checkin',
-    message: 'ABM warm intro meetings updated to 18/30',
-    read: true,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n6',
-    userId: 'user-emea',
-    type: 'reminder',
-    message: 'EMEA activation below target. Review funnel steps.',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n7',
-    userId: 'user-apac',
-    type: 'objective',
-    message: 'Tokyo lighthouse account signed — update ACV in KR.',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n8',
-    userId: 'user-data',
-    type: 'comment',
-    message: 'Data latency spiked in EU. Mitigation runbook triggered.',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'n9',
-    userId: 'user-latam',
-    type: 'checkin',
-    message: 'LATAM backlog down 12% WoW after staffing changes.',
-    read: false,
-    metadata: null,
-    createdAt: new Date().toISOString(),
-  },
+    createdAt: subDays(today, 2).toISOString(),
+  }
 ]
 
-export const demoInitiatives = [
-  { id: 'init-1', keyResultId: 'kr-company-1', title: 'Close APAC lighthouse logo', status: 'IN_PROGRESS', createdAt: start, updatedAt: start },
-  { id: 'init-2', keyResultId: 'kr-company-1', title: 'EU channel partner shortlist', status: 'NOT_STARTED', createdAt: start, updatedAt: start },
-  { id: 'init-3', keyResultId: 'kr-team-4', title: 'Guided onboarding revamp', status: 'IN_PROGRESS', createdAt: start, updatedAt: start },
-  { id: 'init-4', keyResultId: 'kr-platform-2', title: 'Cache warmers for EU region', status: 'IN_PROGRESS', createdAt: start, updatedAt: start },
-  { id: 'init-5', keyResultId: 'kr-support-1', title: 'Weekend triage squad', status: 'IN_PROGRESS', createdAt: start, updatedAt: start },
-]
-
+export const demoInitiatives = [] // Can populate if needed
 export const demoNotificationSettings = {
   emailCheckInReminders: true,
   emailWeeklyDigest: true,
@@ -752,14 +431,3 @@ export const demoNotificationSettings = {
   pushObjectiveComments: true,
   pushDeadlineAlerts: true,
 }
-
-
-
-
-
-
-
-
-
-
-
