@@ -25,7 +25,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { isFeatureEnabled } from '@/config/features'
-import { useDemo } from '@/components/demo/DemoContext'
 import { useObjectives } from '@/hooks/useObjectives'
 import { HeatMap } from '@/components/analytics/HeatMap'
 import { useCheckInSummary } from '@/hooks/useCheckInSummary'
@@ -53,8 +52,7 @@ function StatCard({ title, value, description, icon }: { title: string; value: s
 export default function AdminPage() {
   const { data: session } = useSession()
   const role = session?.user?.role
-  const { isEnabled: demoEnabled } = useDemo()
-  const isAdmin = role === 'ADMIN' || demoEnabled
+  const isAdmin = role === 'ADMIN'
   const { toast } = useToast()
   const [cycle, setCycle] = useState('Q4 2024')
   const [isScoring, setIsScoring] = useState(false)
@@ -88,12 +86,6 @@ export default function AdminPage() {
 
   const handleFinalizeScores = async () => {
     try {
-      if (demoEnabled) {
-        toast('Demo mode', {
-          description: 'Scoring is simulated in demo mode.',
-        })
-        return
-      }
       setIsScoring(true)
       const res = await fetch(`/api/cron/scoring?cycle=${encodeURIComponent(cycle)}`, {
         method: 'POST',
@@ -117,10 +109,6 @@ export default function AdminPage() {
 
   const handleExport = async (format: 'pdf' | 'xlsx') => {
     try {
-      if (demoEnabled) {
-        toast('Demo mode', { description: 'Exports disabled in demo.' })
-        return
-      }
       const res = await fetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,9 +158,6 @@ export default function AdminPage() {
           </div>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-muted-foreground">Company OKRs, roles, cycles, and exports</p>
-          {demoEnabled && (
-            <p className="text-xs text-primary mt-1">Demo mode: read-only showcase with seeded admin data.</p>
-          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/users">
@@ -229,10 +214,10 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${hero.classes.bg} ${hero.classes.border} ${hero.classes.text}`}>
-                  <span className={`h-2 w-2 rounded-full bg-current`}></span>
-                  {hero.status.toUpperCase()}
-                </div>
+                  <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${hero.classes.bg} ${hero.classes.border} ${hero.classes.text}`}>
+                    <span className={`h-2 w-2 rounded-full bg-current`}></span>
+                    {hero.status.toUpperCase()}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {hero.total} active objectives • {hero.done} completed • {hero.atRisk} at risk
                   </div>

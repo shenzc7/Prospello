@@ -22,16 +22,16 @@ This guide walks a new engineer or administrator through the exact steps require
    npx prisma migrate dev
    npm run db:seed
    ```
-   The seed script provisions three demo accounts (admin/manager/employee) with passwords `Pass@123` inside the `TechFlow Solutions` org.
+   The seed script provisions three test accounts (admin/manager/employee) with passwords `Pass@123` inside the `GlobalTech International` org.
 5. **Launch the App**  
    ```bash
    npm run dev
    ```
-   Visit `http://localhost:3000` and log in as `admin@techflow.dev` to verify the dashboard, admin console, OKR board, and reports load successfully.
+   Visit `http://localhost:3000` and log in as `admin@globaltech.dev` to verify the dashboard, admin console, OKR board, and reports load successfully.
 
 ## 2. Administrator Flow (Single Owner → Invite Everyone Else)
 
-1. **Log in as the seeded admin** (`admin@techflow.dev`) and immediately set a unique password via the profile settings view (`/app/(app)/settings`).
+1. **Log in as the seeded admin** (`admin@globaltech.dev`) and immediately set a unique password via the profile settings view (`/app/(app)/settings`).
 2. **Configure Organization Settings** under `/app/(app)/admin`:
    - Update company name, slug, and domains to match the real organization.
    - Toggle feature flags in `config/features.ts` or use environment overrides.

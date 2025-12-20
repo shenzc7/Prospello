@@ -8,7 +8,6 @@ type FeatureKey =
   | 'userSwitcher'
   | 'themeToggle'
   | 'keyboardShortcuts'
-  | 'demoMode'
 
 const prdMode = process.env.NEXT_PUBLIC_PRD_MODE !== 'false'
 
@@ -23,8 +22,6 @@ const featureDefaults: Record<FeatureKey, boolean> = {
   userSwitcher: true,
   themeToggle: false,
   keyboardShortcuts: true,
-  // Hide demo controls by default; opt-in via NEXT_PUBLIC_ENABLE_DEMOMODE.
-  demoMode: false,
 }
 
 export function isFeatureEnabled(key: FeatureKey) {

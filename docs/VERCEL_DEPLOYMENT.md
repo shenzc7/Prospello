@@ -41,9 +41,9 @@ rm .env.production.local                # remove the file afterwards
 3. Apply migrations and seed data:
    ```bash
    npx prisma migrate deploy
-   npm run db:seed   # optional – creates the demo org + admin
+   npm run db:seed   # optional – creates the initial test org + admin
    ```
-4. If you seed production, immediately change the admin password and delete unused demo users.
+4. If you seed production, immediately change the admin password and delete unused test users.
 
 ## 4. Cron & Background Jobs
 
@@ -79,6 +79,6 @@ The script performs:
      -H "x-cron-secret: $CRON_SECRET"
    ```
 4. Monitor Vercel logs for background jobs and API routes.
-5. Remove any demo data left in production.
+5. Remove any test data left in production.
 
 When each step passes, the codebase is officially production-ready on Vercel.

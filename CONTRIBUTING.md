@@ -1370,7 +1370,6 @@ TEAMS_WEBHOOK_URL="https://outlook.office.com/webhook/YOUR/WEBHOOK/URL"
 # Add to .env.local to enable specific features in PRD mode
 NEXT_PUBLIC_ENABLE_APPEARANCE_SETTINGS="true"
 NEXT_PUBLIC_ENABLE_THEME_TOGGLE="true"
-NEXT_PUBLIC_ENABLE_DEMOMODE="true"
 
 # Or disable PRD mode entirely (enables everything)
 NEXT_PUBLIC_PRD_MODE="false"
@@ -1379,7 +1378,6 @@ NEXT_PUBLIC_PRD_MODE="false"
 #### Available Feature Flags
 - `NEXT_PUBLIC_ENABLE_APPEARANCE_SETTINGS`: Theme and language settings
 - `NEXT_PUBLIC_ENABLE_THEME_TOGGLE`: Light/dark mode toggle
-- `NEXT_PUBLIC_ENABLE_DEMOMODE`: Demo data and controls
 - `NEXT_PUBLIC_ENABLE_INTEGRATIONS`: External service placeholders
 - `NEXT_PUBLIC_ENABLE_USER_SWITCHER`: Role switching for testing
 
@@ -1428,28 +1426,6 @@ PUT /api/settings/notifications
   "notifyOnCheckins": false
 }
 ```
-
-### Demo Mode Configuration
-
-#### Setting Up Demo Data
-```bash
-# Enable demo mode
-NEXT_PUBLIC_ENABLE_DEMOMODE="true"
-
-# Seed demo data
-npm run db:seed
-
-# Demo accounts available:
-# Admin: admin@techflow.dev / Pass@123
-# Manager: manager@techflow.dev / Pass@123
-# Employee: me@techflow.dev / Pass@123
-```
-
-#### Demo Features
-- Pre-populated OKRs and teams
-- Simulated check-in data
-- Demo mode toggle in UI
-- Safe for testing without affecting real data
 
 ### Production Deployment Checklist
 

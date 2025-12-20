@@ -7,8 +7,6 @@ import { ReactNode, memo } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { buildNavItems } from '@/lib/navigation'
 import { AppHeader } from '@/components/navigation/AppHeader'
-import { DemoControl } from '@/components/demo/DemoControl'
-import { useDemo } from '@/components/demo/DemoContext'
 
 
 type ClientLayoutProps = {
@@ -34,7 +32,6 @@ const MemoizedHeader = memo(function MemoizedHeader({
 export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
-  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
 
   // Auth pages render without any layout chrome
   const isAuthPage = pathname?.startsWith('/login')
@@ -53,24 +50,20 @@ export function ClientLayout({ children, envLabel }: ClientLayoutProps) {
             <div className="h-4 w-96 bg-muted rounded" />
           </div>
         </main>
-        <DemoControl />
       </div>
     )
   }
 
   // Authenticated user - show full app layout
   if (session?.user) {
-    const effectiveRole = demoEnabled ? (demoRole as string) : session.user.role
-    const navItems = buildNavItems(effectiveRole)
-    const label = demoEnabled ? 'DEMO' : envLabel
+    const navItems = buildNavItems(session.user.role)
 
     return (
       <div className="min-h-screen bg-background">
-        <MemoizedHeader user={session.user} navItems={navItems} envLabel={label} />
+        <MemoizedHeader user={session.user} navItems={navItems} envLabel={envLabel} />
         <main className="mx-auto w-full max-w-screen-xl px-4 py-6 sm:px-6">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
-        <DemoControl />
       </div>
     )
   }

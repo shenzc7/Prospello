@@ -124,7 +124,7 @@ const envProviders = buildEnvProviders()
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as any,
   providers: envProviders,
   session: {
     strategy: 'jwt',

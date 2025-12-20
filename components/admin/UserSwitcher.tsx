@@ -13,11 +13,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useRouter } from 'next/navigation'
 import { isFeatureEnabled } from '@/config/features'
 
-// Demo users for testing (matches seed data)
-const demoUsers = [
+// Test users for development (matches seed data)
+const testUsers = [
   {
     id: 'admin-user',
-    email: 'admin@techflow.dev',
+    email: 'admin@globaltech.dev',
     password: 'Pass@123',
     name: 'Admin User',
     role: 'ADMIN' as const,
@@ -25,7 +25,7 @@ const demoUsers = [
   },
   {
     id: 'manager-user',
-    email: 'manager@techflow.dev',
+    email: 'manager@globaltech.dev',
     password: 'Pass@123',
     name: 'Manager User',
     role: 'MANAGER' as const,
@@ -33,7 +33,7 @@ const demoUsers = [
   },
   {
     id: 'employee-user',
-    email: 'me@techflow.dev',
+    email: 'me@globaltech.dev',
     password: 'Pass@123',
     name: 'Employee User',
     role: 'EMPLOYEE' as const,
@@ -82,7 +82,7 @@ export function UserSwitcher() {
     return null
   }
 
-  const handleUserSwitch = async (user: typeof demoUsers[0]) => {
+  const handleUserSwitch = async (user: typeof testUsers[0]) => {
     setIsSwitching(true)
 
     try {
@@ -154,7 +154,7 @@ export function UserSwitcher() {
                       <AvatarImage src={currentUser.image || ''} />
                       <AvatarFallback>
                         {currentUser.name?.split(' ').map(n => n[0]).join('') ||
-                         currentUser.email?.slice(0, 2).toUpperCase()}
+                          currentUser.email?.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -bottom-1 -right-1">
@@ -178,15 +178,14 @@ export function UserSwitcher() {
             <h4 className="text-sm font-medium mb-3">Available Accounts</h4>
             <ScrollArea className="h-64">
               <div className="space-y-2">
-                {demoUsers.map((user) => {
+                {testUsers.map((user) => {
                   const isCurrentUser = currentUser?.email === user.email
 
                   return (
                     <Card
                       key={user.id}
-                      className={`cursor-pointer transition-colors hover:bg-muted/50 ${
-                        isCurrentUser ? 'border-primary/20 bg-primary/5' : ''
-                      }`}
+                      className={`cursor-pointer transition-colors hover:bg-muted/50 ${isCurrentUser ? 'border-primary/20 bg-primary/5' : ''
+                        }`}
                       onClick={() => !isCurrentUser && handleUserSwitch(user)}
                     >
                       <CardContent className="p-3">
@@ -233,7 +232,7 @@ export function UserSwitcher() {
           {/* Footer */}
           <div className="text-xs text-muted-foreground space-y-1">
             <p>• Use this tool to test different user roles and permissions</p>
-            <p>• All demo accounts use password: Pass@123</p>
+            <p>• All test accounts use password: Pass@123</p>
             <p>• Changes are temporary and reset on refresh</p>
           </div>
         </div>

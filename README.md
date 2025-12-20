@@ -164,7 +164,7 @@ createdb okrflow
 # Apply database migrations (safe, non-destructive)
    npx prisma migrate dev
 
-# Populate with demo data for development
+# Populate with realistic data for development
    npm run db:seed
    ```
 
@@ -214,7 +214,7 @@ npx playwright test
 **First-Time Setup Validation:**
 ```bash
 # 1. Open http://localhost:3000
-# 2. Login with demo account: admin@techflow.dev / Pass@123
+# 2. Login with test account: admin@globaltech.dev / Pass@123
 # 3. Verify OKR creation and check-in functionality
 # 4. Test admin dashboard at /admin
 # 5. Confirm email notifications (if SMTP configured)
@@ -236,7 +236,6 @@ PRISMA_LOG_QUERIES="true"
 DISABLE_EMAIL_DELIVERY="true"
 
 # Enable development-specific features
-NEXT_PUBLIC_ENABLE_DEMOMODE="true"
 NEXT_PUBLIC_PRD_MODE="false"
 ```
 
@@ -298,14 +297,7 @@ npm run build --analyze
 // Permissions: Personal OKRs, check-ins, basic reporting
 ```
 
-**Demo Data Structure:**
-- **Organizations**: TechFlow Solutions (primary demo org)
-- **Teams**: Engineering, Product, Design, Marketing
-- **OKRs**: Pre-populated with realistic objectives and KRs
-- **Check-ins**: Historical data spanning multiple cycles
-- **Users**: Distributed across teams with appropriate roles
-
-## Configuration Management (`/.env.example`, `/config/`)
+### Configuration Management (`/.env.example`, `/config/`)
 
 ### Environment Variable Reference
 
@@ -410,7 +402,6 @@ NEXT_PUBLIC_PRD_MODE="false"                           # Enable all features in 
 NEXT_PUBLIC_ENABLE_ADMINEXTRAS="true"                 # Admin dashboard features
 NEXT_PUBLIC_ENABLE_BOARD_VIEW="true"                  # Kanban board interface
 NEXT_PUBLIC_ENABLE_NOTIFICATION_FEED="true"           # Real-time notifications
-NEXT_PUBLIC_ENABLE_DEMOMODE="true"                    # Demo data and controls
 NEXT_PUBLIC_ENABLE_USER_SWITCHER="true"               # Role switching for testing
 
 # UI Customization
@@ -776,7 +767,7 @@ npx prisma migrate dev
 npx prisma migrate deploy
 # Applies pending migrations to production database
 
-# Database seeding with demo data
+# Database seeding with initial test data
 npm run db:seed
 # Executes /prisma/seed.ts with TypeScript support
 
@@ -1435,9 +1426,6 @@ components/
 │   ├── admin-users-client.tsx   # User management interface
 │   ├── admin-users-row.tsx      # User table row component
 │   └── UserSwitcher.tsx         # Role-switching utility
-├── demo/                        # Development utilities
-│   ├── DemoProvider.tsx         # Demo data context
-│   └── DemoToggle.tsx           # Demo mode controls
 ├── brand/                       # Branding components
 │   └── Logo.tsx                 # Company logo component
 ├── board/                       # Kanban board components
@@ -1491,10 +1479,6 @@ lib/
 ├── orgSettings.ts               # Organization configuration
 ├── isoWeek.ts                   # ISO week calculation utilities
 ├── india.ts                     # Regional localization (India)
-├── demo/                        # Demo data and utilities
-│   ├── api.ts                   # Demo API responses
-│   ├── data.ts                  # Sample data generators
-│   └── state.ts                 # Demo state management
 ├── __tests__/                   # Unit test utilities
 │   ├── checkin-summary.test.ts  # Check-in logic tests
 │   └── rateLimit.test.ts        # Rate limiting tests

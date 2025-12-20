@@ -557,25 +557,10 @@ function AlignmentMap({ objectives, alignment }: { objectives: Objective[]; alig
   )
 }
 
-import { useDemo } from '@/components/demo/DemoContext'
-
 export function Dashboard() {
   const { data: session } = useSession()
   const user = session?.user
-
-  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
-
-  const userRole = demoEnabled ? demoRole : (user?.role as UserRole)
-
-  const demoViewerEmail = useMemo(() => {
-    if (!demoEnabled) return null
-    switch (demoRole) {
-      case 'ADMIN': return 'avery@okrflow.demo'
-      case 'MANAGER': return 'david@okrflow.demo'
-      case 'EMPLOYEE': return 'alex@okrflow.demo'
-      default: return 'avery@okrflow.demo'
-    }
-  }, [demoEnabled, demoRole])
+  const userRole = user?.role as UserRole
 
   const { data: checkInSummary } = useCheckInSummary()
   const showProductivityExtras = isFeatureEnabled('productivityWidgets')
@@ -602,27 +587,24 @@ export function Dashboard() {
   // Filter objectives based on user role for display
   const filteredObjectives = useMemo(() => {
     if (!objectivesData?.objectives) return objectivesData?.objectives ?? []
+    if (!user) return []
 
     const objectives = objectivesData.objectives
-
-    if (!user && !demoEnabled) return [] // If no user and not demo, return empty array
-
-    const effectiveId = demoEnabled ? (demoViewerEmail === 'avery@okrflow.demo' ? 'u-ceo' : demoViewerEmail === 'david@okrflow.demo' ? 'u-vp-eng' : 'u-ic-pm') : user?.id
 
     switch (userRole) {
       case 'ADMIN':
         return objectives
       case 'MANAGER':
         return objectives.filter(obj =>
-          obj.owner.id === effectiveId ||
+          obj.owner.id === user.id ||
           obj.team?.name?.includes('Team')
         )
       case 'EMPLOYEE':
-        return objectives.filter(obj => obj.owner.id === effectiveId)
+        return objectives.filter(obj => obj.owner.id === user.id)
       default:
-        return objectives.filter(obj => obj.owner.id === effectiveId)
+        return objectives.filter(obj => obj.owner.id === user.id)
     }
-  }, [objectivesData?.objectives, user, userRole, demoEnabled, demoViewerEmail])
+  }, [objectivesData?.objectives, user, userRole])
 
   const computedTeamHeatmap = useMemo(() => {
     const map = new Map<string, {
@@ -999,7 +981,7 @@ export function Dashboard() {
           )}
           <PersonalOKRsWidget
             objectives={filteredObjectives}
-            userEmail={demoEnabled ? demoViewerEmail : user?.email}
+            userEmail={user?.email}
             userRole={userRole}
           />
           {userRole !== 'ADMIN' && <ThisWeekCheckIns />}

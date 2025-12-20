@@ -22,7 +22,6 @@ import { featureFlags, isFeatureEnabled } from '@/config/features'
 import { fetchJSON } from '@/hooks/useObjectives'
 import { DEFAULT_NOTIFICATION_SETTINGS } from '@/lib/notificationSettings'
 import { mergeOrgSettings, defaultOrgLocaleSettings, type OrgLocaleSettings } from '@/lib/orgSettings'
-import { useDemo } from '@/components/demo/DemoContext'
 
 function ProfileSettings() {
   const { data: session } = useSession()
@@ -911,7 +910,7 @@ function AdminSettings() {
 
                 const t = toast.loading('Resetting and re-seeding database...');
                 try {
-                  const res = await fetchJSON('/api/admin/system/reset', { method: 'POST' });
+                  const res = await fetchJSON('/api/admin/system/reset', { method: 'POST' }) as { message?: string };
                   toast.success(res.message || 'Database reset successfully', { id: t });
                   setTimeout(() => window.location.reload(), 2000);
                 } catch (error: unknown) {
@@ -932,7 +931,6 @@ function AdminSettings() {
 export default function SettingsPage() {
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'ADMIN'
-  const { isEnabled: demoEnabled, role: demoRole } = useDemo()
   const params = useSearchParams()
   const showNotificationsTab = !featureFlags.prdMode || isFeatureEnabled('notificationFeed')
   const showAppearanceTab = isFeatureEnabled('appearanceSettings')
@@ -978,30 +976,6 @@ export default function SettingsPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Roles</p>
           <p className="text-sm font-semibold">Admin • Manager • Employee</p>
           <p className="text-xs text-muted-foreground">Role-based access and dashboards.</p>
-        </div>
-        <div className="rounded-xl border border-primary/50 bg-primary/5 p-4 shadow-soft space-y-3">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-primary">Demo mode</p>
-                <p className="text-sm font-semibold text-foreground">Showcase-ready data</p>
-                <p className="text-xs text-muted-foreground">
-                  Session only. Current view: {demoEnabled ? demoRole : 'off'}.
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Control</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Use the floating demo control button
-                </p>
-              </div>
-            </div>
-            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-              <p className="text-xs text-muted-foreground">
-                Demo mode is controlled via the floating control button in the bottom-right corner of the screen.
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 

@@ -170,13 +170,7 @@ type ObjectivesQueryOptions = {
   enabled?: boolean
 }
 
-import { useDemo } from '@/components/demo/DemoContext'
-import { useDemoData } from '@/hooks/useDemoData'
-
 export function useObjectives(params: ObjectivesQueryParams, options?: ObjectivesQueryOptions) {
-  const { isEnabled, role } = useDemo()
-  const { objectives: demoObjectives } = useDemoData(role)
-
   const query = new URLSearchParams()
   if (params.search) query.set('search', params.search)
   if (params.cycle) query.set('cycle', params.cycle)
@@ -188,70 +182,21 @@ export function useObjectives(params: ObjectivesQueryParams, options?: Objective
   if (typeof params.offset === 'number') query.set('offset', String(params.offset))
   const suffix = query.toString() ? `?${query.toString()}` : ''
 
-  const queryResult = useQuery<ObjectivesResponse, Error>({
+  return useQuery<ObjectivesResponse, Error>({
     queryKey: ['objectives', params],
     queryFn: () => fetchJSON(`/api/objectives${suffix}`),
-    enabled: (options?.enabled ?? true) && !isEnabled,
+    enabled: options?.enabled ?? true,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
   })
-
-  if (isEnabled) {
-    let filtered = [...demoObjectives]
-
-    if (params.status) {
-      filtered = filtered.filter(obj => obj.status === params.status)
-    }
-
-    if (params.teamId) {
-      filtered = filtered.filter(obj => obj.team?.id === params.teamId)
-    }
-
-    if (params.search) {
-      const q = params.search.toLowerCase()
-      filtered = filtered.filter(obj =>
-        obj.title.toLowerCase().includes(q) ||
-        obj.description?.toLowerCase().includes(q)
-      )
-    }
-
-    return {
-      ...queryResult,
-      data: {
-        objectives: filtered,
-        pagination: { total: filtered.length, limit: 100, offset: 0, hasMore: false }
-      },
-      isLoading: false,
-      isSuccess: true,
-    } as any
-  }
-
-  return queryResult
 }
 
 export function useObjective(id: string | undefined) {
-  const { isEnabled, role } = useDemo()
-  const { objectives: demoObjectives } = useDemoData(role)
-
-  const queryResult = useQuery<ObjectiveResponse, Error>({
+  return useQuery<ObjectiveResponse, Error>({
     queryKey: ['objective', id],
     queryFn: () => fetchJSON(`/api/objectives/${id}`),
-    enabled: Boolean(id) && !isEnabled,
+    enabled: Boolean(id),
   })
-
-  if (isEnabled && id) {
-    const found = demoObjectives.find(o => o.id === id)
-    if (found) {
-      return {
-        ...queryResult,
-        data: { objective: found },
-        isLoading: false,
-        isSuccess: true
-      } as any
-    }
-  }
-
-  return queryResult
 }
 
 type ObjectivePayload = {
@@ -340,66 +285,21 @@ export function useUserOptions(search: string) {
   })
 }
 
-import { TEAMS } from '@/hooks/useDemoData'
-
 export function useTeams(search: string) {
-  const { isEnabled } = useDemo()
-
   const query = new URLSearchParams()
   if (search) query.set('search', search)
   const suffix = query.toString() ? `?${query.toString()}` : ''
 
-  const queryResult = useQuery<{ teams: Array<{ id: string; name: string; members?: Array<{ id: string; name?: string | null; email: string; role: string }> }> }, Error>({
+  return useQuery<{ teams: Array<{ id: string; name: string; members?: Array<{ id: string; name?: string | null; email: string; role: string }> }> }, Error>({
     queryKey: ['teams', search],
     queryFn: () => fetchJSON(`/api/teams${suffix}`),
-    enabled: !isEnabled,
   })
-
-  if (isEnabled) {
-    return {
-      ...queryResult,
-      data: { teams: TEAMS },
-      isLoading: false,
-      isSuccess: true,
-    } as any
-  }
-
-  return queryResult
 }
 
 export function useTeam(id: string) {
-  const { isEnabled, role } = useDemo()
-  const { objectives } = useDemoData(role)
-
-  const queryResult = useQuery<{ team: { id: string; name: string; members: Array<{ id: string; name?: string | null; email: string; role: string }>; objectives: Array<{ id: string; title: string; status: string; progress: number }> } }, Error>({
+  return useQuery<{ team: { id: string; name: string; members: Array<{ id: string; name?: string | null; email: string; role: string }>; objectives: Array<{ id: string; title: string; status: string; progress: number }> } }, Error>({
     queryKey: ['team', id],
     queryFn: () => fetchJSON(`/api/teams/${id}`),
-    enabled: Boolean(id) && !isEnabled,
+    enabled: Boolean(id),
   })
-
-  if (isEnabled && id) {
-    const team = TEAMS.find(t => t.id === id)
-    if (team) {
-      const teamObjectives = objectives.filter(o => o.team?.id === id).map(o => ({
-        id: o.id,
-        title: o.title,
-        status: o.status,
-        progress: o.progress
-      }))
-
-      return {
-        ...queryResult,
-        data: {
-          team: {
-            ...team,
-            objectives: teamObjectives
-          }
-        },
-        isLoading: false,
-        isSuccess: true
-      } as any
-    }
-  }
-
-  return queryResult
 }

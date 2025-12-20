@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { toast } from 'sonner'
 
-import { useDemo } from '@/components/demo/DemoContext'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -65,7 +64,6 @@ function extractInvitation(body: unknown): InvitationResult | null {
 
 export function AdminInvitationsClient() {
   const { data: session } = useSession()
-  const { isEnabled: demoEnabled } = useDemo()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [invite, setInvite] = React.useState<InvitationResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -80,19 +78,13 @@ export function AdminInvitationsClient() {
     },
   })
 
-  const isAdmin = session?.user?.role === 'ADMIN' || demoEnabled
+  const isAdmin = session?.user?.role === 'ADMIN'
 
   const onSubmit = async (values: FormValues) => {
     setError(null)
     setIsSubmitting(true)
     setInvite(null)
     setCopied(false)
-
-    if (demoEnabled) {
-      toast.info('Demo mode is read-only. Disable demo to send invitations.')
-      setIsSubmitting(false)
-      return
-    }
 
     try {
       const res = await fetch('/api/invitations', {
@@ -229,7 +221,7 @@ export function AdminInvitationsClient() {
                 <Alert variant="destructive">{error}</Alert>
               ) : null}
 
-              <Button type="submit" disabled={isSubmitting || demoEnabled}>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Creating…' : 'Generate invite link'}
               </Button>
             </form>

@@ -7,7 +7,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { ClientLayout } from '@/components/ClientLayout'
 import AuthProvider from '@/components/auth/SessionProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { DemoProvider } from '@/components/demo/DemoContext'
 
 type ProvidersProps = {
   children: React.ReactNode
@@ -29,11 +28,9 @@ export function Providers({ children }: ProvidersProps) {
         <div className="relative flex min-h-screen flex-col">
           <AuthProvider>
             <TooltipProvider>
-              <DemoProvider>
-                <ClientLayout>
-                  {children}
-                </ClientLayout>
-              </DemoProvider>
+              <ClientLayout>
+                {children}
+              </ClientLayout>
             </TooltipProvider>
           </AuthProvider>
           <Toaster />

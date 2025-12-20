@@ -525,7 +525,7 @@
               <tr><td>Business logic</td><td><code>lib/</code></td><td>Auth, RBAC, progress calculation, scheduler, notifications, exporters, validations.</td></tr>
               <tr><td>DB schema</td><td><code>prisma/schema.prisma</code></td><td>Entities, enums, relationships, and constraints.</td></tr>
               <tr><td>Docs</td><td><code>docs/</code></td><td>API spec, onboarding, deployment checklist.</td></tr>
-              <tr><td>Route protection</td><td><code>middleware.ts</code></td><td>Redirects unauthenticated users; restricts admin routes; supports demo mode.</td></tr>
+              <tr><td>Route protection</td><td><code>middleware.ts</code></td><td>Redirects unauthenticated users and restricts admin routes.</td></tr>
             </tbody>
           </table>
         </section>
@@ -638,7 +638,7 @@
           <h2>Authentication & Tenancy</h2>
           <h3>Route protection</h3>
           <ul>
-            <li><code>middleware.ts</code> blocks unauthenticated users from non-public routes and restricts <code>/admin</code> to admins (unless demo mode cookie is enabled).</li>
+            <li><code>middleware.ts</code> blocks unauthenticated users from non-public routes and restricts <code>/admin</code> to admins.</li>
             <li>API routes typically use <code>getServerSession</code> with <code>authOptions</code> (<code>lib/auth.ts</code>).</li>
           </ul>
           <h3>Login options (SSO + credentials)</h3>

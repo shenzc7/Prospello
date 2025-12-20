@@ -6,13 +6,13 @@ import { useQuery } from '@tanstack/react-query'
 import { StatusChip } from '@/components/check-ins/StatusChip'
 import { strings } from '@/config/strings'
 
-type Item = { id: string; weekStart: string; value: number; status: 'GREEN'|'YELLOW'|'RED'; comment?: string|null }
+type Item = { id: string; weekStart: string; value: number; status: 'GREEN' | 'YELLOW' | 'RED'; comment?: string | null }
 
 async function fetchHistory(keyResultId: string) {
   const res = await fetch(`/api/check-ins?keyResultId=${encodeURIComponent(keyResultId)}`, { credentials: 'include', cache: 'no-store' })
   if (!res.ok) throw new Error('Failed to load history')
   const raw = await res.json()
-  // API responses use { ok, data }, but demo may return a direct object. Normalize both.
+  // Normalize response structure as API may return { ok, data } or a direct object.
   const payload = (raw && typeof raw === 'object' && 'data' in raw)
     ? (raw as { data: unknown }).data
     : raw

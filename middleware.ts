@@ -26,7 +26,6 @@ export default async function middleware(req: NextRequest) {
   }
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-  const demoMode = req.cookies.get('demoMode')?.value === '1'
 
   // Check if current route is public
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
@@ -36,11 +35,6 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
-  // Allow demo mode to bypass auth redirects
-  if (demoMode) {
-    return NextResponse.next()
-  }
-
   // Redirect unauthenticated users to login
   if (!token && !isPublicRoute) {
     const loginUrl = new URL('/login', req.url)
@@ -48,8 +42,8 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Check admin routes (allow demoMode cookie for showcase)
-  if (pathname.startsWith('/admin') && token?.role !== 'ADMIN' && !demoMode) {
+  // Check admin routes
+  if (pathname.startsWith('/admin') && token?.role !== 'ADMIN') {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
