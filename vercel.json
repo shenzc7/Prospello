@@ -9,16 +9,7 @@
       "memory": 1024
     }
   },
-  "crons": [
-    {
-      "path": "/api/cron/reminders?orgId=all",
-      "schedule": "0 9 * * 1-5"
-    },
-    {
-      "path": "/api/cron/scoring?orgId=all",
-      "schedule": "0 2 * * *"
-    }
-  ],
+  "crons": [],
   "rewrites": [
     {
       "source": "/api/(.*)",
