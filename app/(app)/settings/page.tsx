@@ -100,7 +100,7 @@ function ProfileSettings() {
             <div className="flex items-center gap-2">
               <Badge variant={
                 user?.role === 'ADMIN' ? 'default' :
-                user?.role === 'MANAGER' ? 'secondary' : 'outline'
+                  user?.role === 'MANAGER' ? 'secondary' : 'outline'
               }>
                 {user?.role || 'EMPLOYEE'}
               </Badge>
@@ -888,48 +888,39 @@ function AdminSettings() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-destructive/50 bg-destructive/5 shadow-soft">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Gauge className="h-5 w-5" />
-            Cycle Defaults
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Shield className="h-5 w-5" />
+            Danger Zone
           </CardTitle>
-          <CardDescription>Define default cycle name and finalize cadence</CardDescription>
+          <CardDescription>Actions that cannot be undone</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border">
-            <div className="space-y-1">
-              <Label>Default cycle label</Label>
-              <p className="text-xs text-muted-foreground">Shown in dashboards and admin actions</p>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border border-destructive/20 bg-background/50">
+            <div>
+              <Label className="text-destructive">Reset & Re-seed Database</Label>
+              <p className="text-xs text-muted-foreground">Clears all current data and re-seeds with 100+ high-quality enterprise users and OKRs.</p>
             </div>
-            <Input
-              className="w-48"
-              value={cycleDefault}
-              onChange={(e) => setCycleDefault(e.target.value)}
-              placeholder="e.g., Q4 2024"
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2">
             <Button
+              variant="destructive"
               size="sm"
-              disabled={savingCycle || !cycleDefault}
               onClick={async () => {
+                if (!confirm('CRITICAL ACTION: This will permanently DELETE all current data and re-seed the system with fresh enterprise-quality data. Are you absolutely sure?')) return;
+                if (!confirm('SECOND CONFIRMATION: Are you REALLY sure? This is irreversible.')) return;
+
+                const t = toast.loading('Resetting and re-seeding database...');
                 try {
-                  setSavingCycle(true)
-                  await fetchJSON('/api/settings/notifications', {
-                    method: 'PATCH',
-                    body: JSON.stringify({ defaultCycle: cycleDefault }),
-                  })
-                  toast.success('Cycle default saved')
+                  const res = await fetchJSON('/api/admin/system/reset', { method: 'POST' });
+                  toast.success(res.message || 'Database reset successfully', { id: t });
+                  setTimeout(() => window.location.reload(), 2000);
                 } catch (error: unknown) {
-                  const message = error instanceof Error ? error.message : 'Unable to save cycle default'
-                  toast.error(message)
-                } finally {
-                  setSavingCycle(false)
+                  const message = error instanceof Error ? error.message : 'Database reset failed';
+                  toast.error(message, { id: t });
                 }
               }}
             >
-              {savingCycle ? 'Saving…' : 'Save defaults'}
+              Reset Database
             </Button>
           </div>
         </CardContent>
@@ -958,7 +949,7 @@ export default function SettingsPage() {
           ? 'admin'
           : requestedTab === 'locale' && showOrgLocaleTab
             ? 'locale'
-          : 'profile'
+            : 'profile'
 
   return (
     <div className="space-y-8">

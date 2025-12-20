@@ -19,3 +19,6 @@ CREATE INDEX IF NOT EXISTS "objectives_goalType_idx" ON "objectives" ("goalType"
 
 
 
+
+
+

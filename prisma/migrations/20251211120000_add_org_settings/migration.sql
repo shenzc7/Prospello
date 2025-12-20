@@ -12,3 +12,6 @@ ADD COLUMN IF NOT EXISTS "settings" JSONB;
 
 
 
+
+
+
